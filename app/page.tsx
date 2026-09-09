@@ -49,8 +49,12 @@ const bridgeScript = String.raw`
 </scr` + `ipt>`;
 
 function buildPreviewDocument() {
-  return previewSource.includes("</body>")
-    ? previewSource.replace("</body>", `${bridgeScript}</body>`)
+  // The legacy source discusses literal </body> tags inside JavaScript
+  // comments. Replacing the first match injects markup into that script and
+  // breaks the srcdoc parser. Insert only before the document's final tag.
+  const bodyEnd = previewSource.lastIndexOf("</body>");
+  return bodyEnd >= 0
+    ? `${previewSource.slice(0, bodyEnd)}${bridgeScript}${previewSource.slice(bodyEnd)}`
     : `${previewSource}${bridgeScript}`;
 }
 
