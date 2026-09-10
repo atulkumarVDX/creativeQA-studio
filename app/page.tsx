@@ -15,6 +15,8 @@ import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Se
 
 type BridgeAsset = { name: string; compressedSize: number; uncompressedSize: number };
 
+const iframeBootstrap = `<script>window.global = window;</scr` + `ipt>`;
+
 const bridgeScript = String.raw`
 <script>
 (() => {
@@ -31,7 +33,7 @@ const bridgeScript = String.raw`
       }
       const zip = await JSZip.loadAsync(file);
       const entries = Object.values(zip.files).filter(entry => !entry.dir);
-      const exportEntry = entries.find(entry => /(^|\\/)export\\.json$/i.test(entry.name));
+      const exportEntry = entries.find(entry => /^export\.json$/i.test(entry.name.split("/").pop() || ""));
       if (!exportEntry) throw new Error("No export.json found inside this ZIP.");
       const exportData = JSON.parse(await exportEntry.async("string"));
       const assets = entries.map(entry => ({
@@ -52,10 +54,15 @@ function buildPreviewDocument() {
   // The legacy source discusses literal </body> tags inside JavaScript
   // comments. Replacing the first match injects markup into that script and
   // breaks the srcdoc parser. Insert only before the document's final tag.
-  const bodyEnd = previewSource.lastIndexOf("</body>");
+  const headStart = previewSource.indexOf("<head>");
+  const bootstrapAt = headStart >= 0 ? headStart + "<head>".length : -1;
+  const bootstrappedSource = bootstrapAt >= 0
+    ? `${previewSource.slice(0, bootstrapAt)}${iframeBootstrap}${previewSource.slice(bootstrapAt)}`
+    : `${iframeBootstrap}${previewSource}`;
+  const bodyEnd = bootstrappedSource.lastIndexOf("</body>");
   return bodyEnd >= 0
-    ? `${previewSource.slice(0, bodyEnd)}${bridgeScript}${previewSource.slice(bodyEnd)}`
-    : `${previewSource}${bridgeScript}`;
+    ? `${bootstrappedSource.slice(0, bodyEnd)}${bridgeScript}${bootstrappedSource.slice(bodyEnd)}`
+    : `${bootstrappedSource}${bridgeScript}`;
 }
 
 function SeverityIcon({ level }: { level: Severity }) {
