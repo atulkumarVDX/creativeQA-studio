@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { strFromU8, unzip } from "fflate";
 import {
   AlertTriangle, Archive, CheckCircle2, ChevronRight, CircleAlert,
   Download, FileSearch, Files, ImageIcon, Info, LoaderCircle,
@@ -9,44 +10,35 @@ import {
 import previewSource from "../legacy/turbo-preview-7.7.0.html?raw";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 
 type BridgeAsset = { name: string; compressedSize: number; uncompressedSize: number };
-
-const iframeBootstrap = `<script>window.global = window;</scr` + `ipt>`;
+const BRIDGE_TOKEN = "turbo-qa-preview-7.7.0";
 
 const bridgeScript = String.raw`
 <script>
 (() => {
-  window.addEventListener("message", async (event) => {
-    if (!event.data || event.data.type !== "tqa:load-package" || !event.data.file) return;
-    const file = event.data.file;
+  document.documentElement.dataset.tqaBridge = "ready";
+  window.addEventListener("message", (event) => {
+    if (!event.data || event.data.token !== "turbo-qa-preview-7.7.0" || event.data.type !== "tqa:load-package" || !event.data.buffer) return;
+    const file = new File([event.data.buffer], event.data.name || "package.zip", { type: event.data.mimeType || "application/zip" });
     try {
+      document.documentElement.dataset.tqaBridge = "received";
       const input = document.getElementById("fileInputZip");
       if (input) {
         const transfer = new DataTransfer();
         transfer.items.add(file);
         input.files = transfer.files;
         input.dispatchEvent(new Event("change", { bubbles: true }));
+        document.documentElement.dataset.tqaBridge = "dispatched";
       }
-      const zip = await JSZip.loadAsync(file);
-      const entries = Object.values(zip.files).filter(entry => !entry.dir);
-      const exportEntry = entries.find(entry => /^export\.json$/i.test(entry.name.split("/").pop() || ""));
-      if (!exportEntry) throw new Error("No export.json found inside this ZIP.");
-      const exportData = JSON.parse(await exportEntry.async("string"));
-      const assets = entries.map(entry => ({
-        name: entry.name,
-        compressedSize: Number(entry._data && entry._data.compressedSize || 0),
-        uncompressedSize: Number(entry._data && entry._data.uncompressedSize || 0)
-      }));
-      window.parent.postMessage({ type: "tqa:package-ready", exportData, assets, sourceFile: file.name }, "*");
     } catch (error) {
-      window.parent.postMessage({ type: "tqa:package-error", message: error && error.message ? error.message : String(error) }, "*");
+      document.documentElement.dataset.tqaBridge = "error";
+      window.parent.postMessage({ type: "tqa:preview-error", token: "turbo-qa-preview-7.7.0", message: error && error.message ? error.message : String(error) }, "*");
     }
   });
-  window.parent.postMessage({ type: "tqa:preview-ready" }, "*");
+  window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.7.0" }, "*");
 })();
 </scr` + `ipt>`;
 
@@ -54,15 +46,58 @@ function buildPreviewDocument() {
   // The legacy source discusses literal </body> tags inside JavaScript
   // comments. Replacing the first match injects markup into that script and
   // breaks the srcdoc parser. Insert only before the document's final tag.
-  const headStart = previewSource.indexOf("<head>");
-  const bootstrapAt = headStart >= 0 ? headStart + "<head>".length : -1;
-  const bootstrappedSource = bootstrapAt >= 0
-    ? `${previewSource.slice(0, bootstrapAt)}${iframeBootstrap}${previewSource.slice(bootstrapAt)}`
-    : `${iframeBootstrap}${previewSource}`;
-  const bodyEnd = bootstrappedSource.lastIndexOf("</body>");
+  // JSZip's bundled Promise fallback can select a MutationObserver from a
+  // different srcdoc realm. Force its MessageChannel fallback instead.
+  const observerProbe = "var r,n,e=t.MutationObserver||t.WebKitMutationObserver;if(e){";
+  const compatibleSource = previewSource.replace(observerProbe, "var r,n,e=null;if(e){");
+  const bodyEnd = compatibleSource.lastIndexOf("</body>");
   return bodyEnd >= 0
-    ? `${bootstrappedSource.slice(0, bodyEnd)}${bridgeScript}${bootstrappedSource.slice(bodyEnd)}`
-    : `${bootstrappedSource}${bridgeScript}`;
+    ? `${compatibleSource.slice(0, bodyEnd)}${bridgeScript}${compatibleSource.slice(bodyEnd)}`
+    : `${compatibleSource}${bridgeScript}`;
+}
+
+async function readPackage(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const entries = await new Promise<Record<string, Uint8Array>>((resolve, reject) => {
+    unzip(bytes, (cause, result) => cause ? reject(cause) : resolve(result));
+  });
+  const files = Object.entries(entries).filter(([name]) => !name.endsWith("/"));
+  const exportEntry = files.find(([name]) => name.split("/").pop()?.toLowerCase() === "export.json");
+  if (!exportEntry) throw new Error("No export.json found inside this ZIP.");
+  const exportData = JSON.parse(strFromU8(exportEntry[1]));
+  const assets: BridgeAsset[] = files.map(([name, data]) => ({
+    name,
+    compressedSize: data.byteLength,
+    uncompressedSize: data.byteLength,
+  }));
+  return { exportData, assets };
+}
+
+async function loadPreviewFile(frame: HTMLIFrameElement | null, file: File) {
+  if (!frame) return;
+  try {
+    const frameWindow = frame.contentWindow;
+    const input = frame.contentDocument?.getElementById("fileInputZip") as HTMLInputElement | null;
+    if (frameWindow && input) {
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      const changeEvent = input.ownerDocument.createEvent("Event");
+      changeEvent.initEvent("change", true, false);
+      input.dispatchEvent(changeEvent);
+      return;
+    }
+  } catch {
+    // Cross-realm access can be unavailable in hardened browsers; use messaging.
+  }
+  const buffer = await file.arrayBuffer();
+  frame.contentWindow?.postMessage({
+    type: "tqa:load-package",
+    token: BRIDGE_TOKEN,
+    name: file.name,
+    mimeType: file.type,
+    buffer,
+  }, "*", [buffer]);
 }
 
 function SeverityIcon({ level }: { level: Severity }) {
@@ -126,31 +161,31 @@ export default function Home() {
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data?.token !== BRIDGE_TOKEN) return;
       if (event.data?.type === "tqa:preview-ready") {
         setPreviewReady(true);
-        if (pendingFileRef.current) iframeRef.current?.contentWindow?.postMessage({ type: "tqa:load-package", file: pendingFileRef.current }, "*");
-      } else if (event.data?.type === "tqa:package-ready") {
-        try {
-          setSummary(analyzePackage(event.data.exportData, event.data.assets as BridgeAsset[], event.data.sourceFile));
-          setStatus("ready"); setError("");
-        } catch (cause) {
-          setStatus("error"); setError(cause instanceof Error ? cause.message : String(cause));
-        }
-      } else if (event.data?.type === "tqa:package-error") {
-        setStatus("error"); setError(event.data.message || "The package could not be analyzed.");
+        if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
+      } else if (event.data?.type === "tqa:preview-error") {
+        setError(event.data.message || "The package could not be opened in Preview.");
       }
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
   }, []);
 
-  const openPackage = (file?: File) => {
+  const openPackage = async (file?: File) => {
     if (!file) return;
     if (!/\.zip$/i.test(file.name)) { setError("Choose a ZIP export package."); setStatus("error"); return; }
     pendingFileRef.current = file;
     setSummary(null); setStatus("loading"); setError(""); setActiveTab("overview");
-    if (previewReady) iframeRef.current?.contentWindow?.postMessage({ type: "tqa:load-package", file }, "*");
+    if (previewReady) void loadPreviewFile(iframeRef.current, file);
+    try {
+      const packageData = await readPackage(file);
+      setSummary(analyzePackage(packageData.exportData, packageData.assets, file.name));
+      setStatus("ready"); setError("");
+    } catch (cause) {
+      setStatus("error"); setError(cause instanceof Error ? cause.message : String(cause));
+    }
   };
 
   const filteredFindings = useMemo(() => {
@@ -205,38 +240,41 @@ export default function Home() {
       ) : status === "loading" ? (
         <section className="loading-workspace"><LoaderCircle className="spin" /><strong>Opening package</strong><span>Building the creative index and running high-confidence checks…</span></section>
       ) : summary ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="workspace-tabs">
-          <div className="workspace-nav"><TabsList variant="line">
-            <TabsTrigger value="overview"><Sparkles /> Overview</TabsTrigger>
-            <TabsTrigger value="findings"><FileSearch /> Findings <span className="nav-count">{summary.findings.length}</span></TabsTrigger>
-            <TabsTrigger value="assets"><Files /> Assets <span className="nav-count">{summary.assets.length}</span></TabsTrigger>
-            <TabsTrigger value="preview"><ImageIcon /> Preview</TabsTrigger>
-          </TabsList><div className="scan-status"><CheckCircle2 /> Static analysis complete</div></div>
+        <div className="workspace-tabs">
+          <div className="workspace-nav"><div data-slot="tabs-list" className="native-tabs-list" role="tablist" aria-label="QA workspace">
+            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "overview" ? "active" : "inactive"} aria-selected={activeTab === "overview"} onClick={() => setActiveTab("overview")}><Sparkles /> Overview</button>
+            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "findings" ? "active" : "inactive"} aria-selected={activeTab === "findings"} onClick={() => setActiveTab("findings")}><FileSearch /> Findings <span className="nav-count">{summary.findings.length}</span></button>
+            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "assets" ? "active" : "inactive"} aria-selected={activeTab === "assets"} onClick={() => setActiveTab("assets")}><Files /> Assets <span className="nav-count">{summary.assets.length}</span></button>
+            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "preview" ? "active" : "inactive"} aria-selected={activeTab === "preview"} onClick={() => setActiveTab("preview")}><ImageIcon /> Preview</button>
+          </div><div className="scan-status"><CheckCircle2 /> Static analysis complete</div></div>
 
-          <TabsContent value="overview" className="workspace-content">
+          {activeTab === "overview" && <div role="tabpanel" className="workspace-content">
             <section className="summary-hero"><div><span className="eyebrow">PACKAGE SUMMARY</span><h1>{summary.creativeName}</h1><p>{issueCount ? `${issueCount} issue${issueCount === 1 ? "" : "s"} need review before handoff.` : "No errors or warnings were found by the current rule set."}</p></div><Button variant="outline" onClick={() => setActiveTab("findings")}>Review findings <ChevronRight /></Button></section>
             <section className="stat-grid"><Stat label="Artboards" value={summary.artboards.length} detail={summary.artboards.join(" · ")} /><Stat label="Content states" value={`${summary.tabCount} / ${summary.slideCount}`} detail="Tabs / named slides" /><Stat label="Text layers" value={summary.textLayerCount} detail="Checked for typography risks" /><Stat label="Package assets" value={summary.assets.length} detail={`${formatBytes(totalBytes)} uncompressed`} /></section>
             <section className="severity-grid">{(["error", "warning", "info"] as Severity[]).map(level => <button key={level} className={`severity-card ${level}`} onClick={() => { setSeverity(level); setActiveTab("findings"); }}><span><SeverityIcon level={level} /></span><strong>{count(summary.findings, level)}</strong><div><b>{level === "info" ? "Notes" : `${level[0].toUpperCase()}${level.slice(1)}s`}</b><small>{level === "error" ? "Confirmed package defects" : level === "warning" ? "Needs designer review" : "Risks and limitations"}</small></div><ChevronRight /></button>)}</section>
             <section className="overview-grid"><article className="panel"><div className="panel-heading"><span className="eyebrow">COVERAGE</span><h2>Current analysis</h2></div><div className="coverage-list">{["Turbo structure and required artboards", "Asset references and package inventory", "Copy presence across artboards", "Tab-wide element presence", "Spacing, defaults, superscript and kerning"].map(item => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</div></article><article className="panel next-panel"><span className="eyebrow">NEXT ANALYSIS LAYER</span><h2>Rendered geometry</h2><p>Cropped copy, hanging lines, alignment and screenshot batches will use the same state index after fonts and assets settle.</p><Badge variant="outline">Foundation ready</Badge></article></section>
-          </TabsContent>
+          </div>}
 
-          <TabsContent value="findings" className="workspace-content">
+          {activeTab === "findings" && <div role="tabpanel" className="workspace-content">
             <section className="page-title"><span className="eyebrow">CREATIVE ANALYSIS</span><h1>Findings</h1><p>Deterministic defects and review signals from the complete package structure.</p></section>
             <div className="toolbar"><label className="search-field"><Search /><input value={findingQuery} onChange={event => setFindingQuery(event.target.value)} placeholder="Search findings, layers, sizes…" /></label><div className="filter-group">{(["all", "error", "warning", "info"] as const).map(level => <button key={level} className={severity === level ? "active" : ""} onClick={() => setSeverity(level)}>{level === "all" ? "All" : level === "info" ? "Notes" : `${level[0].toUpperCase()}${level.slice(1)}s`}</button>)}</div></div>
             <div className="finding-list">{filteredFindings.length ? filteredFindings.map(finding => <article key={finding.id} className={`finding-row ${finding.severity}`}><div className="finding-icon"><SeverityIcon level={finding.severity} /></div><div className="finding-copy"><div className="finding-title"><strong>{finding.title}</strong><code>{finding.ruleId}</code></div><p>{finding.message}</p>{(finding.artboard || finding.tab || finding.slide || finding.layerName) && <div className="finding-location">{[finding.artboard, finding.tab, finding.slide, finding.layerName].filter(Boolean).map(value => <span key={value}>{value}</span>)}</div>}{finding.evidence && <small>{finding.evidence}</small>}</div><Badge variant="outline">{finding.confidence}</Badge></article>) : <div className="empty-results"><CheckCircle2 /><strong>No matching findings</strong><span>Adjust the search or severity filter.</span></div>}</div>
-          </TabsContent>
+          </div>}
 
-          <TabsContent value="assets" className="workspace-content">
+          {activeTab === "assets" && <div role="tabpanel" className="workspace-content">
             <section className="page-title"><span className="eyebrow">PACKAGE INVENTORY</span><h1>Assets</h1><p>Files, sizes, declared references, and potential package debris.</p></section>
             <div className="toolbar"><label className="search-field"><Search /><input value={assetQuery} onChange={event => setAssetQuery(event.target.value)} placeholder="Filter by filename, type, or status…" /></label></div>
             <div className="table-panel"><Table><TableHeader><TableRow><TableHead>Asset</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>References</TableHead><TableHead className="text-right">Size</TableHead></TableRow></TableHeader><TableBody>{filteredAssets.map(asset => <TableRow key={asset.name}><TableCell className="asset-name">{asset.name}</TableCell><TableCell>{asset.extension}</TableCell><TableCell><span className={`asset-status ${asset.status}`}>{asset.status}</span></TableCell><TableCell>{asset.referenceCount || "—"}</TableCell><TableCell className="text-right font-mono">{formatBytes(asset.uncompressedSize)}</TableCell></TableRow>)}</TableBody></Table></div>
-          </TabsContent>
+          </div>}
 
-          <TabsContent value="preview" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.7.0</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></TabsContent>
-        </Tabs>
+          {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.7.0</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></div>}
+        </div>
       ) : null}
 
-      <iframe ref={iframeRef} title="Turbo package preview" srcDoc={srcDoc} className={summary && activeTab === "preview" ? "preview-frame" : "analysis-frame"} />
+      <iframe ref={iframeRef} title="Turbo package preview" srcDoc={srcDoc} onLoad={() => {
+        setPreviewReady(true);
+        if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
+      }} className={summary && activeTab === "preview" ? "preview-frame" : "analysis-frame"} />
     </main>
   );
 }

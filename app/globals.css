@@ -102,6 +102,11 @@ button { cursor: pointer; }
 .workspace-nav [data-slot="tabs-trigger"] { height: 58px; padding: 0 3px; border-radius: 0; color: #8e9aa6; font-size: 14px; }
 .workspace-nav [data-slot="tabs-trigger"][data-state="active"] { color: #f4f7fa; }
 .workspace-nav [data-slot="tabs-trigger"]::after { bottom: 0 !important; background: #78f5cf; }
+.native-tabs-list { display: flex; align-items: center; }
+.native-tabs-list button { position: relative; display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; cursor: pointer; }
+.native-tabs-list button svg { width: 16px; height: 16px; }
+.native-tabs-list button::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 2px; opacity: 0; transition: opacity .18s ease; }
+.native-tabs-list button[data-state="active"]::after { opacity: 1; }
 .nav-count { display: inline-grid; min-width: 21px; height: 18px; place-items: center; padding: 0 5px; border-radius: 9px; background: #1b232c; color: #afbac4; font: 600 10px/18px var(--font-mono); }
 .scan-status { display: flex; align-items: center; gap: 7px; color: #8c98a4; font-size: 12px; }
 .scan-status svg { width: 16px; color: #78f5cf; }
