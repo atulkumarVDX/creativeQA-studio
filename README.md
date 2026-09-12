@@ -3,7 +3,7 @@
 Local-first creative validation and review workspace for VDX Turbo export packages.
 
 The application analyzes ZIP packages entirely in the browser, embeds the trusted
-Turbo Preview 7.7.0 renderer, and keeps the source preview artifact unchanged.
+Turbo Preview 7.7.1 renderer, and keeps the source preview artifact unchanged.
 
 ## Current foundation
 

@@ -1,0 +1,38 @@
+
+
+
+help me build strategy / planning to integrate following creative analysis tools -
+1. Alignment issues - The content should be well aligned in reference to its artboard canvas area, its hierarchy to the relative copy/ button. 
+2. Consistency in copy across all artboards in reference to its parent tab/slide/container.
+3. Proofread for spelling mistakes, extra spacing, non supported character, supperscript not applied etc.
+4. odd line breaks / hanging copy detection, reference indenting
+5. validation of elements across artboards - example in 970x546 tab3> has heading, subcopy, background image and a CTA, but the cta is missing in a specific artboard in tab3. key is that elements should be present inside tab but can or cannot be placed in same slide. 
+6. browser specific text render issues 
+7. identify optical kerning and provide one click switch to reflect metric kerning.
+8. Turbo Validation - layer naming, component structure, etc.
+9. tab names = title label in mobile expandable.
+10.assets library - filter assets with file size, assets validation embeded, video length check.
+11. generate screenshot for all tabs and slides across artborads or specific artboards.
+12.Show creative name
+13. cropped out copy -- text overflows out side the text container but its overflow hidden, so some part of copy is cropped out.
+14. check for default copy / buttons
+15. Mobile Exp use default view as small view (375px) with option to check 428px view
+16. check if the copy in the slide has matching references or not, there should be no duplicate or extra reference copy or extra reference marker attached to the main copy.
+
+
+during a convesation with chatGPT for brainstroming ideas, i was introduced to few already existing creative QC tools, a few names that came up:
+https://www.lynceapp.com/?utm_source=chatgpt.com
+https://www.creativeqa.com/?utm_source=chatgpt.com
+https://help.figma.com/hc/en-us/articles/15023193382935-Compare-changes-in-Dev-Mode?utm_source=chatgpt.com
+
+the idea is to bring the best of the Creative QC process in to make this tool a one stop destination for designers before they ship the package to production.
+
+
+Font issues:https://jira.exponential.com/browse/VDXST-1286
+
+
+
+Issues caused due to -
+border on cta frame was causing the text shift down.
+Indents not working
+layer validation -- dont hide hidden layer/layergroups

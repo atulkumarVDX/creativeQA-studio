@@ -1,0 +1,127 @@
+{
+  "$schema": "./rules.schema.json",
+  "schemaVersion": "0.1.0",
+  "status": "draft",
+  "enforcement": "advisory",
+  "description": "Authoring profiles and proposed validator checks. No production validation engine is installed by this registry. Patterns are canonical recommendations; observed plugin aliases must be handled separately.",
+  "normalization": {
+    "preserveRawName": true,
+    "excludedAncestorPrefix": ".",
+    "observedExportSuffixRemoved": " 2xl",
+    "pluginExcludedSuffix": " 2x",
+    "casePolicy": "Preserve template spelling; case-insensitive detection is a plugin behavior, not universal production proof.",
+    "identityScope": "source + owning component ID + owning parent ID + layer ID; normalized state keys are unique only among siblings"
+  },
+  "rules": [
+    {"id":"LS-001","title":"Identity and ancestry","severity":"error","basis":"proposed","stage":"source","check":"Manifest layer IDs are unique, parent references resolve to layers or the declared root sentinel, and ancestry is acyclic.","exclusions":"Duplicate display names are allowed under different parents.","repair":"Resolve malformed IDs/parent references through the exporter; do not rename artwork to mask identity errors."},
+    {"id":"LS-002","title":"Excluded subtrees","severity":"info","basis":"export-confirmed","stage":"source","check":"Retain dot-prefixed nodes for audit but exclude their entire subtree from the active export profile.","exclusions":"Saved visibility false is not equivalent to exclusion.","repair":"Review intended export eligibility before changing an exclusion prefix."},
+    {"id":"LS-003","title":"Name normalization ledger","severity":"info","basis":"export-confirmed","stage":"export","check":"Compare raw and normalized names; record LRP's trailing 2xl removal separately from structural changes.","exclusions":"Do not remove arbitrary suffixes or equate 2xl with the plugin's excluded 2x duplicate marker.","repair":"Select the matching exporter normalization profile and retain original names."},
+    {"id":"LS-004","title":"Contextual component matching","severity":"review","basis":"proposed","stage":"source","check":"Select a component profile by anchored name, node kind and owning context; unknown or ambiguous instances need review.","exclusions":"A permissive plugin substring match alone does not confirm a supported production component.","repair":"Use the intended template name or register a verified alternate profile."},
+    {"id":"LS-005","title":"Scoped state identity","severity":"warning","basis":"plugin-observed","stage":"source","check":"Accepted normalized state keys are unique among direct siblings of the same owner.","exclusions":"Repeated slide1 under separate categories or targets is valid.","repair":"Inspect duplicate IDs and paths; rename only an unintended duplicate state."},
+    {"id":"LS-006","title":"Control and state separation","severity":"warning","basis":"template-observed","stage":"source","check":"Collect state candidates only along the component profile's state paths, preserving controls and configuration in their own roles.","exclusions":"Dotter and Map generate content from data and require no authored slideN.","repair":"Restore the intended owner of the misplaced state or control."},
+    {"id":"LS-007","title":"Frame ownership","severity":"review","basis":"template-observed","stage":"source","check":"When a frame-derived profile is selected, resolve at most one direct frame shape as the geometry candidate.","exclusions":"Never use a descendant or neighboring component's frame as an automatic substitute.","repair":"Resolve duplicate direct frames against the intended template and keep the correct owner."},
+    {"id":"LS-008","title":"Component bounds policy","severity":"review","basis":"template-observed","stage":"source","check":"Choose bounds policy by component/profile; missing frame is advisory until its necessity is confirmed.","exclusions":"Category slides, Static Product slides, Color Picker slides, map image buttons and arbitrary artwork groups need no universal frame rule.","repair":"Use the intended profile and verify the compiler's actual geometry source."},
+    {"id":"LS-009","title":"Order and numbering","severity":"warning","basis":"plugin-observed","stage":"source","check":"Record Photoshop panel order and numeric state order separately; flag ambiguous duplicates or mixed sequence direction for review.","exclusions":"Ascending and descending panel sequences are both accepted by existing plugin tests; number gaps alone do not establish failure.","repair":"Confirm intended state order and layering before changing either."},
+    {"id":"LS-010","title":"State ownership and visibility","severity":"review","basis":"proposed","stage":"runtime","check":"Enumerate state paths within their owners, preserve persistent siblings, and verify initial/selected runtime state.","exclusions":"Comparison before/after surfaces may coexist; hidden saved states and closed Hotspots can be legitimate.","repair":"Correct the component state adapter using matched runtime behavior."},
+    {"id":"LS-011","title":"Wrapper and nesting support","severity":"review","basis":"plugin-observed","stage":"source","check":"Preserve wrappers and report when the selected consumer cannot discover all components or exceeds its supported nesting depth.","exclusions":"A tool limit is not a PSD or production-invalid verdict.","repair":"Extend discovery with an evidenced component path or use a verified supported arrangement."},
+    {"id":"LS-012","title":"Asset, action and feed references","severity":"warning","basis":"proposed","stage":"export","check":"Resolve referenced feeds, assets and action targets within their owning component/package; preserve data tokens.","exclusions":"Configuration filename layers, native text and vector shapes do not necessarily have corresponding raster PNGs.","repair":"Supply the matched data/asset or correct the documented reference without stripping its semantic token."}
+  ],
+  "components": [
+    {
+      "id":"rmGallery","canonicalNamePattern":"^rmGallery[0-9]*$","kind":"group","mode":"slides","basis":"sample-observed",
+      "statePaths":["slideN"],"recommendedChildPaths":["frame","slideN"],"observedControlPaths":["arrows/right","arrows/left","dots","slideProgress/progressBar","slideProgress/circularBar","buttonN"],
+      "evidence":{"source":"sample/creative/LaRoche/design_1.psb","path":["970x546","tabComponent","tab2","rmGallery"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-008","LS-009","LS-010","LS-011"],
+      "exceptions":["Controls are not universally mandatory.","Persistent gallery-level CTA differs from slide-owned CTA.","A frame on every slide is not a universal requirement."],
+      "runtimeStatus":"Historical RM/CTA issue evidence exists; matched live state traversal not evaluated in this pass."
+    },
+    {
+      "id":"colorPickerGallery","canonicalNamePattern":"^colorPickerGallery[0-9]*$","kind":"group","mode":"triggered-slides","basis":"template-observed",
+      "statePaths":["slideN"],"recommendedChildPaths":["frame","slideN","triggerN","triggerN/frame","triggerN/activeImage","triggerN/normalImage"],"observedControlPaths":["triggerN"],
+      "evidence":{"source":"sample/basetemplates/colorpicker.zip","path":["970x546","tabComponent","tab3","colorPickerGallery1"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-008","LS-010"],
+      "exceptions":["Check numeric trigger/slide correspondence only within this component; action binding remains proposed.","Slides in this template lack dedicated frame shapes."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"hotSpotGallery","canonicalNamePattern":"^hotSpotGallery[0-9]*$","kind":"group","mode":"triggered-slides","basis":"template-observed",
+      "statePaths":["slideN"],"recommendedChildPaths":["frame","slideN/frame","slideN/closeButton","triggerN/frame","triggerN/activeImage","triggerN/normalImage"],"observedControlPaths":["triggerN","slideN/closeButton","slideProgress"],
+      "evidence":{"source":"sample/basetemplates/hotspot.zip","path":["970x546","tabComponent","tab3","hotSpotGallery"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-010"],
+      "exceptions":["Root backdrop is not required by the supplied template.","Initial popup visibility and close behavior require runtime confirmation."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"categoryGallery","canonicalNamePattern":"^categoryGallery[0-9]*$","kind":"group","mode":"categorized","basis":"template-observed",
+      "statePaths":["home","categoryN","categoryN/slideN"],"recommendedChildPaths":["frame","home/frame","home/categoryN","categoryN/slideN","navBar"],"observedControlPaths":["home/categoryN","navBar/home","navBar/next","navBar/prev","navBar/title","arrows","slideProgress"],
+      "evidence":{"source":"sample/basetemplates/categoryGallery_Map.zip","path":["970x546","tabComponent","tab2","categoryGallery1"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-008","LS-010"],
+      "exceptions":["home/categoryN tiles are not root categoryN content states.","navBar/home is a shape control, not the home state.","No universal frame requirement inside category slides."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"view360","canonicalNamePattern":"^view360[0-9]*$","kind":"group","mode":"sequence","basis":"template-observed",
+      "statePaths":["sequence/cadreN"],"recommendedChildPaths":["frame","sequence","sequence/cadreN"],"observedControlPaths":["arrows/right","arrows/left"],
+      "evidence":{"source":"sample/basetemplates/360view.zip","path":["970x546","tabComponent","tab3","view360"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-009","LS-010"],
+      "exceptions":["No slideN requirement.","Timing, loop and drag direction require runtime evidence."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"comparisonSlider","canonicalNamePattern":"^comparisonSlider[0-9]*$","kind":"group","mode":"comparison","basis":"template-observed",
+      "statePaths":["before","after"],"recommendedChildPaths":["frame","before","after","dragIcon"],"observedControlPaths":["dragIcon","preloader/preloader.gif"],
+      "evidence":{"source":"sample/basetemplates/comparisonslider.zip","path":["970x546","tabComponent","tab3","rmGallery","slide1","comparisonSlider1"]},
+      "rules":["LS-004","LS-006","LS-007","LS-010","LS-011","LS-012"],
+      "exceptions":["State paths identify comparison surfaces, not an exclusive visibility contract.","Excluded video alternatives do not prove active video support."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"dotterGallery","canonicalNamePattern":"^dotterGallery[0-9]*$","kind":"group","mode":"data-template","basis":"template-observed",
+      "statePaths":[],"recommendedChildPaths":["frame","productTemplate","noData"],"observedControlPaths":["arrows/next","arrows/prev","dots","slideProgress"],
+      "evidence":{"source":"sample/basetemplates/dottergallery.zip","path":["970x546","tabComponent","tab2","dotterGallery1"]},
+      "rules":["LS-004","LS-006","LS-007","LS-008","LS-010","LS-012"],
+      "exceptions":["No authored slideN requirement; items are generated from data.","Resolve master/dotterGallery1/dataFile/dotterFeed.json by matching component instance.","Preserve feed tokens and nested product/retailer templates."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"locationMap","canonicalNamePattern":"^locationMap[0-9]*$","kind":"group","mode":"data-map","basis":"template-observed",
+      "statePaths":[],"recommendedChildPaths":["frame","data/data.json","pin","popup","loading","noData","default"],"observedControlPaths":["button","logo"],
+      "evidence":{"source":"sample/basetemplates/categoryGallery_Map.zip","path":["970x546","tabComponent","tab3","locationMap"]},
+      "rules":["LS-004","LS-006","LS-007","LS-008","LS-010","LS-012"],
+      "exceptions":["No authored slideN requirement.","button is a Smart Object and popup is a shape in this template; neither requires a group or live label."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"staticProductGallery","canonicalNamePattern":"^staticProductGallery[0-9]*$","kind":"group","mode":"slides","basis":"template-observed",
+      "statePaths":["slideN"],"recommendedChildPaths":["frame","slideN"],"observedControlPaths":["arrows","slideProgress","slideN/button1","slideN/button-jump1 [tabComponent-2]"],
+      "evidence":{"source":"sample/basetemplates/hotspot.zip","path":["970x546","tabComponent","tab1","CanvasDesign","staticProductGallery"]},
+      "rules":["LS-004","LS-005","LS-006","LS-007","LS-008","LS-010","LS-011","LS-012"],
+      "exceptions":["Nested Color Picker is plugin-observed only in this corpus.","Slides may lack a frame."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"nestedTabs","canonicalNamePattern":"^nestedTabs[0-9]*$","kind":"group","mode":"targets","basis":"plugin-observed",
+      "statePaths":["targetN","targetN/<nested-component>/<state>"],"recommendedChildPaths":["targetN"],"observedControlPaths":["triggerN","frame","slideProgress"],
+      "evidence":{"source":"/Users/atul/Documents/Photoshop Automation/textMaster/mereged/v2.0.7/tests/csm-nested-tabs.test.js","path":[]},
+      "rules":["LS-004","LS-005","LS-006","LS-010","LS-011"],
+      "exceptions":["No supplied active PSD template; required controls remain provisional.","Identical nested gallery names in separate targets are valid."],
+      "runtimeStatus":"not-evaluated"
+    },
+    {
+      "id":"textCTA","canonicalNamePattern":"^button[0-9]*$","kind":"group","mode":"container","basis":"export-confirmed",
+      "statePaths":[],"recommendedChildPaths":["frame","<type-layer>"],"observedControlPaths":[],
+      "evidence":{"source":"sample/creative/LaRoche/design_1.psb","path":["970x546","tabComponent","tab1","CanvasDesign","button"]},
+      "rules":["LS-004","LS-007","LS-008","LS-010"],
+      "exceptions":["Profile applies only to a group used as a live-text CTA; it does not apply to map image buttons or button-clientLogo.","Raw label name is arbitrary.","Frame-to-runtime-container promotion is historical/proposed mapping, not newly verified live output."],
+      "runtimeStatus":"Historical TR-002; current live runtime not evaluated."
+    },
+    {
+      "id":"ctvOttScenes","canonicalNamePattern":"^(ott_theme2_noqrcode|ctv_theme3_nophone|ctvott_theme2_noqrcode)$","kind":"group","mode":"scenes","basis":"template-observed",
+      "statePaths":["ScreenN"],"recommendedChildPaths":["video/video_ctvott.mp4","video/frame","Screen1/frame","Screen2/frame"],"observedControlPaths":["qrCodeConfig"],
+      "evidence":{"source":"sample/basetemplates/hotspot.zip","path":["ctv_theme3_QRCode_FHD","ctv_theme3_nophone"]},
+      "rules":["LS-002","LS-004","LS-006","LS-007","LS-010","LS-012"],
+      "exceptions":["Screen3 and qrCodeConfig are QR-theme-specific, not universal OTT requirements.","FrameN/StateN/SceneN aliases are plugin heuristics, not template-established production names.","Screen paths do not prescribe timing or exclusive visibility; shared overlays can persist."],
+      "runtimeStatus":"not-evaluated"
+    }
+  ]
+}

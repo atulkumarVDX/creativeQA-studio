@@ -7,21 +7,21 @@ import {
   Download, FileSearch, Files, ImageIcon, Info, LoaderCircle,
   PackageOpen, Search, ShieldCheck, Sparkles, Upload,
 } from "lucide-react";
-import previewSource from "../legacy/turbo-preview-7.7.0.html?raw";
+import previewSource from "../legacy/turbo-preview-7.7.1.html?raw";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 
 type BridgeAsset = { name: string; compressedSize: number; uncompressedSize: number };
-const BRIDGE_TOKEN = "turbo-qa-preview-7.7.0";
+const BRIDGE_TOKEN = "turbo-qa-preview-7.7.1";
 
 const bridgeScript = String.raw`
 <script>
 (() => {
   document.documentElement.dataset.tqaBridge = "ready";
   window.addEventListener("message", (event) => {
-    if (!event.data || event.data.token !== "turbo-qa-preview-7.7.0" || event.data.type !== "tqa:load-package" || !event.data.buffer) return;
+    if (!event.data || event.data.token !== "turbo-qa-preview-7.7.1" || event.data.type !== "tqa:load-package" || !event.data.buffer) return;
     const file = new File([event.data.buffer], event.data.name || "package.zip", { type: event.data.mimeType || "application/zip" });
     try {
       document.documentElement.dataset.tqaBridge = "received";
@@ -35,10 +35,10 @@ const bridgeScript = String.raw`
       }
     } catch (error) {
       document.documentElement.dataset.tqaBridge = "error";
-      window.parent.postMessage({ type: "tqa:preview-error", token: "turbo-qa-preview-7.7.0", message: error && error.message ? error.message : String(error) }, "*");
+      window.parent.postMessage({ type: "tqa:preview-error", token: "turbo-qa-preview-7.7.1", message: error && error.message ? error.message : String(error) }, "*");
     }
   });
-  window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.7.0" }, "*");
+  window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.7.1" }, "*");
 })();
 </scr` + `ipt>`;
 
@@ -202,7 +202,7 @@ export default function Home() {
 
   const downloadReport = () => {
     if (!summary) return;
-    const report = { generatedAt: new Date().toISOString(), previewEngine: "7.7.0", ...summary };
+    const report = { generatedAt: new Date().toISOString(), previewEngine: "7.7.1", ...summary };
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
@@ -220,7 +220,7 @@ export default function Home() {
         <div className="brand-lockup"><span className="brand-mark" aria-hidden="true"><span /></span><div><strong>Turbo QA Studio</strong><span>Creative preflight</span></div></div>
         <div className="creative-context">{summary ? <><span>CREATIVE</span><strong>{summary.creativeName}</strong><small>{summary.sourceFile}</small></> : <span>NO PACKAGE OPEN</span>}</div>
         <div className="header-actions">
-          <Badge variant="outline" className="engine-badge">Preview engine 7.7.0</Badge>
+          <Badge variant="outline" className="engine-badge">Preview engine 7.7.1</Badge>
           {summary && <Button variant="outline" onClick={downloadReport}><Download /> Report</Button>}
           <Button onClick={() => fileInputRef.current?.click()}><PackageOpen /> {summary ? "Replace package" : "Open package"}</Button>
         </div>
@@ -267,7 +267,7 @@ export default function Home() {
             <div className="table-panel"><Table><TableHeader><TableRow><TableHead>Asset</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>References</TableHead><TableHead className="text-right">Size</TableHead></TableRow></TableHeader><TableBody>{filteredAssets.map(asset => <TableRow key={asset.name}><TableCell className="asset-name">{asset.name}</TableCell><TableCell>{asset.extension}</TableCell><TableCell><span className={`asset-status ${asset.status}`}>{asset.status}</span></TableCell><TableCell>{asset.referenceCount || "—"}</TableCell><TableCell className="text-right font-mono">{formatBytes(asset.uncompressedSize)}</TableCell></TableRow>)}</TableBody></Table></div>
           </div>}
 
-          {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.7.0</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></div>}
+          {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.7.1</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></div>}
         </div>
       ) : null}
 
