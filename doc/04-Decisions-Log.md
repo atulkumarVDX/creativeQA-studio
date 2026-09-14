@@ -1,9 +1,11 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source) · `turbo_preview_artifact_7_6_2.html` @ **v7.6.2 baseline** · `turbo_preview_artifact_7_5_6.html` @ **v7.5.6 baseline** · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-09
+**Doc version:** 1.5.0
+**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_7_6_2.html` @ **v7.6.2 baseline** · `turbo_preview_artifact_7_5_6.html` @ **v7.5.6 baseline** · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
+**Last updated:** 2026-09-13
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
+
+**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
 
 ---
 
@@ -295,6 +297,32 @@ This is the sole scoped exception to D028 and is formally released/documented as
 `getShapeClipPath()` contains an undocumented fallback already present in the preserved v7.6.0 source. It triggers only when a shape's `keyOriginType[]` includes `keyShapeInvalidated: true` and rendered width/height are nonzero. In that descriptor state, exported path points are absent, so the renderer reconstructs the production-supplied 106×28 pill path: curved shoulders remain constant while the flat center stretches or contracts with label width.
 
 This is confirmed against real package data: the COSENTYX DTC export marks `tab1_active`, `tab2_normal`, and `tab3_normal` with repeated `keyShapeInvalidated: true` entries and supplies no authored point list. The fallback remains signal-driven rather than name-driven; ordinary shapes still use their exported radius/rectangular treatment.
+
+---
+
+## D046 — Reconcile supplied capture source with the documentation baseline
+
+The confirmed latest input is `turbo-preview-7_7_1_3.html` from Downloads. It declares `PREVIEW_BUILD = "7.7.1"`; the existing documentation described a 7.7.0 baseline. The supplied conversation describes later tolerant capture that is absent from this input. Neither the filename suffix nor conversation is sufficient to reconstruct a release history.
+
+**Decision:** preserve the exact input at `preview/turbo-preview-7_7_1_3.html`, retain existing 7.7.0/7.7.1 files, and identify the new user-facing capture capability as 7.8.0. Historical document sections remain labeled as baselines, with explicit screenshot addenda and a dedicated current specification. Do not retrospectively label all intervening changes. D045 remains unassigned.
+
+## D047 — Harden preview screenshots and separate completeness from fidelity (7.8.0)
+
+**Decision:** keep local capture with embedded html-to-image and JSZip; add all/selected-size planning, safe unique paths, tolerant/complete-asset policies, package resource handling, used-font/text readiness, PNG dimension checks, complete outcome manifests, memory/wait budgets, cancellation, affected-state retry, retained download, and a visible issue report. Keep live font links attached. QA Studio imports 7.8.0 and follows its capture busy state. Package buffers construct their File and input event inside the iframe, and a ping/ready handshake covers early srcdoc loading.
+
+A missing shared disclaimer image must not erase every PNG in tolerant mode; every omission remains an incomplete capture rather than an inferred decorative exception. Conversion timeouts end scheduling because the embedded converter cannot be aborted. Video snapshots force a zero-time seek and presentation waits; transparent or unreadable decoded frames are warnings or policy failures, never unqualified success.
+
+**Validation:** twelve production-function and iframe-bridge tests pass. Generated browser fixtures verify modeled-state coverage, original mobile-expandable dimensions, PNG retry/nested assets, tolerant and complete-asset outcomes, selected scope, subset retry, cancellation accounting, and ZIP CRC/dimension/pixel roundtrip. Broader browser/font/production parity remains a release gate, documented in `08-Screenshot-Capture-Tool.md` and `09-Screenshot-Capture-Analysis.md`. A production Playwright service is specified as proposed work and is not implemented.
+
+---
+
+## D048 — Correct capture diagnostics, defaults and video timing (7.8.0 follow-up)
+
+**Evidence:** the user's manifest had 53 exported PNGs, all degraded, with zero failed jobs. Repeated template-path, inherited-font and Text QA warnings obscured actual capture coverage.
+
+**Decision:** restore default 2×; seek videos at 5 seconds or just inside the end of short clips and record seek metadata; resolve `$LOC$assets/` against canonical export-root assets with exact/unique fallbacks; inspect fonts only on direct text nodes; keep Text QA notices separate from capture completeness. Only jobs without PNGs enter the failures file; warnings and notices use a separate file. Simplify and theme the capture dialog. Latest source remains 7.8.0, corrected in place.
+
+**Validation:** the related SPIRIVA sample exported 52/52 states at 2× in tolerant and strict modes with zero capture failures or asset warnings, all PNG dimensions and ZIP CRCs verified; 135 Text QA notices were preserved. The supplied 53-state revision itself was not available as an exact matching ZIP.
 
 ---
 

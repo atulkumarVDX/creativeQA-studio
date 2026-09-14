@@ -1,9 +1,11 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source). `index.html`/`preview.js` (Standalone, v1.0.0) has a much plainer, unthemed UI — differences called out inline where relevant.
-**Last updated:** 2026-09-09
+**Doc version:** 1.5.0
+**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline). `index.html`/`preview.js` (Standalone, v1.0.0) has a much plainer, unthemed UI — differences called out inline where relevant.
+**Last updated:** 2026-09-13
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
+
+**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
 
 ---
 
@@ -126,3 +128,10 @@ A few pixel-level values look arbitrary but encode confirmed production measurem
 - `WIDE_BENTO_MIN_WIDTH = 1988` (v7.6.0) — the single source that selects `wide-bento` versus `compact-bento`; CSS styles those classes without duplicating the numeric breakpoint.
 
 If a real production package ever needs a different value here, that's a new Decisions Log entry with evidence, not a silent constant tweak.
+
+
+## Screenshot capture addendum — 7.8.0
+
+The preview toolbar offers output resolution (default 2×) and Screenshots. Screenshots opens a native modal with size scope, missing-asset policy, and planned frame count. All package sizes and capture-with-warnings are the defaults. Capture ZIP shows a polite live progress region and Cancel capture. Package replacement is disabled during preparation, capture, and ZIP generation.
+
+The result shows explicit captured/incomplete/failed/not-captured counts, an expandable Capture report, Download ZIP, and Retry affected frames when applicable. Cancelled archives require an explicit download. Retry outputs are separate subset archives. Full user journeys, accessibility behavior, and result semantics are documented in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md).

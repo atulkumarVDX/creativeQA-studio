@@ -1,9 +1,11 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-09
+**Doc version:** 1.5.0
+**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
+**Last updated:** 2026-09-13
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
+
+**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
 
 ---
 
@@ -207,3 +209,12 @@ Current Artifact QA/UI markers: `scanPackageKerningRisks` supplies the package-w
 3. `index.html`/`preview.js` and `turbo_preview_artifact_5.html` are missing the fixes listed in §5's "known gap" cells — most notably D005 (invisible text on float-color descriptors) and D010/D022 (stale-layout-on-font-swap class of bugs), which are silent-failure-mode bugs, not cosmetic ones.
 4. No automated test coverage of any kind was found for any of the three files.
 5. The ISI `titleAtTop` set (`970x546`, `mobile-instream`; explicitly excluding `970x250`) is code-confirmed and consistent with available package structures, but this pass did not locate a served-production capture proving the complete per-size placement rule. Do not broaden the set or log it as fully evidence-confirmed until that reference exists.
+
+
+## Screenshot capture addendum — 7.8.0
+
+The delivered standalone source is `preview/turbo-preview-7.8.0.html`; the confirmed input is preserved as `preview/turbo-preview-7_7_1_3.html` (internal tag 7.7.1). The baseline feature matrix above has not been asserted to describe every intervening, undocumented source change. D046 records that drift explicitly.
+
+Capture reuses `auditStatesForEntry`, creates unique planned paths, embeds package font CSS once, builds temporary original-size stages, settles PNG retries/fonts/text measurements, converts through embedded html-to-image 1.11.13, verifies PNG dimensions, and packages through embedded JSZip 3.10.1. Nested package assets and disclaimer images resolve through the package map. Unknown raster references use local missing-data markers rather than filesystem-relative fallback.
+
+`_capture-manifest.json` always records job outcomes. Ordinary job errors continue; cancellation, conversion timeout, setup failure, and PNG memory limits stop scheduling with explicit remaining-job accounting. `csm:capture-state` and `data-capture-busy` coordinate the parent QA Studio replacement control. Limits and schema are specified in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md); code-level evidence and remaining fidelity gaps are recorded in [09 — Screenshot Capture Analysis](09-Screenshot-Capture-Analysis.md). No Playwright capture backend is implemented by this change.

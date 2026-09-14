@@ -1,9 +1,11 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-09
+**Doc version:** 1.5.0
+**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
+**Last updated:** 2026-09-13
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
+
+**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
 
 ---
 
@@ -76,3 +78,10 @@ See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line
 - The relevant in-canvas marker must remain visible when the panel is closed: dotted amber for Optical-kerning risk, dashed red for measurement failure.
 - `?textQA=1` may add an eager every-state audit and catalog export, but must never be the only disclosure path.
 - The current artifact filename, `PREVIEW_BUILD`, build badge, and all five core-doc `Reflects build` headers must agree.
+
+
+## Screenshot capture addendum — 7.8.0
+
+The Preview tool must export individual PNGs for every available size/tab/gallery-slide state into one ad-size ZIP. All sizes is the default; selected preview sizes is an alternative scope. Output defaults to 2× and supports explicit 1×, 2×, and 3× resolution at authored canvas geometry. Every planned state must have an outcome, and incomplete images must be distinguished from failed capture.
+
+The release adds tolerant/complete-asset policies, cancellation, affected-state retry, an explicit retained download, and a coverage manifest. QA Studio embeds this source and prevents package replacement during a run. Capture is a preview-renderer output; production pixel parity is a separate acceptance requirement. Requirements SC-01–SC-22, boundaries, and the proposed production service are documented in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md).

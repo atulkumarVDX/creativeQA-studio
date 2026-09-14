@@ -7,21 +7,26 @@ import {
   Download, FileSearch, Files, ImageIcon, Info, LoaderCircle,
   PackageOpen, Search, ShieldCheck, Sparkles, Upload,
 } from "lucide-react";
-import previewSource from "../legacy/turbo-preview-7.7.1.html?raw";
+import previewSource from "../preview/turbo-preview-7.8.0.html?raw";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 
 type BridgeAsset = { name: string; compressedSize: number; uncompressedSize: number };
-const BRIDGE_TOKEN = "turbo-qa-preview-7.7.1";
+const BRIDGE_TOKEN = "turbo-qa-preview-7.8.0";
 
 const bridgeScript = String.raw`
 <script>
 (() => {
   document.documentElement.dataset.tqaBridge = "ready";
   window.addEventListener("message", (event) => {
-    if (!event.data || event.data.token !== "turbo-qa-preview-7.7.1" || event.data.type !== "tqa:load-package" || !event.data.buffer) return;
+    if (!event.data || event.data.token !== "turbo-qa-preview-7.8.0") return;
+    if (event.data.type === "tqa:ping") {
+      window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.8.0" }, "*");
+      return;
+    }
+    if (event.data.type !== "tqa:load-package" || !event.data.buffer) return;
     const file = new File([event.data.buffer], event.data.name || "package.zip", { type: event.data.mimeType || "application/zip" });
     try {
       document.documentElement.dataset.tqaBridge = "received";
@@ -35,10 +40,13 @@ const bridgeScript = String.raw`
       }
     } catch (error) {
       document.documentElement.dataset.tqaBridge = "error";
-      window.parent.postMessage({ type: "tqa:preview-error", token: "turbo-qa-preview-7.7.1", message: error && error.message ? error.message : String(error) }, "*");
+      window.parent.postMessage({ type: "tqa:preview-error", token: "turbo-qa-preview-7.8.0", message: error && error.message ? error.message : String(error) }, "*");
     }
   });
-  window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.7.1" }, "*");
+  window.addEventListener("csm:capture-state", (event) => {
+    window.parent.postMessage({ type: "tqa:capture-state", token: "turbo-qa-preview-7.8.0", busy: Boolean(event.detail && event.detail.busy) }, "*");
+  });
+  window.parent.postMessage({ type: "tqa:preview-ready", token: "turbo-qa-preview-7.8.0" }, "*");
 })();
 </scr` + `ipt>`;
 
@@ -75,21 +83,8 @@ async function readPackage(file: File) {
 
 async function loadPreviewFile(frame: HTMLIFrameElement | null, file: File) {
   if (!frame) return;
-  try {
-    const frameWindow = frame.contentWindow;
-    const input = frame.contentDocument?.getElementById("fileInputZip") as HTMLInputElement | null;
-    if (frameWindow && input) {
-      const transfer = new DataTransfer();
-      transfer.items.add(file);
-      input.files = transfer.files;
-      const changeEvent = input.ownerDocument.createEvent("Event");
-      changeEvent.initEvent("change", true, false);
-      input.dispatchEvent(changeEvent);
-      return;
-    }
-  } catch {
-    // Cross-realm access can be unavailable in hardened browsers; use messaging.
-  }
+  // Construct the File and input event inside the preview's own realm.
+  // Direct foreign-realm file/event assignment can silently miss its handler.
   const buffer = await file.arrayBuffer();
   frame.contentWindow?.postMessage({
     type: "tqa:load-package",
@@ -119,10 +114,11 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingFileRef = useRef<File | null>(null);
   const summaryRef = useRef<PackageSummary | null>(null);
+  const captureBusyRef = useRef(false);
+  const [captureBusy, setCaptureBusy] = useState(false);
   const [summary, setSummary] = useState<PackageSummary | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState("");
-  const [previewReady, setPreviewReady] = useState(false);
   const [findingQuery, setFindingQuery] = useState("");
   const [assetQuery, setAssetQuery] = useState("");
   const [severity, setSeverity] = useState<Severity | "all">("all");
@@ -162,23 +158,32 @@ export default function Home() {
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (event.data?.token !== BRIDGE_TOKEN) return;
+      if (event.data.type === "tqa:capture-state") {
+        captureBusyRef.current = Boolean(event.data.busy);
+        setCaptureBusy(captureBusyRef.current);
+        return;
+      }
       if (event.data?.type === "tqa:preview-ready") {
-        setPreviewReady(true);
         if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
       } else if (event.data?.type === "tqa:preview-error") {
         setError(event.data.message || "The package could not be opened in Preview.");
       }
     };
     window.addEventListener("message", listener);
+    iframeRef.current?.contentWindow?.postMessage({ type: "tqa:ping", token: BRIDGE_TOKEN }, "*");
     return () => window.removeEventListener("message", listener);
   }, []);
 
   const openPackage = async (file?: File) => {
     if (!file) return;
+    if (captureBusyRef.current || iframeRef.current?.contentDocument?.documentElement.dataset.captureBusy === "true") {
+      setError("Finish or cancel screenshot capture before replacing the package.");
+      return;
+    }
     if (!/\.zip$/i.test(file.name)) { setError("Choose a ZIP export package."); setStatus("error"); return; }
     pendingFileRef.current = file;
     setSummary(null); setStatus("loading"); setError(""); setActiveTab("overview");
-    if (previewReady) void loadPreviewFile(iframeRef.current, file);
+    void loadPreviewFile(iframeRef.current, file);
     try {
       const packageData = await readPackage(file);
       setSummary(analyzePackage(packageData.exportData, packageData.assets, file.name));
@@ -202,7 +207,7 @@ export default function Home() {
 
   const downloadReport = () => {
     if (!summary) return;
-    const report = { generatedAt: new Date().toISOString(), previewEngine: "7.7.1", ...summary };
+    const report = { generatedAt: new Date().toISOString(), previewEngine: "7.8.0", ...summary };
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
@@ -215,14 +220,14 @@ export default function Home() {
 
   return (
     <main className="studio-shell">
-      <input ref={fileInputRef} className="sr-only" type="file" accept=".zip,application/zip" onChange={event => openPackage(event.target.files?.[0])} />
+      <input ref={fileInputRef} className="sr-only" disabled={captureBusy} type="file" accept=".zip,application/zip" onChange={event => openPackage(event.target.files?.[0])} />
       <header className="studio-header">
         <div className="brand-lockup"><span className="brand-mark" aria-hidden="true"><span /></span><div><strong>Turbo QA Studio</strong><span>Creative preflight</span></div></div>
         <div className="creative-context">{summary ? <><span>CREATIVE</span><strong>{summary.creativeName}</strong><small>{summary.sourceFile}</small></> : <span>NO PACKAGE OPEN</span>}</div>
         <div className="header-actions">
-          <Badge variant="outline" className="engine-badge">Preview engine 7.7.1</Badge>
+          <Badge variant="outline" className="engine-badge">Preview engine 7.8.0</Badge>
           {summary && <Button variant="outline" onClick={downloadReport}><Download /> Report</Button>}
-          <Button onClick={() => fileInputRef.current?.click()}><PackageOpen /> {summary ? "Replace package" : "Open package"}</Button>
+          <Button disabled={captureBusy} title={captureBusy ? "Finish or cancel screenshot capture first" : undefined} onClick={() => fileInputRef.current?.click()}><PackageOpen /> {summary ? "Replace package" : "Open package"}</Button>
         </div>
       </header>
 
@@ -267,12 +272,11 @@ export default function Home() {
             <div className="table-panel"><Table><TableHeader><TableRow><TableHead>Asset</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>References</TableHead><TableHead className="text-right">Size</TableHead></TableRow></TableHeader><TableBody>{filteredAssets.map(asset => <TableRow key={asset.name}><TableCell className="asset-name">{asset.name}</TableCell><TableCell>{asset.extension}</TableCell><TableCell><span className={`asset-status ${asset.status}`}>{asset.status}</span></TableCell><TableCell>{asset.referenceCount || "—"}</TableCell><TableCell className="text-right font-mono">{formatBytes(asset.uncompressedSize)}</TableCell></TableRow>)}</TableBody></Table></div>
           </div>}
 
-          {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.7.1</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></div>}
+          {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-heading"><div><span className="eyebrow">REFERENCE RENDERER</span><strong>Turbo Preview 7.8.0</strong></div><span>The package remains inside this browser session.</span></div><div className="preview-placeholder" /></div>}
         </div>
       ) : null}
 
       <iframe ref={iframeRef} title="Turbo package preview" srcDoc={srcDoc} onLoad={() => {
-        setPreviewReady(true);
         if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
       }} className={summary && activeTab === "preview" ? "preview-frame" : "analysis-frame"} />
     </main>

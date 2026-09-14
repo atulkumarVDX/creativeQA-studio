@@ -192,6 +192,21 @@ Use the two evidence packages as an A/B fixture when this check is implemented:
 
 ## 4. Case TR-002 — Disabled shape stroke shifts a CTA label in production
 
+### Follow-up evidence — September 14, 2026
+
+The newly supplied `design_1.psb.zip` and production DOM show a border-free
+CTA for layer `214851`, with live label `222520` positioned inside the promoted
+frame. This is a separate production state from the bordered example below.
+Its frame path measures `183.59375 × 41.75px`; the label's local offset is
+`25.65625px, 14.15625px`. These values are reproduced by the structural mounting
+helper using the actual export and existing renderer collectors across its
+eight artboards. The source artboard origin differs from the supplied production
+example, so global coordinates are not claimed to match. The renderer retains
+export coordinates and respects the disabled stroke. Synthetic regression
+fixtures cover frame promotion, ancestry and scaled rebasing in
+`tests/structure/render-tree.test.mjs`. Browser glyph measurement and visual
+parity have not been verified in this follow-up.
+
 **Status:** Planned  
 **Affected output:** Showcase production creative `14126630`, expandable
 `970x546`, tab 1  

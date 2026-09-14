@@ -1,6 +1,12 @@
-# Layer structure rule book — draft 0.1.0
+# Layer structure rule book — draft 0.2.0
 
-Date: 2026-09-12. Scope: Photoshop authoring, export structure, component state and future validation. This document introduces no renderer or Photoshop changes.
+Date: 2026-09-13. Scope: Photoshop authoring, export structure, component state and future validation. This document introduces no renderer or Photoshop changes.
+
+## Guideline-backed source of truth
+
+The supplied `PSD export guidelines.pdf` and all six template ZIPs have now been reviewed together. The [authoring contracts supplement](layer-structure/authoring-contracts.md) and [machine-readable contracts](layer-structure/authoring-contracts.json) cover 22 structural profiles, with PDF page references, required/listed children, optional/alternate children, template paths and conflicts. These contracts take precedence over older provisional recommendations below where the PDF explicitly establishes a component requirement. The project-specific `buttonN` policy takes precedence over the PDF's broader CTA names.
+
+All six template archive hashes match the existing complete inventories (8,024 template layers). None has `export.json`. Templates confirm authoring examples; matching exports/runtime remain necessary to confirm production conversion. The registry is descriptive and advisory, not an implemented PSD validator.
 
 ## 1. How to use this book
 
@@ -341,6 +347,17 @@ nestedTabs
 The tested leaf convention is `targetN`, not `slideN`. The same nested gallery name under different targets is valid. The pure tests verify that selecting a state under target1 does not change target2's nested slides. Required controls and production rendering remain provisional until a matched PSD/export/runtime is supplied.
 
 ### Text CTA and button roles
+
+User-confirmed authoring contract (2026-09-13; latest preview source: `preview/turbo-preview-7.8.0.html`): CTA groups are named `buttonN`, where N is a positive integer such as 1, 2 or 3. A direct `frame` is required. A text label may be present; its literal layer name is not specified. An image/Smart Object may also be present and must be named exactly `background` when present. The background itself is not mandatory. These requirements supersede the older advisory CTA naming/frame guidance below, without changing the recorded historical source evidence.
+
+```text
+button1
+  frame                               required
+  <text label>                        permitted text layer
+  background                          optional image/Smart Object; exact name required
+```
+
+Validation must select the CTA group profile by context and type before applying these rules; map Smart Object buttons and other action roles are separate profiles. Do not silently rename legacy unnumbered `button` groups. Report their nonconformance to the current authoring contract while retaining source evidence. Frame promotion, child positioning and background stacking still require matched production verification; this authoring confirmation is not production runtime evidence.
 
 Evidence: LRP `970x546/tabComponent/tab1/CanvasDesign/button`, ID 214851; label ID 222520; frame ID 214849. This exact source structure is preserved in the matching export.
 

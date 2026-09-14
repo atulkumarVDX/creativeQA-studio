@@ -1,9 +1,11 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source)
-**Last updated:** 2026-09-09
+**Doc version:** 1.5.0
+**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline)
+**Last updated:** 2026-09-13
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
+
+**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
 
 ---
 
@@ -38,7 +40,7 @@ When one release bundles more than one change type, use the highest required inc
 |---|---|---|---|
 | `index.html` + `preview.js` | Standalone | **1.0.0** | First formally tracked version (baseline) |
 | `turbo_preview_artifact_5.html` | Turbo Preview Artifact | **superseded / deprecated** | Do not assign a fabricated precise predecessor number — see D001 |
-| `turbo_preview_artifact_7_7_0.html` | Turbo Preview Artifact | **7.7.0** | Current source. Reconciles always-on text disclosure and registration marks, and formally releases the mobile-instream Fit/1× capability (D040–D044; D045 withheld pending evidence). |
+| `turbo_preview_artifact_7_7_0.html` | Turbo Preview Artifact | **7.7.0** | Historical baseline. Reconciles always-on text disclosure and registration marks, and formally releases the mobile-instream Fit/1× capability (D040–D044; D045 withheld pending evidence). |
 | `turbo_preview_artifact_7_6_2.html` | Turbo Preview Artifact | **7.6.2 baseline** | Preserved review input. Its unlogged changes are not retroactively assigned to 7.6.1 or reconstructed without evidence. |
 | `turbo_preview_artifact_7_6_1.html` | Turbo Preview Artifact | **7.6.1 baseline** | Preserved source only; its release contents and rationale are unrecoverable and must not be fabricated (same evidence rule as D001). |
 | `turbo_preview_artifact_7_6_0.html` | Turbo Preview Artifact | **7.6.0 baseline** | Preserved kerning-QC and control-panel/compare-layout baseline (D037, D038). |
@@ -80,3 +82,10 @@ Run this **every time** before merging a change to `preview.js` / any `index.htm
 
 - Engine duplication across three files with no shared-module mechanism (Tech Spec §7) — the actual reason drift like D005/D014/D015/D020-22 exists between files today. Any doc-maintenance process is a mitigation, not a fix, for this; the real fix is the refactor described in Tech Spec §7.
 - No test coverage found in any of the three files (Tech Spec §8, item 4) — drift-checks in §4 above are manual because there's nothing automated to run instead.
+
+
+## Screenshot source maintenance addendum — 7.8.0
+
+Current capture implementation: `preview/turbo-preview-7.8.0.html`, internal tag 7.8.0, embedded by `app/page.tsx`. Confirmed imported source: `preview/turbo-preview-7_7_1_3.html`, internal tag 7.7.1, preserved unchanged. The historical table above is not evidence of a reconstructed intervening release history.
+
+Maintain `08-Screenshot-Capture-Tool.md` for requirements, UI flow, output schema, implementation boundaries, and capture limits; maintain `09-Screenshot-Capture-Analysis.md` for source evidence, technology assessment, and validation limitations. Capture changes must also update the corresponding PRD/spec/UI addenda and Decisions Log. Before switching the app import, verify the source tag, bridge token, visible engine label, and exported report version together.
