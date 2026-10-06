@@ -1,11 +1,11 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-**Doc version:** 1.5.0
+**Doc version:** 1.7.0
 **Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-22
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
+**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -218,3 +218,9 @@ The delivered standalone source is `preview/turbo-preview-7.8.0.html`; the confi
 Capture reuses `auditStatesForEntry`, creates unique planned paths, embeds package font CSS once, builds temporary original-size stages, settles PNG retries/fonts/text measurements, converts through embedded html-to-image 1.11.13, verifies PNG dimensions, and packages through embedded JSZip 3.10.1. Nested package assets and disclaimer images resolve through the package map. Unknown raster references use local missing-data markers rather than filesystem-relative fallback.
 
 `_capture-manifest.json` always records job outcomes. Ordinary job errors continue; cancellation, conversion timeout, setup failure, and PNG memory limits stop scheduling with explicit remaining-job accounting. `csm:capture-state` and `data-capture-busy` coordinate the parent QA Studio replacement control. Limits and schema are specified in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md); code-level evidence and remaining fidelity gaps are recorded in [09 — Screenshot Capture Analysis](09-Screenshot-Capture-Analysis.md). No Playwright capture backend is implemented by this change.
+
+## CSM review PDF addendum — 7.8.4
+
+The capture orchestrator retains successful PNG blobs as review inputs while adding them to JSZip. It builds 1600×900 white canvas pages with a light-gray section bar, places creative directly using reference-specific grids, converts each page to JPEG, and writes a self-contained PDF 1.7 byte stream with an image XObject and content stream per page. The PDF page box remains 960×540 points. The generated PDF is added to the ZIP and retained behind a separate **Review PDF** download button. `_capture-manifest.json.reviewPdf` records status, filename, page count, included sections, limitations, nonfatal review warnings, and template identifier `USA-938-80400-style-v1`.
+
+The package video is decoded at 5, 12, and 15 seconds, clamped inside shorter videos. Starting at 5 seconds avoids an empty intro sample and follows the requested screenshot policy. `video1.mp4` is preferred; the first package MP4 is the fallback. Matching `preQual_<size>.png` files supply teaser evidence. Main-unit pages are created only from successful preview captures. Size-specific grids reproduce the reference density; phone, player, browser, and OTT shells are drawn as document presentation around source evidence. Full ISI is dynamically typeset into one dense page from the parsed disclaimer; it is not a screenshot of a production scroll container. PDF creation is optional and a PDF-specific failure does not discard valid PNGs or prevent the diagnostic ZIP.

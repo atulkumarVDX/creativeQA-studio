@@ -4,7 +4,7 @@
 
 Bulk screenshots of Turbo's modeled ad states are feasible. The existing renderer already exposes the essential operations: identify artboards, enumerate each size's available tabs and gallery slides, render a chosen state, and access its stage element. The challenge is making capture reliable and its outcomes honest, rather than finding an API that automatically understands Turbo creative.
 
-The implemented 7.8.0 release hardens local preview export. A controlled Playwright worker using the real served-ad renderer is the recommended next step when screenshots are intended as production verification. These two uses should have separate fidelity claims and manifests.
+The current 7.8.4 release hardens local preview export and composes an optional reference-style CSM review PDF from modeled evidence. A controlled Playwright worker using the real served-ad renderer remains the recommended next step when screenshots are intended as production verification. These two uses should have separate fidelity claims and manifests.
 
 ## Evidence and source selection
 
@@ -104,6 +104,16 @@ The real project sample `sample/creative/SPIRIVA_turbo_ISI_size_psd.zip` contain
 
 Export scale again defaults to 2×. Videos seek to 5 seconds, clamped just inside shorter clips, with selected seek positions recorded per job. The dialog uses the existing app tokens and theme, two labelled options, a summary panel and a quieter info hint. Regression tests cover timestamp clamping, canonical/ambiguous disclaimer resolution and separation of successful warning PNGs from actual failures.
 
-The updated video fixture starts red and changes to green at 4 seconds. Browser capture selected 5 seconds from its six-second duration, produced a 160×120 PNG at default 2×, and verified green `[0,254,0,255]` pixels and ZIP CRCs. The node suite has fifteen passing tests after these corrections; TypeScript, targeted ESLint and embedded-script syntax checks passed.
+The updated video fixture starts red and changes to green at 4 seconds. Browser capture selected 5 seconds from its six-second duration, produced a 160×120 PNG at default 2×, and verified green `[0,254,0,255]` pixels and ZIP CRCs. The screenshot suite has 16 passing tests and the complete repository suite has 59; TypeScript, ESLint without errors, embedded-script syntax checks, and the production build pass.
 
 A final repeat with the complete-asset policy (`strict`) also exported 52/52 real SPIRIVA sample PNGs at 2× with zero degraded or failed jobs, ZIP CRCs and all PNG dimensions verified, and 135 QA notices retained. Both dark and light dialog themes were visually checked.
+
+## CSM reference PDF assessment and 7.8.4 response
+
+The supplied `USA-938-80400.pdf` has 47 landscape pages and was authored from PowerPoint. Its review pattern is broader than a folder of screenshots: video checkpoints, desktop and mobile in-frame sections, expandable teaser and engaged examples, desktop and mobile instream, phone/player casing, OTT, and full ISI. That structure is useful, but some pages depend on production presentation that Turbo QA Studio does not model.
+
+The earlier 7.8.3 output was materially different: 28 generic card-grid pages with a cover, gray surfaces, sparse placement, no presentation casing, and four full-ISI pages. Release 7.8.4 replaces that layout with the reference's white 16:9 document treatment, gray section bar, direct creative placement, section order, size-specific densities, approximate phone/player/OTT presentation, and one dense full-ISI page.
+
+The implementation builds 1600×900 canvas pages and writes a local image-based PDF 1.7 file with a 960×540-point page box. The PDF is embedded in the PNG ZIP and exposed as a direct retained download. The manifest records page count, included sections, limitations, warnings, and the `USA-938-80400-style-v1` template identifier. The unit test validates the PDF catalog, page tree, image objects, cross-reference table, and trailer.
+
+On the representative eight-size package, 7.8.4 produced 41 pages against the reference's 47, included all 16 reference section categories, retained 45 PNGs plus 36 warning-bearing PNGs, recorded zero capture failures, and produced a CRC-valid ZIP. The page-count difference reflects package-specific state counts and unavailable states. Exact campaign artwork cannot match because the two PDFs use different campaigns. Exact VPM parity still needs a modeled hover transition; exact chrome parity needs approved production casing assets. The detailed workflow and capability matrix are in [14 — CSM Review PDF](14-CSM-Review-PDF.md).

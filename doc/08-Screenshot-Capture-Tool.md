@@ -2,9 +2,9 @@
 
 ## Purpose and release scope
 
-The screenshot tool turns a Turbo export package into individually reviewable PNGs for every available ad size, tab, and gallery slide, then delivers those PNGs in one ZIP. It removes the repetitive work of selecting a state, capturing it, naming the image, and sorting it into an ad-size folder.
+The screenshot tool turns a Turbo export package into individually reviewable PNGs for every available ad size, tab, and gallery slide, then delivers those PNGs in one ZIP. It can also create a landscape CSM review PDF from the same evidence. It removes the repetitive work of selecting a state, capturing it, naming the image, sorting it, and assembling basic review pages.
 
-The implemented release is `preview/turbo-preview-7.8.0.html`, also embedded by QA Studio through `app/page.tsx`. Its confirmed input is the supplied `turbo-preview-7_7_1_3.html`. That input is preserved unchanged in `preview/`; its internal build tag is 7.7.1 despite the filename suffix. This document describes screenshot functionality in 7.8.0. Historical specifications for other preview builds remain historical baselines.
+The implemented release is `preview/turbo-preview-7.8.4.html`, also embedded by QA Studio through `app/page.tsx`. The user confirmed `preview/turbo-preview-7.8.3.html` as the latest source for this patch. The earlier supplied `turbo-preview-7_7_1_3.html` remains preserved unchanged in `preview/`. This document describes current screenshot functionality; historical specifications remain historical baselines.
 
 Two deliverable types must be distinguished. A **preview capture** records the reconstructed Turbo creative rendered by this HTML tool. A **production capture** would record the actual served ad in a controlled browser. The current release implements preview capture. It does not establish that the Photoshop document, reconstructed preview, and served ad have identical pixels.
 
@@ -42,6 +42,19 @@ Two deliverable types must be distinguished. A **preview capture** records the r
 | SC-21 | Verify output dimensions | A nonempty PNG and its IHDR dimensions are checked before it enters the ZIP. This is structural verification, not proof of visual correctness. |
 | SC-22 | Make missing asset references understandable | Package-backed assets use Blob URLs. Missing references use a local invalid-data marker, preserving their name without requesting files beside the HTML. |
 
+### Review PDF output
+
+| ID | Requirement | Release behavior |
+|---|---|---|
+| SC-23 | Create a shareable review document | A checked-by-default option creates one 16:9 landscape PDF and adds it to the ZIP. |
+| SC-24 | Preserve individual source evidence | The structured 2× PNGs remain the source deliverable; the PDF uses those successful captures as contact-sheet images. |
+| SC-25 | Follow the CSM reference structure | Supported evidence is ordered as video, desktop in-frame, desktop expandable, desktop instream, mobile instream, mobile in-frame, mobile expandable, OTT, and full ISI. |
+| SC-26 | Include video evidence | The PDF prefers `video1.mp4`, otherwise the first package MP4, and includes checkpoints at 5, 12, and 15 seconds, clamped inside shorter clips. |
+| SC-27 | Include teaser evidence | Matching package pre-qualifier images are placed in desktop and mobile expandable teaser sections. |
+| SC-28 | Include full ISI | Parsed disclaimer copy is dynamically typeset into one dense full-ISI page. |
+| SC-29 | Represent production presentation honestly | Phone, browser, player, and OTT frames are document approximations; VPM transition and served-ad pixel parity remain explicit boundaries in the manifest. |
+| SC-30 | Isolate PDF failure | If PDF composition fails, valid PNGs and diagnostics still produce a downloadable ZIP. |
+
 ### Explicit boundaries
 
 “All component frames” means the gallery states recognized by the existing parser: rmGallery, colorPickerGallery, hotspotGallery, and staticProductGallery families, together with tabs and base creative. It does not mean every possible interaction of an arbitrary widget. Independent component combinations, expanded hotspot states, hover states, arbitrary responsive breakpoints, and video timelines need additional state adapters.
@@ -54,12 +67,12 @@ Only sizes actually present in the package are captured. The tool does not inven
 
 1. Open a Turbo ZIP in QA Studio and select Preview, or open the standalone HTML and choose a ZIP.
 2. Inspect the package as usual. Select Screenshots @1x, @2x, or @3x in the preview toolbar.
-3. Click Screenshots. A configuration dialog shows the available size count, frame count, resolution, and folder convention.
+3. Click Screenshots. A configuration dialog shows the available size count, frame count, resolution, and deliverables.
 4. Choose All package sizes or Selected preview sizes. The latter exports all tabs and slides for the selected sizes, including states that are not currently visible.
 5. Choose Capture incomplete frames with warnings or Require complete assets. The default favors review coverage while clearly reporting omissions.
-6. Click Start capture. The tool displays processed-job and captured-image counts, then ZIP progress. Package replacement is disabled until the run finishes.
-7. On completion, the browser is asked to download the ZIP. Download ZIP remains available if the browser blocks that automatic request.
-8. Expand Capture report to inspect incomplete or failed states and their reasons. The archive also contains machine-readable and, where needed, text diagnostics.
+6. Leave **Include review PDF** checked when a CSM review document is needed, then click **Create package**. The tool displays processed-job and captured-image counts, PDF preparation, and ZIP progress. Package replacement is disabled until the run finishes.
+7. On completion, the browser is asked to download the ZIP. **Download ZIP** and **Review PDF** remain available if the automatic request is blocked or the PDF is needed separately.
+8. Expand Capture report to inspect incomplete or failed states, PDF status, and reasons. The archive also contains machine-readable and, where needed, text diagnostics.
 
 An 80×60 artboard with two slides under tab1 and no gallery under tab2 produces three images. A second size with the same states produces three more images. Selecting 2× makes the 80×60 PNGs 160×120; it does not combine the three states into one image.
 
@@ -117,6 +130,8 @@ ZIP package
   → convert stage to PNG
   → verify PNG signature and dimensions
   → add successful/degraded PNG to ZIP; record every outcome
+  → compose optional review pages from successful PNGs and package media
+  → encode review pages as JPEG and assemble a PDF 1.7 document
   → manifest and issue report
   → ZIP assembly and retained download URL
 ```
@@ -193,7 +208,7 @@ Each job cleans up temporary video sources and DOM. A new capture, reset, or pac
 
 ### QA Studio integration
 
-The app embeds 7.8.0 through its existing raw HTML import and srcdoc bridge. Existing Promise-fallback compatibility handling remains in place. Package buffers are transferred by message, with the File and input-change event constructed inside the iframe to avoid foreign-realm event dispatch. A ready/ping handshake covers an iframe that finishes loading before the parent registers its listener. The source dispatches `csm:capture-state` with `{ busy: true/false }` and sets `document.documentElement.dataset.captureBusy`.
+The app embeds 7.8.4 through its existing raw HTML import and srcdoc bridge. Existing Promise-fallback compatibility handling remains in place. Package buffers are transferred by message, with the File and input-change event constructed inside the iframe to avoid foreign-realm event dispatch. A ready/ping handshake covers an iframe that finishes loading before the parent registers its listener. The source dispatches `csm:capture-state` with `{ busy: true/false }` and sets `document.documentElement.dataset.captureBusy`.
 
 The bridge forwards that state using the current preview token. The parent uses the existing preview-token bridge and the busy state to disable its file picker and Replace package button. The import handler also checks busy state, covering an event arriving before the React interface updates. Capture is available inside the Preview toolbar, rather than being a separate server feature.
 

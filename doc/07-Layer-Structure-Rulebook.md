@@ -20,6 +20,11 @@ There are three distinct trees to preserve and compare:
 
 The runtime tree need not contain one DOM node for every Photoshop layer. A `frame` can supply its group's geometry; a data-driven component can generate many items from one template. Every such conversion needs an explicit mapping. Flattening all groups into unrelated artboard children loses the relationships needed to predict production behavior.
 
+Runtime package lookup for generated, Retina, custom and linked assets is
+defined separately in [Asset handling contract](12-Asset-Handling-Contract.md).
+That contract preserves this book's distinction between `2xl`, `2x` layer
+annotations and `-2x.png` generated filenames.
+
 An ordinary group should retain its grouping semantics in the render model. Whether it requires a physical DOM wrapper depends on the production compiler; adding wrappers indiscriminately can introduce new clipping, stacking and coordinate effects. Preserve the source ancestry even when an adapter consumes or omits a node.
 
 ### Evidence labels and enforcement

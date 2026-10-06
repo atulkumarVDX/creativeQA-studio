@@ -110,6 +110,10 @@ function createStructuralMount(entry) {
     // Confirmed logo conversion: the direct Smart Object is a CSS background.
     if (/^button-clientLogo$/i.test(layer.name || '') && backgrounds.length === 1) {
       const background = backgrounds[0], filename = entry.assetMap?.get(String(background.layerID));
+      // Retained groups must participate in the same Photoshop paint stack as
+      // raster layers. Otherwise a full-canvas image with a numeric z-index
+      // paints over the logo even when the logo is later in source order.
+      element.style.zIndex = String(layer.itemIndex || 0);
       if (filename) {
         backgroundId = background.layerID;
         element.dataset.backgroundLayerId = String(backgroundId);
@@ -169,7 +173,8 @@ function createStructuralMount(entry) {
     // into its source parent. Missing bounds retain the parent's origin.
     if (element.style.left) element.style.left = (parseFloat(element.style.left) - parent.left * scale) + 'px';
     if (element.style.top) element.style.top = (parseFloat(element.style.top) - parent.top * scale) + 'px';
-    appendInPaintOrder(parent.element, element, layer?.itemIndex ?? renderable.itemIndex);
+    const paintOrder = renderable.instanceOwnerId != null ? renderable.itemIndex : (layer?.itemIndex ?? renderable.itemIndex);
+    appendInPaintOrder(parent.element, element, paintOrder);
   }
   return { mount, groups };
 }

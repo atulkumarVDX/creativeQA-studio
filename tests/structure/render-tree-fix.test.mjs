@@ -48,6 +48,13 @@ test('DOM sibling order follows compiled source paint order despite reversed tra
  for(const itemIndex of [50,30,40])m.mount(new Element(),{layer:{layerID:itemIndex,parentLayerID:4,itemIndex}});
  assert.deepEqual(m.groups.get(4).element.children.map(x=>Number(x.dataset.sourcePaintOrder)),[30,40,50]);
 });
+test('size-specific instances use their assigned paint order instead of master source order',()=>{
+ const e=setup(),m=c.createStructuralMount(e),master={layerID:90,parentLayerID:91,itemIndex:2,name:'bottom-border'};
+ const header=new Element(),divider=new Element();
+ m.mount(header,{layer:{layerID:30,parentLayerID:1,itemIndex:30}});
+ m.mount(divider,{layer:master,itemIndex:40,instanceOwnerId:1});
+ assert.deepEqual(e.stageEl.children.map(x=>Number(x.dataset.sourcePaintOrder)),[30,40]);
+});
 test('gallery collection owns slides while persistent CTA remains outside collection',()=>{
  const e=setup([group(8,'rmGallery',3,2581,106,970,465),group(9,'slide1',8,2581,106,970,465),group(10,'button1',8,2700,400,200,40)]),m=c.createStructuralMount(e);
  m.mount(new Element(),{layer:{layerID:20,parentLayerID:9,itemIndex:20}});
@@ -61,4 +68,48 @@ test('gallery collection owns slides while persistent CTA remains outside collec
 test('fix version embeds its own engine while the base retains its original engine',()=>{
  const base=readFileSync('preview/turbo-preview-7.8.0.html','utf8'),fix=readFileSync('preview/turbo-preview-7.8.1.html','utf8');
  assert.ok(fix.includes(source));assert.ok(base.includes(readFileSync('scripts/structure/render-tree.js','utf8')));assert.ok(fix.includes('const PREVIEW_BUILD = "7.8.1"'));
+});
+test('fix package loader resolves a missing PNG to its available Retina asset',()=>{
+ const fix=readFileSync('preview/turbo-preview-7.8.1.html','utf8');
+ const resolverBody=fix.match(/P\.setAssetResolver\(\(fileName\) => \{([\s\S]*?)\n      \}\);/)[1];
+ const nameToBlobUrl=new Map([['background-31082-2x.png','retina-blob-url']]);
+ const warnedMissingAssets=new Set();
+ const fn=vm.runInNewContext(`(fileName)=>{${resolverBody}}`,{nameToBlobUrl,warnedMissingAssets,console,encodeURIComponent});
+ assert.equal(fn('background-31082.png'),'retina-blob-url');
+ assert.equal(warnedMissingAssets.size,0);
+});
+test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=>{
+ const fixture=JSON.parse(readFileSync('tests/fixtures/spiriva-300x250-logo.json','utf8'));
+ const data={document:fixture.document,rawLayers:fixture.rawLayers};
+ const names=new Set(fixture.archiveEntries);
+ assert.equal(names.has('background-31086.png'),false);
+ assert.equal(names.has('background-31086-2x.png'),true);
+
+ const byId=new Map(data.rawLayers.map(layer=>[layer.layerID,layer]));
+ const artboard=[...byId.values()].find(layer=>layer.name==='300x250'&&data.document.artboards.includes(layer.layerID));
+ const logoGroup=[...byId.values()].find(layer=>layer.name==='button-clientLogo'&&(()=>{let current=layer;while(current){if(current.layerID===artboard.layerID)return true;current=byId.get(current.parentLayerID);}return false;})());
+ const background=[...byId.values()].find(layer=>layer.parentLayerID===logoGroup.layerID&&layer.name==='background');
+ assert.equal(background.layerID,31086);
+
+ const resolver=name=>{
+  if(names.has(name))return 'blob:'+name;
+  const retina=name.replace(/\.png$/i,'-2x.png');
+  return names.has(retina)?'blob:'+retina:'missing:'+name;
+ };
+ c.resolveAssetUrl=resolver;
+ const value=item=>typeof item==='number'?item:item?._value;
+ const rootBounds=artboard.bounds;
+ const entry={
+  model:{rootLayerId:artboard.layerID,originLeft:value(rootBounds.left),originTop:value(rootBounds.top)},
+  structureIndex:c.buildStructureIndex(data),stageEl:new Element(),scale:1,assetMap:new Map()
+ };
+ const mount=c.createStructuralMount(entry);
+ mount.mount(new Element(),{layer:background,fileName:`background-${background.layerID}.png`});
+ const logo=mount.groups.get(logoGroup.layerID).element;
+ assert.equal(logo.style.backgroundImage,'url("blob:background-31086-2x.png")');
+ assert.equal(logo.style.zIndex,'766');
+ assert.ok(Number(logo.style.zIndex)>757,'the logo must paint above the full-canvas image');
+ assert.equal(logo.style.width,value(logoGroup.boundsNoEffects.width)+'px');
+ assert.equal(logo.style.height,value(logoGroup.boundsNoEffects.height)+'px');
+ assert.match(readFileSync('app/page.tsx','utf8'),/turbo-preview-7\.8\.4\.html\?raw/);
 });

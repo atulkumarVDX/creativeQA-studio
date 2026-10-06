@@ -1,9 +1,9 @@
 # 06 — Text Render Issue Catalog — Turbo Export Preview
 
-**Catalog version:** 0.4.0  
+**Catalog version:** 0.7.0
 **Reference build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0**  
-**Last updated:** 2026-09-11  
-**Status:** Working evidence catalog — proposed checks are not shipped behavior
+**Last updated:** 2026-09-22
+**Status:** Working evidence catalog — individual cases state whether detection is shipped
 
 ---
 
@@ -16,6 +16,10 @@ future outcomes:
 1. Detect the risky PSD structure during package analysis.
 2. Explain the issue to a designer in plain language.
 3. Recommend a safe Photoshop repair without silently changing approved copy.
+
+The [character compatibility watchlist](13-Character-Compatibility-Watchlist.md)
+is the starter inventory for code-point, font, browser, OS, and publishing-path
+risks. Presence on that list alone does not make a valid character an error.
 
 An entry is not automatically a design error. Some Photoshop structures are
 valid for print or raster output but fragile when reconstructed as live HTML.
@@ -432,6 +436,12 @@ post-sync glyphs overlap another layer. Do not flag correctly handled soft
 breaks, legitimate spacing at hard returns, deliberate empty paragraphs, or
 ordinary small negative font-alignment offsets without overflow evidence.
 
+This describes the narrower spacing defect. The current preproduction
+authoring rule in TR-005 separately marks **every** U+0003 soft return as an
+error, regardless of paragraph spacing, because the publishing path can expose
+the control character itself. It does not claim every such layer has already
+been observed failing in a published creative.
+
 Suggested message: “Paragraph spacing is being applied between lines inside a
 bullet. Production then moves the oversized text block upward. This requires a
 text-export correction; recreating the layer does not guarantee prevention.”
@@ -453,7 +463,244 @@ published conversion. Include zero-spacing, hard-return-only, blank-paragraph,
 automatic-leading, and transformed variants. A corrected publication has not
 yet been tested.
 
-## 6. New-case template
+## 6. Case TR-004 — Paragraph-text CTA label disappears in production
+
+**Status:** Production failure reproduced; static warning implemented
+
+**Affected output:** Showcase production creative `14179060`, mobile Instream, tab 1
+
+**Evidence package:** `tryptryDTC.psd.zip`
+
+**Affected layer:** `mobile-instream > tabComponent > tab1 > CanvasDesign > button1 > DISCOVER THE DIFFERENCE` (layer `188168`)
+
+### Symptom
+
+The CTA frame is visible in the published mobile Instream creative, but its
+`DISCOVER THE DIFFERENCE` label is absent. Turbo Preview displays the label.
+
+### PSD evidence
+
+The affected label is visible, contains the approved copy, uses available
+`OpenSans-SemiBold`, and is a direct child of the correctly named `button1`
+group. Its distinguishing descriptor is paragraph text:
+
+```text
+textKey.textShape[0].char._value = box
+textKey.transform = absent
+```
+
+Comparable CTA labels in the same artboard and the same tab-1 label in other
+artboards are point text (`char._value = paint`). The source includes the
+Open Sans SemiBold webfont, and working CTA labels use the same font, excluding
+the package font warning as the cause of this isolated omission.
+
+### Root cause
+
+The published Turbo renderer does not reliably mount a paragraph/box-text
+layer when it is the live label directly inside a CTA button group. Preview's
+generic text reconstruction supports the layer and therefore masks the
+production risk. This is an exporter-to-production-renderer compatibility
+issue triggered by the PSD text mode, not missing copy or a hidden layer.
+
+### Implemented detection
+
+Emit `rendering.cta-paragraph-text` as a warning when:
+
+- a non-empty live text layer is a direct child of a `buttonN`, `button`, `cta`,
+  or `btn` group;
+- the parent is an exported Photoshop group; and
+- `textKey.textShape[0].char._value` is `box`.
+
+The finding includes the artboard, tab, slide when present, layer name, layer
+ID, CTA owner, and the recorded text shape. Paragraph text elsewhere is not
+flagged, and point-text CTA labels are excluded.
+
+### Designer-facing message
+
+> **CTA label may disappear in production**
+>
+> This button label is paragraph/box text. Convert or recreate it as point text,
+> then re-export and verify the published creative.
+
+### Photoshop repair
+
+1. Select the affected CTA label with the Type tool.
+2. Convert it to point text, or recreate it as a fresh point-text layer at the
+   approved final typography.
+3. Keep the original copy and layer name, retain it directly inside `button1`,
+   and centre it over `frame`.
+4. Re-export and verify the affected state in the production Showcase.
+
+### Validation fixture
+
+The supplied `tryptryDTC.psd.zip` is the failing fixture. A repaired export
+should change layer `188168` from `box` to `paint` and produce no
+`rendering.cta-paragraph-text` finding for that CTA. Published visual parity
+must still be checked after the repaired creative is uploaded.
+
+## 7. Case TR-005 — Shift+Enter soft return leaks into production text
+
+**Status:** User-reported production issue; static error implemented
+
+**Source signal:** U+0003 in raw `textKey.textKey` (Photoshop Shift+Enter)
+
+### Symptom and detection
+
+Production may display the soft-return control character as `<0x03>` or render
+the intended line break incorrectly even when Turbo Preview looks acceptable.
+For every live text layer, inspect the **raw** exported string before newline
+normalization or whitespace cleanup. If it contains one or more U+0003
+characters, emit `rendering.shift-enter-soft-return` with **error** severity,
+the artboard/tab/slide and layer ID, and the number of occurrences. This rule
+does not require nonzero paragraph spacing or a measured collision. It applies
+to both point and paragraph text. CR and LF paragraph breaks are not matches.
+Do not also report these same U+0003 characters as generic unsupported control
+characters; other unsupported control characters retain that separate error.
+
+### Designer action
+
+Review the approved line layout. Replace each Shift+Enter break with an
+approved paragraph break or separate editable text layers, then re-export and
+verify the published creative. Do not silently rewrite approved copy in the
+checker. Long-term, publishing and preview should share a converter that
+preserves the distinction between paragraph and soft breaks.
+
+## 8. Case TR-006 — Responsive leaf anchoring moves an accent shape over copy
+
+**Status:** Preview failure reproduced; responsive cluster fix implemented in development build 7.8.4
+
+**Evidence package:** `production_v3/design.psb.zip`, exported 2026-09-22
+
+**Affected state:** `428x622 > tab2 > rmGallery > slide2` in the default 375px view
+
+### Symptom
+
+The purple accent bar covers the first characters of the body copy beginning
+“Helps target discoloration…”. The same bar and copy are separated correctly
+in the exported 428px source geometry.
+
+### Confirmed source geometry
+
+The artboard begins at document `x = 4721`. The two direct children of
+`slide2` are:
+
+| Layer | ID | Source bounds | Artboard-local bounds | Paint order |
+|---|---:|---:|---:|---:|
+| `Rectangle 16` | `244256` | `x 4844..4857` | `x 123..136` | `1605` |
+| `Left Headline copy 3` | `217233` | `x 4873..5065` | `x 152..344` | `1604` |
+
+The source therefore has a 16px gap: `152 - 136 = 16`. The text is paragraph
+text with an identity text-shape transform and a separate layer transform of
+approximately `0.491735`; neither descriptor places it under the bar in the
+exported source bounds.
+
+### Root cause
+
+The responsive preview reduces this artboard from 428px to 375px, a 53px
+difference. `mobileExpandableResponsiveFrame()` tries to choose one shared
+ancestor frame, but the structural `tabComponent`, `tab2`, `rmGallery`, and
+`slide2` groups all expose document-wide `bounds` (`0..5149`) and are rejected
+as implausible artboard frames. The function then falls back independently to
+each leaf's own rectangle:
+
+- `Rectangle 16` lies wholly left of the 214px source centre, so it receives
+  no horizontal offset and remains at `x 123..136`.
+- The text rectangle `x 152..344` crosses the source centre, so it receives
+  the centred offset `-53 / 2 = -26.5px` and becomes `x 125.5..317.5`.
+
+This creates a 10.5px overlap (`136 - 125.5`). Because the shape's source paint
+order is one level above the text, the new overlap visibly occludes the first
+letters. Retained stacking is behaving consistently; inconsistent responsive
+anchoring of sibling leaves creates the collision.
+
+### Detection and repair direction
+
+After applying responsive transforms, test foreground opaque shape rectangles
+against live-text ink/tight bounds within the same active state. Emit an error
+when a higher-painted shape newly intersects text that did not intersect in
+source geometry. Report both layer IDs, source and rendered intersections, and
+the responsive width.
+
+Exclude intentional text backgrounds and owners such as CTA frames, full-size
+backgrounds, masks, underlines, and shapes painted behind text. A generic source
+overlap without a measured rendered mismatch is not automatically an error.
+
+### Implemented correction
+
+When no plausible ancestor frame exists, the renderer now finds a nearby
+text-plus-narrow-shape sibling cluster using exported layer kinds, overlapping
+vertical bounds, and a maximum 32px horizontal gap. Both leaves use the union
+of that cluster as their responsive pinning frame. For this fixture, both move
+by `-26.5px`, preserving the source 16px separation. This is descriptor-based;
+it does not special-case layer IDs or names. Broad shapes, `frame` layers and
+unrelated leaves keep the existing behavior.
+
+The regression fixture asserts the preserved 16px gap at both 428px and 375px,
+plus unchanged independent pinning for an unrelated text leaf. Established
+low-to-high source paint order remains unchanged.
+
+## 9. Case TR-007 — Photoshop native capitalization is lost in live text
+
+**Status:** Preview failure reproduced; renderer support implemented in development build 7.8.4
+
+**Evidence package:** `production_v3/design.psb.zip`, exported 2026-09-22
+
+**Affected state:** `300x250 > tab2 > slide1`, layer `219710` (`Left Headline copy 3`)
+
+### Symptom and confirmed cause
+
+Photoshop and production display the complete phrase beginning “HIGHEST
+CONCENTRATION…” in uppercase, while Turbo QA previously displayed the raw
+lowercase characters beginning at `target`. The exported copy is intentionally
+mixed case and its complete character-style range records
+`fontCaps._value = allCaps`. Turbo QA retained font family, weight, style and
+colour but discarded `fontCaps`, so the browser rendered the underlying copy
+instead of Photoshop's native capitalization style.
+
+### Implemented correction
+
+Character ranges now retain `fontCaps` as part of their style identity.
+`allCaps` maps to `text-transform: uppercase`; `smallCaps` maps to
+`font-variant-caps: small-caps`; normal text explicitly clears both. The raw
+copy is not rewritten. The styles apply to body text and synthesized tab labels
+and participate in the existing transformed-glyph measurement path. This is a
+preview capability, not a creative warning. Unsupported future `fontCaps`
+values may be reported, but correctly supported native capitalization should
+not create a finding.
+
+## 10. Case TR-008 — Photoshop paragraph indents are omitted
+
+**Status:** Descriptor gap confirmed; renderer support implemented in development build 7.8.4
+
+**Evidence package:** `production_v3/design.psb.zip`, exported 2026-09-22
+
+### Symptom and confirmed cause
+
+Multiple live-text layers carry non-zero `impliedStartIndent` values (including
+approximately `3.7pt` headline and label indents), but Turbo QA previously
+applied no paragraph indentation. The text synchronizer already inspected CSS
+padding and `text-indent`, yet the descriptor parser never populated those
+styles. This could shift copy and change wrapping relative to Photoshop and
+production.
+
+### Implemented correction
+
+Paragraph-style ranges now map independently to rendered paragraphs:
+
+- `impliedStartIndent` (or corrected `startIndent`) to logical start padding;
+- `impliedEndIndent` (or corrected `endIndent`) to logical end padding;
+- `impliedFirstLineIndent` (or corrected `firstLineIndent`) to `text-indent`;
+- paragraph direction to logical LTR/RTL layout; and
+- paragraph alignment to the matching paragraph rather than only the first
+  style range.
+
+The measurement model now includes left and right padding plus the strongest
+first-line or hanging indent when scoring synchronized widths. The regression
+fixture covers implied values, corrected raw values, hanging indents,
+per-paragraph ranges and RTL logical mapping. Valid indents are rendering input,
+not warnings.
+
+## 11. New-case template
 
 Copy this section for each future case.
 
@@ -505,7 +752,7 @@ automatic action is possible.
 
 Record the before/after packages or minimal fixture needed for regression tests.
 
-## 7. Text QA capture workflow
+## 12. Text QA capture workflow
 
 Baseline Optical-kerning and genuine rendered-state measurement failures are
 discoverable without a query parameter. To capture a comprehensive diagnostic

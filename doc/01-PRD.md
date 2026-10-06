@@ -1,11 +1,11 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-**Doc version:** 1.5.0
+**Doc version:** 1.7.0
 **Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-22
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
+**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -85,3 +85,9 @@ See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line
 The Preview tool must export individual PNGs for every available size/tab/gallery-slide state into one ad-size ZIP. All sizes is the default; selected preview sizes is an alternative scope. Output defaults to 2× and supports explicit 1×, 2×, and 3× resolution at authored canvas geometry. Every planned state must have an outcome, and incomplete images must be distinguished from failed capture.
 
 The release adds tolerant/complete-asset policies, cancellation, affected-state retry, an explicit retained download, and a coverage manifest. QA Studio embeds this source and prevents package replacement during a run. Capture is a preview-renderer output; production pixel parity is a separate acceptance requirement. Requirements SC-01–SC-22, boundaries, and the proposed production service are documented in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md).
+
+## CSM review package addendum — 7.8.4
+
+The screenshot flow must optionally create a 16:9 landscape review PDF in the same run as the structured PNG ZIP. Its section names, sequence, gray title bar, direct creative placement, and page density follow the supplied `USA-938-80400.pdf` reference: video, desktop in-frame, desktop expandable teaser and engaged endpoints, desktop instream, mobile instream, mobile in-frame, mobile expandable teaser and engaged endpoints, OTT, and full ISI. Sections are included only when the package provides corresponding evidence.
+
+Device, browser, player, and OTT frames are review-document approximations around captured package evidence. They must not be described as captured production chrome. The VPM hover transition remains unavailable because the preview has no transition state; teaser and engaged endpoints are presented separately. The complete requirement and capability matrix is in [14 — CSM Review PDF](14-CSM-Review-PDF.md).

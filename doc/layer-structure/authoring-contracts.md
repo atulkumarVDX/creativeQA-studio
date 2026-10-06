@@ -4,6 +4,10 @@ Reviewed 2026-09-13 against all 13 guideline pages and all six matching template
 
 The project buttonN policy takes precedence over the PDF’s broader CTA names. Optional background images retain their background role; documented assets-generator suffixes must be parsed separately. Raw names and source ancestry must remain available.
 
+Package lookup and the separate treatment of `2xl`, `2x`, generated Retina
+filenames and linked Smart Objects are defined in
+[`../12-Asset-Handling-Contract.md`](../12-Asset-Handling-Contract.md).
+
 ## Evidence and conflicts
 
 - All six ZIP SHA-256 hashes match the existing full PSD inventories; archive manifests were rescanned. No matching export.json is present.

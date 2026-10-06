@@ -31,7 +31,7 @@ fi
 supported_node "$(command -v node)" || fail "Node.js 22.13 or newer is required. With nvm, run: nvm install 22"
 command -v npm >/dev/null 2>&1 || fail "npm is required. Install Node.js with npm, then try again."
 printf 'Using Node.js %s\n' "$(node --version)"
-[ -d node_modules/vinext ] || fail "Dependencies are missing. Run npm run install:ci in this folder, then try again."
+[ -d node_modules/vite ] || fail "Dependencies are missing. Run npm ci in this folder, then try again."
 
 if /usr/bin/nc -z 127.0.0.1 5173 2>/dev/null; then
   fail "Port 5173 is already in use. Stop the existing server before launching again."
@@ -54,7 +54,7 @@ printf '\nStarting Turbo QA Studio at http://127.0.0.1:5173\nKeep this Terminal 
 browser_waiter=$!
 trap 'kill "$browser_waiter" 2>/dev/null || true' EXIT
 
-npm run dev -- --hostname 127.0.0.1
+npm run dev -- --host 127.0.0.1
 server_status=$?
 if [ "$server_status" -ne 0 ] && [ "$server_status" -ne 130 ]; then
   fail "The server stopped with an error. Check the output above."

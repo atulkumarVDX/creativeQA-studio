@@ -1,0 +1,71 @@
+{
+  "source": "SPIRIVA_turbo_ISI_size_psd.zip",
+  "document": {
+    "artboards": [325]
+  },
+  "rawLayers": [
+    {
+      "layerID": 325,
+      "parentLayerID": -1,
+      "name": "300x250",
+      "layerKind": 7,
+      "visible": true,
+      "itemIndex": 900,
+      "bounds": { "top": 0, "left": 2254, "width": 300, "height": 250 },
+      "boundsNoEffects": { "top": 0, "left": 2254, "width": 300, "height": 250 }
+    },
+    {
+      "layerID": 327,
+      "parentLayerID": 325,
+      "name": "tabComponent",
+      "layerKind": 7,
+      "visible": true,
+      "itemIndex": 896,
+      "bounds": { "top": 0, "left": 0, "width": 6310, "height": 3997 },
+      "boundsNoEffects": { "top": 0, "left": 2141, "width": 526, "height": 354 }
+    },
+    {
+      "layerID": 329,
+      "parentLayerID": 327,
+      "name": "tab1",
+      "layerKind": 7,
+      "visible": true,
+      "itemIndex": 770,
+      "bounds": { "top": 0, "left": 0, "width": 6310, "height": 3997 },
+      "boundsNoEffects": { "top": 0, "left": 2197, "width": 420, "height": 354 }
+    },
+    {
+      "layerID": 103838,
+      "parentLayerID": 329,
+      "name": "CanvasDesign",
+      "layerKind": 7,
+      "visible": true,
+      "itemIndex": 767,
+      "bounds": { "top": 0, "left": 0, "width": 6310, "height": 3997 },
+      "boundsNoEffects": { "top": 18, "left": 2197, "width": 420, "height": 336 }
+    },
+    {
+      "layerID": 18350,
+      "parentLayerID": 103838,
+      "name": "button-clientLogo",
+      "layerKind": 7,
+      "visible": true,
+      "itemIndex": 766,
+      "bounds": { "top": 0, "left": 0, "width": 6310, "height": 3997 },
+      "boundsNoEffects": { "top": 195, "left": 2255, "width": 90, "height": 25 }
+    },
+    {
+      "layerID": 31086,
+      "parentLayerID": 18350,
+      "name": "background",
+      "layerKind": 5,
+      "visible": true,
+      "itemIndex": 764,
+      "bounds": { "top": 195, "left": 2255, "width": 90, "height": 25 },
+      "boundsNoEffects": { "top": 195, "left": 2255, "width": 90, "height": 25 }
+    }
+  ],
+  "archiveEntries": [
+    "background-31086-2x.png"
+  ]
+}

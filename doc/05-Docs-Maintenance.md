@@ -1,11 +1,11 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-**Doc version:** 1.5.0
+**Doc version:** 1.7.0
 **Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline)
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-22
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
+**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe the current release.
 
 ---
 
@@ -54,7 +54,7 @@ When one release bundles more than one change type, use the highest required inc
 
 ### 2.3 This doc set's own version
 
-The five docs are versioned together as a bundle, independent of the code's version: currently **1.4.0**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
+The five docs are versioned together as a bundle, independent of the code's version: currently **1.7.0**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
 
 ## 3. Change-type → doc-update table
 
@@ -84,8 +84,8 @@ Run this **every time** before merging a change to `preview.js` / any `index.htm
 - No test coverage found in any of the three files (Tech Spec §8, item 4) — drift-checks in §4 above are manual because there's nothing automated to run instead.
 
 
-## Screenshot source maintenance addendum — 7.8.0
+## Screenshot source maintenance addendum — 7.8.4
 
-Current capture implementation: `preview/turbo-preview-7.8.0.html`, internal tag 7.8.0, embedded by `app/page.tsx`. Confirmed imported source: `preview/turbo-preview-7_7_1_3.html`, internal tag 7.7.1, preserved unchanged. The historical table above is not evidence of a reconstructed intervening release history.
+Current capture implementation: `preview/turbo-preview-7.8.4.html`, internal tag 7.8.4, embedded by `app/page.tsx`. The user confirmed `preview/turbo-preview-7.8.3.html` as the latest source for this patch. The original imported `preview/turbo-preview-7_7_1_3.html` remains preserved. The historical table above is not evidence of a reconstructed intervening release history.
 
-Maintain `08-Screenshot-Capture-Tool.md` for requirements, UI flow, output schema, implementation boundaries, and capture limits; maintain `09-Screenshot-Capture-Analysis.md` for source evidence, technology assessment, and validation limitations. Capture changes must also update the corresponding PRD/spec/UI addenda and Decisions Log. Before switching the app import, verify the source tag, bridge token, visible engine label, and exported report version together.
+Maintain `08-Screenshot-Capture-Tool.md` for requirements, UI flow, output schema, implementation boundaries, and capture limits; maintain `09-Screenshot-Capture-Analysis.md` for source evidence, technology assessment, and validation limitations; maintain `14-CSM-Review-PDF.md` for review-PDF coverage and CSM workflow. Capture changes must also update the corresponding PRD/spec/UI addenda and Decisions Log. Before switching the app import, verify the source tag, bridge token, visible engine label, and exported report version together.

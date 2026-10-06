@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { parse } = require('@babel/parser');
-const html = readFileSync(new URL('../../preview/turbo-preview-7.8.0.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../../preview/turbo-preview-7.8.4.html', import.meta.url), 'utf8');
 const script = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const ast = parse(script);
 const functions = new Map();
@@ -19,8 +19,8 @@ function collect(node) {
   }
 }
 collect(ast);
-const context = vm.createContext({ Blob, Uint8Array, DataView, DOMException, AbortController, setTimeout, clearTimeout, captureLimits: { timeoutMs: 12 } });
-vm.runInContext(['auditStatesForEntry', 'capturePathSegment', 'planCapture', 'verifyCapturePng', 'boundedCapture', 'captureVideoTime', 'resolveDisclaimerAsset'].map(name => functions.get(name)).join('\n'), context);
+const context = vm.createContext({ Blob, Uint8Array, DataView, TextEncoder, DOMException, AbortController, setTimeout, clearTimeout, captureLimits: { timeoutMs: 12 } });
+vm.runInContext(['auditStatesForEntry', 'capturePathSegment', 'planCapture', 'verifyCapturePng', 'boundedCapture', 'captureVideoTime', 'resolveDisclaimerAsset', 'reviewPdfFromJpegs'].map(name => functions.get(name)).join('\n'), context);
 const plain = value => JSON.parse(JSON.stringify(value));
 const entry = (name, tabs = {}) => ({ model: { name, width: 80, height: 60, tabOrder: Object.keys(tabs), tabs } });
 
@@ -86,8 +86,9 @@ function runner({ failAt = -1, abortAt = -1, timeoutAt = -1, degradeAt = -1, bud
   let frame = 0;
   const errors = [];
   const ctx = vm.createContext({ Blob, Uint8Array, DataView, DOMException, AbortController, setTimeout, clearTimeout, URL, performance,
-    document, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } }, window: { dispatchEvent() {}, htmlToImage: {}, JSZip: Zip, CSM_PREVIEW_BUILD: '7.8.0' }, JSZip: Zip,
+    document, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } }, window: { dispatchEvent() {}, htmlToImage: {}, JSZip: Zip, CSM_PREVIEW_BUILD: '7.8.4' }, JSZip: Zip,
     screenshotsBtn: element(), screenshotScaleSelect: document.getElementById('scale'), resetBtn: element(), pkgNameEl: { textContent: 'fixture.zip' },
+    captureReviewPdf: Object.assign(element(), { checked: false }), downloadReviewBtn: element(), captureReviewDownload: null, capturePackageAssets: new Map(),
     allEntries: [entry('80x60')], includedNames: new Set(['80x60']), console: { info() {} }, clearError() {}, showError(message) { errors.push(message); },
     P: { buildArtboardEl(e) { e.stageEl = element(); e.unavailableEl = element(); return element(); }, paintArtboard() {} },
     htmlToImage: { async toBlob() {
@@ -165,11 +166,16 @@ test('iframe bridge answers late readiness pings and creates package events in i
   const page = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8');
   const pageAst = parse(page, { sourceType: 'module', plugins: ['typescript', 'jsx'] });
   const declaration = pageAst.program.body.find(node => node.type === 'VariableDeclaration' && node.declarations.some(item => item.id.name === 'bridgeScript'));
-  const listeners = new Map(), messages = [], dispatched = [];
+  const listeners = new Map(), messages = [], dispatched = [], themeClicks = [];
   const input = { files: null, dispatchEvent(event) { dispatched.push(event.type); } };
+  const elements = {
+    fileInputZip: input,
+    darkModeBtn: { click() { themeClicks.push('dark'); } },
+    lightModeBtn: { click() { themeClicks.push('light'); } },
+  };
   const frame = vm.createContext({ String, Boolean,
     window: { addEventListener(type, listener) { listeners.set(type, listener); }, parent: { postMessage(message) { messages.push(message); } } },
-    document: { documentElement: { dataset: {} }, getElementById() { return input; } },
+    document: { documentElement: { dataset: {} }, getElementById(id) { return elements[id] || null; } },
     File: class { constructor(parts, name, options) { this.parts = parts; this.name = name; this.type = options.type; } },
     Event: class { constructor(type) { this.type = type; } },
     DataTransfer: class { constructor() { this.files = []; this.items = { add: file => this.files.push(file) }; } },
@@ -179,10 +185,14 @@ test('iframe bridge answers late readiness pings and creates package events in i
   vm.runInContext(bridgeJs, frame);
   const notify = listeners.get('message');
   assert.equal(messages.length, 1);
-  notify({ data: { type: 'tqa:ping', token: 'turbo-qa-preview-7.8.0' } });
+  notify({ data: { type: 'tqa:ping', token: 'turbo-qa-preview-7.8.4' } });
   assert.equal(messages.length, 2);
   assert.equal(messages[1].type, 'tqa:preview-ready');
-  notify({ data: { type: 'tqa:load-package', token: 'turbo-qa-preview-7.8.0', buffer: new ArrayBuffer(1), name: 'fixture.zip' } });
+  notify({ data: { type: 'tqa:set-theme', token: 'turbo-qa-preview-7.8.4', theme: 'light' } });
+  notify({ data: { type: 'tqa:set-theme', token: 'turbo-qa-preview-7.8.4', theme: 'dark' } });
+  notify({ data: { type: 'tqa:set-theme', token: 'turbo-qa-preview-7.8.4', theme: 'other' } });
+  assert.deepEqual(themeClicks, ['light', 'dark']);
+  notify({ data: { type: 'tqa:load-package', token: 'turbo-qa-preview-7.8.4', buffer: new ArrayBuffer(1), name: 'fixture.zip' } });
   assert.deepEqual(dispatched, ['change']);
   assert.equal(input.files[0].name, 'fixture.zip');
   listeners.get('csm:capture-state')({ detail: { busy: true } });
@@ -194,12 +204,12 @@ test('parent transfers a package without assigning foreign-realm input events', 
   const start = page.indexOf('async function loadPreviewFile(');
   const end = page.indexOf('\nfunction SeverityIcon', start);
   const source = page.slice(start, end).replace('frame: HTMLIFrameElement | null, file: File', 'frame, file');
-  const transfer = vm.createContext({ BRIDGE_TOKEN: 'turbo-qa-preview-7.8.0' });
+  const transfer = vm.createContext({ BRIDGE_TOKEN: 'turbo-qa-preview-7.8.4' });
   vm.runInContext(source, transfer);
   const messages = [], buffer = new ArrayBuffer(4);
   await transfer.loadPreviewFile({ contentWindow: { postMessage(...args) { messages.push(args); } } }, { name: 'fixture.zip', type: 'application/zip', async arrayBuffer() { return buffer; } });
   assert.equal(messages[0][0].buffer, buffer);
-  assert.equal(messages[0][0].token, 'turbo-qa-preview-7.8.0');
+  assert.equal(messages[0][0].token, 'turbo-qa-preview-7.8.4');
   assert.equal(messages[0][2][0], buffer);
 });
 
@@ -229,4 +239,18 @@ test('successful PNGs with asset warnings never enter the failures file', async 
   await run.run();
   assert.ok(!run.archives[0].files['_capture-failures.txt']);
   assert.match(run.archives[0].files['_capture-warnings.txt'], /missing fixture image/);
+});
+
+
+test('review PDF writer produces a valid catalog, page tree, images, and xref', async () => {
+  const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]).buffer;
+  const blob = context.reviewPdfFromJpegs([jpeg, jpeg]);
+  assert.equal(blob.type, 'application/pdf');
+  const text = new TextDecoder('latin1').decode(await blob.arrayBuffer());
+  assert.ok(text.startsWith('%PDF-1.7'));
+  assert.match(text, /\/Type \/Catalog/);
+  assert.match(text, /\/Count 2/);
+  assert.equal((text.match(/\/Type \/Page\b/g) || []).length, 2);
+  assert.equal((text.match(/\/Subtype \/Image/g) || []).length, 2);
+  assert.match(text, /startxref\n\d+\n%%EOF/);
 });

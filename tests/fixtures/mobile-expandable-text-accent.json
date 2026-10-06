@@ -1,0 +1,33 @@
+{
+  "artboard": {
+    "layerID": 143,
+    "name": "428x622",
+    "layerKind": 7,
+    "bounds": { "left": 4721, "top": 0, "width": 428, "height": 622 }
+  },
+  "slide": {
+    "layerID": 217236,
+    "parentLayerID": 143,
+    "name": "slide2",
+    "layerKind": 7,
+    "bounds": { "left": 0, "top": 0, "width": 5149, "height": 3424 }
+  },
+  "shape": {
+    "layerID": 244256,
+    "parentLayerID": 217236,
+    "name": "Rectangle 16",
+    "layerKind": 4,
+    "itemIndex": 1605,
+    "visible": true,
+    "bounds": { "left": 4844, "top": 458, "width": 13, "height": 52 }
+  },
+  "text": {
+    "layerID": 217233,
+    "parentLayerID": 217236,
+    "name": "Left Headline copy 3",
+    "layerKind": 3,
+    "itemIndex": 1604,
+    "visible": true,
+    "bounds": { "left": 4873, "top": 458, "width": 192, "height": 56 }
+  }
+}

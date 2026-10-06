@@ -1,11 +1,11 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-**Doc version:** 1.5.0
+**Doc version:** 1.7.0
 **Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline). `index.html`/`preview.js` (Standalone, v1.0.0) has a much plainer, unthemed UI — differences called out inline where relevant.
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-22
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
+**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -135,3 +135,9 @@ If a real production package ever needs a different value here, that's a new Dec
 The preview toolbar offers output resolution (default 2×) and Screenshots. Screenshots opens a native modal with size scope, missing-asset policy, and planned frame count. All package sizes and capture-with-warnings are the defaults. Capture ZIP shows a polite live progress region and Cancel capture. Package replacement is disabled during preparation, capture, and ZIP generation.
 
 The result shows explicit captured/incomplete/failed/not-captured counts, an expandable Capture report, Download ZIP, and Retry affected frames when applicable. Cancelled archives require an explicit download. Retry outputs are separate subset archives. Full user journeys, accessibility behavior, and result semantics are documented in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md).
+
+## Review PDF controls — 7.8.4
+
+The capture dialog includes one checked option, **Include CSM review PDF**, with a concise description of the reference-style sections. The summary panel changes to “PNG ZIP + landscape review PDF” when selected. The primary action reads **Create package**, reflecting both deliverables. The option, summary panel, hint, and buttons use the preview's existing surface, border, accent, typography, and light/dark theme tokens.
+
+After a successful run, **Download ZIP** remains the primary retained artifact and **Review PDF** provides direct access to the PDF. A PDF-only generation error is stated without hiding the valid PNG ZIP. Every PDF page uses a white background and compact gray section header, independent of the preview theme. The review begins with content rather than a generated cover so its flow matches the supplied CSM reference.

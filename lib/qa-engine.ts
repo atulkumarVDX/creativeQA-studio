@@ -56,7 +56,7 @@ type ZipAsset = {
 const ARTBOARD_NAME = /^(?:\d+x\d+|mobile-instream)$/i;
 const TAB_NAME = /^tab(?:Component[-_ ]?)?(\d+)$/i;
 const SLIDE_NAME = /^slide(?:[-_ ]?)(\d+)$/i;
-const DEFAULT_COPY = /^(?:lorem ipsum|headline goes here|subcopy goes here|button text|click here|learn more|read more|cta|sample text|your text here)$/i;
+const DEFAULT_COPY = /^(?:lorem ipsum|headline goes here|subcopy goes here|button text|sample text|your text here)$/i;
 const CTA_NAME = /(?:^|[-_\s])(cta|button|btn)(?:\d+|[-_\s]|$)/i;
 
 function normalized(value: unknown) {
@@ -66,6 +66,13 @@ function normalized(value: unknown) {
     .replace(/[\t ]+/g, " ")
     .replace(/ *\n */g, "\n")
     .trim();
+}
+
+function packagePath(value: unknown) {
+  // The preview's asset map uses archive-relative strings exactly. Do not
+  // collapse whitespace, case-fold, or otherwise make a broken reference
+  // appear resolvable during QA.
+  return String(value ?? "");
 }
 
 function bytes(value: unknown) {
@@ -94,18 +101,18 @@ function isOptical(layer: Layer) {
 }
 
 function hasRaisedTrademark(layer: Layer, text: string) {
-  const markIndex = Math.max(text.indexOf("®"), text.indexOf("™"));
-  if (markIndex < 0) return true;
+  const markIndices = Array.from(text.matchAll(/[®™]/g), match => match.index);
+  if (!markIndices.length) return true;
   const ranges = layer.textKey?.textStyleRange || [];
-  return ranges.some((range: any) => {
+  return markIndices.every(markIndex => ranges.some((range: any) => {
     if (!(range.from <= markIndex && range.to > markIndex)) return false;
     const style = range.textStyle || {};
     return style.baseline?._value === "superScript" || Number(style.baselineShift?._value || 0) > 0;
-  });
+  }));
 }
 
 function makeFinding(partial: Omit<Finding, "id">): Finding {
-  const key = [partial.ruleId, partial.artboard, partial.tab, partial.slide, partial.layerId, partial.title]
+  const key = [partial.ruleId, partial.artboard, partial.tab, partial.slide, partial.layerId, partial.title, partial.message]
     .filter(Boolean)
     .join("|");
   let hash = 2166136261;
@@ -173,6 +180,10 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
   const textContexts = contexts.filter(context => getText(context.layer));
   for (const context of textContexts) {
     const text = getText(context.layer);
+    const rawText = String(context.layer.textKey?.textKey ?? "");
+    const parent = Number.isFinite(context.layer.parentLayerID)
+      ? byId.get(context.layer.parentLayerID as number)
+      : undefined;
     const location = {
       artboard: context.artboard || undefined,
       tab: context.tab || undefined,
@@ -180,17 +191,46 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
       layerName: normalized(context.layer.name) || "Untitled text layer",
       layerId: context.layer.layerID,
     };
-    if (/ {2,}|\t|\u00a0\u00a0/.test(String(context.layer.textKey?.textKey || ""))) {
+    const textShape = context.layer.textKey?.textShape?.[0]?.char?._value;
+    const isDirectCtaLabel = Boolean(
+      parent
+      && parent.layerSection?._value === "layerSectionStart"
+      && CTA_NAME.test(normalized(parent.name)),
+    );
+    if (textShape === "box" && isDirectCtaLabel) {
+      findings.push(makeFinding({
+        ruleId: "rendering.cta-paragraph-text",
+        severity: "warning",
+        confidence: "high",
+        title: "CTA label may disappear in production",
+        message: "This CTA label is paragraph/box text. Published Turbo rendering may omit box-text labels inside button groups even when Preview displays them. Convert or recreate the label as point text, then re-export and verify the published creative.",
+        evidence: `CTA owner: ${normalized(parent?.name)} · Photoshop text shape: box`,
+        ...location,
+      }));
+    }
+    if (/ {2,}|\t|\u00a0\u00a0/.test(rawText)) {
       findings.push(makeFinding({
         ruleId: "copy.spacing",
-        severity: "warning",
+        severity: "info",
         confidence: "high",
         title: "Suspicious spacing",
         message: "Copy contains repeated spaces, a tab, or repeated non-breaking spaces.",
         ...location,
       }));
     }
-    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(text)) {
+    const softReturnCount = rawText.split("\u0003").length - 1;
+    if (softReturnCount > 0) {
+      findings.push(makeFinding({
+        ruleId: "rendering.shift-enter-soft-return",
+        severity: "error",
+        confidence: "high",
+        title: "Shift+Enter line break may fail in production",
+        message: "This text layer contains a Photoshop Shift+Enter soft return (U+0003). Production can show it as a control character or misrender the line layout. Replace each soft return with an approved paragraph break or separate text layers, then re-export and verify the published creative.",
+        evidence: `${softReturnCount} soft return${softReturnCount === 1 ? "" : "s"} (U+0003) in raw export text`,
+        ...location,
+      }));
+    }
+    if (/[\u0000-\u0002\u0004-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(rawText)) {
       findings.push(makeFinding({
         ruleId: "copy.unsupported-control-character",
         severity: "error",
@@ -210,7 +250,9 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
         ...location,
       }));
     }
-    if (!hasRaisedTrademark(context.layer, text)) {
+    // Photoshop style ranges index the unmodified source string. Using normalized
+    // text here shifts indices whenever spaces surround a line break.
+    if (!hasRaisedTrademark(context.layer, rawText)) {
       findings.push(makeFinding({
         ruleId: "typography.trademark-superscript",
         severity: "warning",
@@ -262,7 +304,7 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
       if (actual < expected) {
         findings.push(makeFinding({
           ruleId: "consistency.element-presence",
-          severity: role === "cta" ? "warning" : "info",
+          severity: "info",
           confidence: "medium",
           title: `Possible missing ${role}`,
           message: `${tab} contains ${expected} ${role} element${expected === 1 ? "" : "s"} in the reference pattern, but ${artboard} contains ${actual}.`,
@@ -293,7 +335,7 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
       if (!present.has(artboard)) {
         findings.push(makeFinding({
           ruleId: "consistency.copy-presence",
-          severity: "warning",
+          severity: "info",
           confidence: "medium",
           title: "Copy differs across artboards",
           message: `Copy used by most ${tab} artboards is absent from ${artboard}.`,
@@ -305,50 +347,82 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
     }
   }
 
-  const declaredReferences = new Map<string, number>();
-  const addReference = (name: unknown) => {
-    const value = normalized(name);
-    if (value) declaredReferences.set(value.toLowerCase(), (declaredReferences.get(value.toLowerCase()) || 0) + 1);
+  type DeclaredReference = { count: number; allowRetinaFallback: boolean; displayName: string };
+  const declaredReferences = new Map<string, DeclaredReference>();
+  const addReference = (name: unknown, allowRetinaFallback = false) => {
+    const value = packagePath(name);
+    if (!value) return;
+    const current = declaredReferences.get(value);
+    declaredReferences.set(value, {
+      count: (current?.count || 0) + 1,
+      allowRetinaFallback: Boolean(current?.allowRetinaFallback || allowRetinaFallback),
+      displayName: current?.displayName || value,
+    });
   };
-  (data.customAssets || []).forEach((asset: any) => addReference(asset.fileName));
+  (data.customAssets || []).forEach((asset: any) => addReference(asset.fileName, true));
   (data.fonts || []).forEach((font: any) => addReference(font.fileName));
   layers.forEach(layer => {
-    const match = /^v\d+\s*:\s*([^\[]+)/i.exec(normalized(layer.name));
-    if (match) addReference(match[1]);
+    const match = /^v\d+\s*:\s*([^\[]+)/i.exec(String(layer.name ?? ""));
+    // Whitespace around the filename belongs to the playlist marker syntax,
+    // not to the packaged filename itself.
+    if (match) addReference(match[1].trim());
     const linked = layer.smartObject?.linked === true
       ? layer.smartObject.fileReference || layer.smartObject.link?._path
       : null;
-    if (linked) addReference(String(linked).split(/[\\/]/).pop());
+    if (linked) addReference(String(linked).split(/[\\/]/).pop(), true);
   });
-  addReference("disclaimer.html");
+  const hasIsi = contexts.some(context => Boolean(context.artboard) && normalized(context.layer.name).toLowerCase() === "isi")
+    || layers.some(layer => /^ISI_preQual_\d+x\d+\.png$/i.test(packagePath(layer.name)));
 
-  const available = new Set(zipAssets.map(asset => asset.name.split("/").pop()!.toLowerCase()));
+  const exportEntry = zipAssets.find(asset => /(^|\/)export\.json$/i.test(packagePath(asset.name)));
+  const exportPath = packagePath(exportEntry?.name);
+  const basePrefix = exportPath ? exportPath.slice(0, exportPath.length - "export.json".length) : "";
+  const relativeAssets = zipAssets
+    .map(asset => ({ asset, path: packagePath(asset.name) }))
+    .filter(item => !basePrefix || item.path.startsWith(basePrefix))
+    .map(item => ({ asset: item.asset, path: item.path.slice(basePrefix.length) }))
+    .filter(item => item.path && !/(^|\/)export\.json$/i.test(item.path));
+  const available = new Set(relativeAssets.map(item => item.path));
+
+  // disclaimer.html is a runtime dependency only when the package declares an
+  // ISI marker. The preview intentionally discovers its name case-insensitively.
+  if (hasIsi) {
+    const disclaimer = relativeAssets.find(item => /(^|\/)disclaimer\.html$/i.test(item.path));
+    addReference(disclaimer?.path || "disclaimer.html");
+  }
+
   // Ordinary raster layers are referenced by the renderer's name-layerID convention.
   layers.forEach(layer => {
     if (!layer.name || !Number.isFinite(layer.layerID) || layer.textKey) return;
-    const oneX = `${layer.name}-${layer.layerID}.png`.toLowerCase();
-    const twoX = `${layer.name}-${layer.layerID}-2x.png`.toLowerCase();
+    const oneX = `${layer.name}-${layer.layerID}.png`;
+    const twoX = `${layer.name}-${layer.layerID}-2x.png`;
     if (available.has(oneX)) addReference(oneX);
     if (available.has(twoX)) addReference(twoX);
   });
-  for (const [name] of declaredReferences) {
-    if (!available.has(name)) {
+
+  const resolvedReferenceCounts = new Map<string, number>();
+  for (const [name, reference] of declaredReferences) {
+    const retryName = reference.allowRetinaFallback && /\.png$/i.test(name)
+      ? name.replace(/\.png$/i, "-2x.png")
+      : "";
+    const resolvedName = available.has(name) ? name : retryName && available.has(retryName) ? retryName : "";
+    if (resolvedName) {
+      resolvedReferenceCounts.set(resolvedName, (resolvedReferenceCounts.get(resolvedName) || 0) + reference.count);
+    } else {
       findings.push(makeFinding({
         ruleId: "assets.declared-missing",
         severity: "error",
         confidence: "high",
         title: "Declared asset is missing",
-        message: `${name} is referenced by export.json but is not present in the package.`,
+        message: `${reference.displayName} is referenced by export.json but is not present in the package.`,
       }));
     }
   }
 
-  const assets = zipAssets
-    .filter(asset => !/(^|\/)export\.json$/i.test(asset.name))
-    .map(asset => {
-      const baseName = asset.name.split("/").pop() || asset.name;
-      const key = baseName.toLowerCase();
-      const referenceCount = declaredReferences.get(key) || 0;
+  const assets = relativeAssets
+    .map(({ asset, path }) => {
+      const baseName = path.split("/").pop() || path;
+      const referenceCount = resolvedReferenceCounts.get(path) || 0;
       const isSystem = /^(?:export\.log|errors\.txt|\.ds_store)$/i.test(baseName);
       return {
         name: baseName,

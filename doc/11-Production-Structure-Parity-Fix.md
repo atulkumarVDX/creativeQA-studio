@@ -1,5 +1,48 @@
 # Production structure parity fix — 7.8.1
 
+## Retina-only generated assets
+
+The consolidated runtime and authoring treatment is defined in
+[`12-Asset-Handling-Contract.md`](12-Asset-Handling-Contract.md). This section
+records the release-specific defect and fix.
+
+The SPIRIVA package exposed a shared asset-resolution defect. Its visible
+`button-clientLogo/background` source layer requests the generated name
+`background-31082.png`, while the package contains only
+`background-31082-2x.png`. The loader previously detected the Retina fallback
+when deciding whether to warn, but still returned the missing-asset data URL.
+This specifically affected backgrounds promoted into containers because they
+have no image `onerror` retry. The 7.8.1 package resolver now returns the exact
+asset when present and otherwise returns the corresponding `-2x.png` asset.
+The same rule applies to any uploaded package. A regression test covers this
+lookup; all 55 structure and screenshot-capture tests pass.
+
+## Exact matched La Roche set — September 15, 2026
+
+The current `production-file/laRache/j.ad`, CSS folder and
+`sample/creative/LaRoche/design_1.psb.zip` form a matched 970×546 fixture.
+The compiled model selects Turbo Components 3.13.11-1, contains 97 objects and
+93 numeric source-layer tags, and references the supplied 970×546 product CSS.
+All 93 tags resolve to the ZIP. All five UUID selectors in `style.css` and
+`image.css` resolve to objects in this compiled model. Font-family identity is
+used for comparison; generated production and export filenames need not match.
+
+Across nine tab/slide states, the actual 7.8.1 painter emits every tagged
+compiled object. All comparable initial numeric left, top, width and height
+properties match the compiled model within 0.001px. Source sibling ordering now
+matches the compiled object arrays. A remaining root mismatch was corrected by
+using the assigned size-instance order for reconstructed master navigation
+elements; the master layer's original document itemIndex is no longer allowed
+to reorder the size-specific bottom border.
+
+The full automated suite now has 54 passing tests. The five-package,
+248-state smoke run also passes. This establishes structural and initial inline
+geometry parity for this exact fixture. It does not establish post-font computed
+text geometry, decoded asset pixels, component animations, media playback or
+browser screenshots. Those require rendering the matched assets and fonts in a
+browser. Other component families require their own matched compiled fixtures
+before universal coverage can be claimed.
+
 ## Compiled model received — September 14, 2026
 
 The user supplied a populated `ccMainunitVersionVariation`. Production merges

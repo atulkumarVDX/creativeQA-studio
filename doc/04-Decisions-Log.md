@@ -1,11 +1,11 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-**Doc version:** 1.5.0
+**Doc version:** 1.7.0
 **Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_7_6_2.html` @ **v7.6.2 baseline** · `turbo_preview_artifact_7_5_6.html` @ **v7.5.6 baseline** · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-22
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.0.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addendum and `08-Screenshot-Capture-Tool.md` describe 7.8.0.
+**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
 
 ---
 
@@ -323,6 +323,28 @@ A missing shared disclaimer image must not erase every PNG in tolerant mode; eve
 **Decision:** restore default 2×; seek videos at 5 seconds or just inside the end of short clips and record seek metadata; resolve `$LOC$assets/` against canonical export-root assets with exact/unique fallbacks; inspect fonts only on direct text nodes; keep Text QA notices separate from capture completeness. Only jobs without PNGs enter the failures file; warnings and notices use a separate file. Simplify and theme the capture dialog. Latest source remains 7.8.0, corrected in place.
 
 **Validation:** the related SPIRIVA sample exported 52/52 states at 2× in tolerant and strict modes with zero capture failures or asset warnings, all PNG dimensions and ZIP CRCs verified; 135 Text QA notices were preserved. The supplied 53-state revision itself was not available as an exact matching ZIP.
+
+---
+
+## D049 — Generate an honest CSM review PDF from modeled evidence (7.8.3)
+
+**Evidence:** the supplied 47-page CSM reference PDF combines video checkpoints, desktop and mobile main-unit states, expandable teaser/engaged examples, instream presentations, device/player casing, OTT, and full ISI. Turbo QA Studio models main-unit states and now exposes package teaser assets, but it does not model the VPM hover transition, mobile instream in every package, or presentation casing.
+
+**Decision:** create an optional landscape review PDF in the browser from successful 2× capture PNGs, package-video checkpoints, available teaser assets, and full-ISI text. Put the PDF inside the ZIP and retain a direct PDF download. State the unsupported production layers on the cover rather than fabricating casing or transition frames. Record PDF status and coverage in the capture manifest. A PDF failure remains isolated from valid PNG output.
+
+**Versioning:** the user explicitly requested a patch build from the confirmed latest source `preview/turbo-preview-7.8.2.html`; the delivered source is `preview/turbo-preview-7.8.3.html` with matching app import, bridge token, and build tag.
+
+---
+
+## D050 — Rebuild the review PDF against the supplied CSM reference (7.8.4)
+
+**Evidence:** direct comparison found that the 7.8.3 output had 28 generic card-based pages, a generated cover, gray content surfaces, sparse layouts, no presentation casing, and a four-page full-ISI appendix. The 47-page `USA-938-80400.pdf` reference uses a white 16:9 page, compact gray section bar, direct creative placement, fixed section sequence, size-specific page densities, phone/player/OTT presentation frames, and one dense full-ISI page.
+
+**Decision:** replace the generic composer with a reference-specific document template. Preserve successful 2× PNGs as evidence, group supported sizes using the reference order and density, add review-only phone/player/OTT frames, place teaser assets directly, and typeset full ISI on one page. Omit unavailable sections rather than creating false evidence. Keep the VPM hover transition explicitly unsupported and describe presentation frames as approximations. Use 5-, 12-, and 15-second video checkpoints so the first review image follows the requested 5-second policy and avoids the blank intro sample.
+
+**Validation:** the representative eight-size package generated 41 pages with all 16 reference section categories, a 960×540-point page box, zero capture failures, and a CRC-valid ZIP. The reference has 47 pages; the remaining difference comes from package-specific state counts and unavailable production-only states rather than the page template.
+
+**Versioning:** the user confirmed `preview/turbo-preview-7.8.3.html` as the latest source. The patch is `preview/turbo-preview-7.8.4.html`, with matching app import, bridge token, tests, and build tag.
 
 ---
 

@@ -66,6 +66,7 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
     font-family: var(--font-body);
     min-height: 100vh;
   }
+  html { scrollbar-width: thin; }
   ::selection { background: var(--accent-soft); color: var(--accent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   button { letter-spacing: -.005em; }
@@ -406,30 +407,15 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   }
 
   .cp-artboard-card {
+    flex: 0 0 auto;
+    width: max-content;
     text-align: left;
     background: transparent;
     border: 0;
     border-radius: 0;
     padding: 0;
-    max-width: 100%;
+    max-width: none;
     box-shadow: none;
-    /* .cp-stage below is sized to the artboard's true pixel width via an
-       inline style (e.g. 970px) — on a narrow viewport that's wider than
-       the card itself. Without a scroll boundary here, that overflow
-       doesn't just clip visually: it still contributes to this card's
-       (and every ancestor's, up to <body>) scrollable overflow area,
-       silently growing the whole document past the viewport width.
-       Confirmed directly: a single 970px-wide artboard on a 390px mobile
-       viewport pushed document.body.scrollWidth to 986px. That oversized
-       document then breaks the sticky control panel's positioning
-       relative to its actual content, which is what produced the
-       artboard-bleeding-over-the-header glitch — not a z-index/sticky
-       bug on its own, but a symptom of the page being wider than the
-       screen in the first place. Scoping the overflow to each card
-       (scrollable in place) keeps the document itself exactly
-       viewport-width regardless of how large any individual artboard is. */
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
   .cp-artboard-label {
     font-family: var(--font-mono);
@@ -513,7 +499,7 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
     #topBar, #controlPanel, #stageWrap { padding-left: 16px; padding-right: 16px; }
     .theme-toggle { margin-left: 0; }
     .stage-standard-group { flex-direction: column; }
-    .cp-artboard-card { width: 100% !important; min-width: 0; }
+    .cp-artboard-card { min-width: 0; }
   }
   .cp-unavailable {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -784,13 +770,7 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   }
   .nav-arrow:hover { color: var(--ink); background: var(--table); border-color: var(--line); }
   #slideControlRow { display: flex; align-items: center; gap: 7px; min-width: 0; }
-  #kerningRow {
-    width: 100%;
-    justify-content: flex-end;
-    margin: 8px 0 0;
-    padding-top: 8px;
-    border-top: 1px solid var(--line);
-  }
+  #kerningRow { display: inline-flex; align-items: center; margin-left: 2px; }
   #kerningDetailsBtn { border-radius: 8px; padding: 7px 10px; color: #d49d47; background: rgba(212,157,71,.1); border-color: transparent; }
   .stage-comparison-layout { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
   .stage-layout-row { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: 24px; min-width: 0; }
@@ -813,7 +793,8 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   .stage-comparison-layout.wide-bento .stage-bento-lower,
   .stage-comparison-layout.wide-bento .stage-bento-stack { gap: 21px; }
   @media (max-width: 1080px) {
-    #stageWrap { padding-left: 16px; padding-right: 16px; }
+    #stageWrap { padding-left: 0; padding-right: 0; }
+    .stage-section-header { margin-left: 12px; margin-right: 12px; }
   }
   @media (max-width: 900px) {
     #topBar { padding-inline: 16px; }
@@ -822,7 +803,6 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
     #controlPanel { padding: 10px 16px; }
     .workspace-nav { flex-wrap: wrap; }
     .content-nav { width: 100%; order: 3; padding-top: 9px; border-top: 1px solid var(--line); }
-    #kerningRow { order: 2; }
     .stage-layout-row { flex-wrap: wrap; }
     .stage-bento-lower { flex-wrap: wrap; }
   }
@@ -852,6 +832,10 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   .capture-intro { color: var(--ink-soft); margin: 8px 0 20px; }
   .capture-field { display: grid; gap: 6px; margin: 14px 0; }
   .capture-field label { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+  .capture-scale-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .capture-scale-options label { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised); color: var(--ink); cursor: pointer; }
+  .capture-scale-options label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .capture-scale-options input { accent-color: var(--accent); }
   #captureOptionsDialog select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised); color: var(--ink); font: inherit; color-scheme: dark; }
   html[data-theme="light"] #captureOptionsDialog select { color-scheme: light; }
   #captureOptionsSummary { padding: 12px 14px; margin: 18px 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--accent-soft); font-size: 12px; font-weight: 500; white-space: pre-line; }
@@ -871,6 +855,7 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
 #structureQA > summary::before { content:""; width:6px; height:6px; border-right:1.5px solid var(--ink-faint); border-bottom:1.5px solid var(--ink-faint); transform:rotate(-45deg); transition:transform .12s; }
 #structureQA[open] > summary::before { transform:rotate(45deg); }
 #structureSummary { margin-left:auto; color:var(--ink-soft); font:400 10px/1.5 var(--font-mono); text-align:right; }
+#structureQA #kerningDetailsBtn { margin-left:8px; }
 #structureProgress, #structureQA > p { color:var(--ink-faint); font-size:11px; line-height:1.6; margin:0 0 6px; }
 #structureProgress { font-family:var(--font-mono); font-size:10px; }
 #structureFindings { max-height:300px; overflow:auto; margin:12px 0; border:1px solid var(--line); border-radius:8px; }
@@ -901,6 +886,12 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   <form id="captureOptionsForm">
     <h2 id="captureOptionsTitle">Capture screenshots</h2>
     <p class="capture-intro">Every tab and gallery slide, in one ZIP.</p>
+    <div class="capture-field"><label>Scale</label><div class="capture-scale-options" role="radiogroup" aria-label="Screenshot scale">
+      <label><input type="radio" name="screenshotScale" value="1"> 1×</label>
+      <label><input type="radio" name="screenshotScale" value="2" checked> 2×</label>
+      <label><input type="radio" name="screenshotScale" value="3"> 3×</label>
+    </div></div>
+    <select id="screenshotScaleSelect" class="hidden" aria-hidden="true" tabindex="-1"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
     <div class="capture-field"><label for="captureScope">Sizes</label><select id="captureScope"><option value="all">All package sizes</option><option value="selected">Selected preview sizes</option></select></div>
     <div class="capture-field"><label for="capturePolicy">If an asset is missing</label><select id="capturePolicy"><option value="tolerant">Export with a warning</option><option value="strict">Skip incomplete frames</option></select></div>
     <p id="captureOptionsSummary" role="status" aria-live="polite"></p>
@@ -946,15 +937,6 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
       <span id="buildVersionTag"></span>
       <span id="textQaBadge" class="hidden">Full Text QA audit</span>
       <div class="top-actions">
-        <div class="theme-toggle" aria-label="Color theme">
-          <button class="seg-btn" id="darkModeBtn" type="button">Dark</button>
-          <button class="seg-btn" id="lightModeBtn" type="button">Light</button>
-        </div>
-        <select id="screenshotScaleSelect" class="seg-btn" title="Output resolution">
-          <option value="1">Screenshots @1x</option>
-          <option value="2" selected>Screenshots @2x</option>
-          <option value="3">Screenshots @3x</option>
-        </select>
         <button id="screenshotsBtn" class="seg-btn" type="button">Screenshots</button>
         <button id="cancelCaptureBtn" class="seg-btn hidden" type="button">Cancel capture</button>
         <button id="downloadCaptureBtn" class="seg-btn hidden" type="button">Download ZIP</button>
@@ -989,15 +971,16 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
           <button class="nav-arrow" id="nextTabBtn" type="button" aria-label="Next tab" title="Next tab"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m8 5 5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <div class="nav-cluster slide-cluster" id="slideControlRow"><span class="control-label">Slide</span><div id="slideButtons" class="seg-group"></div></div>
         </div>
-      </div>
-      <div class="control-row hidden" id="kerningRow">
-        <button id="kerningDetailsBtn" class="seg-btn" type="button" aria-expanded="false" aria-controls="kerningPanel">Text QA</button>
+        <div class="theme-toggle" aria-label="Color theme">
+          <button class="seg-btn" id="darkModeBtn" type="button">Dark</button>
+          <button class="seg-btn" id="lightModeBtn" type="button">Light</button>
+        </div>
       </div>
     </div>
 
     <div id="kerningPanel" class="hidden" role="region" aria-label="Text quality review"></div>
 
-    <details id="structureQA"><summary>Structure QA · <span id="structureSummary">Waiting for package</span></summary>
+    <details id="structureQA"><summary>Structure QA <span id="structureSummary">Waiting for package</span><span class="hidden" id="kerningRow"><button id="kerningDetailsBtn" class="seg-btn" type="button" aria-expanded="false" aria-controls="kerningPanel">Text QA</button></span></summary>
       <p id="structureProgress" role="status" aria-live="polite"></p>
       <p>Advisory scan. Findings identify layers to review in Photoshop.</p>
       <div id="structureFindings"></div>
@@ -1729,6 +1712,10 @@ function createStructuralMount(entry) {
     // Confirmed logo conversion: the direct Smart Object is a CSS background.
     if (/^button-clientLogo$/i.test(layer.name || '') && backgrounds.length === 1) {
       const background = backgrounds[0], filename = entry.assetMap?.get(String(background.layerID));
+      // Retained groups must participate in the same Photoshop paint stack as
+      // raster layers. Otherwise a full-canvas image with a numeric z-index
+      // paints over the logo even when the logo is later in source order.
+      element.style.zIndex = String(layer.itemIndex || 0);
       if (filename) {
         backgroundId = background.layerID;
         element.dataset.backgroundLayerId = String(backgroundId);
@@ -1788,7 +1775,8 @@ function createStructuralMount(entry) {
     // into its source parent. Missing bounds retain the parent's origin.
     if (element.style.left) element.style.left = (parseFloat(element.style.left) - parent.left * scale) + 'px';
     if (element.style.top) element.style.top = (parseFloat(element.style.top) - parent.top * scale) + 'px';
-    appendInPaintOrder(parent.element, element, layer?.itemIndex ?? renderable.itemIndex);
+    const paintOrder = renderable.instanceOwnerId != null ? renderable.itemIndex : (layer?.itemIndex ?? renderable.itemIndex);
+    appendInPaintOrder(parent.element, element, paintOrder);
   }
   return { mount, groups };
 }
@@ -2780,11 +2768,20 @@ function createStructuralMount(entry) {
 
   // ── Rendering ──────────────────────────────────────────────
 
-  // Render source geometry at true 1:1 pixel size. Mobile instream is a
-  // presentation-scale exception. Mobile expandable is authored at 428px,
-  // but production lays it out inside a real 375px viewport.
-  function computeScale(artboardModels) {
-    return 1;
+  // Use source dimensions when they fit, and scale uniformly on narrower
+  // screens so an artboard never needs its own scrollbar.
+  function computeScale(artboardModels, options = {}) {
+    const stage = document.getElementById("stageWrap");
+    if (!stage || !artboardModels.length) return 1;
+    const style = getComputedStyle(stage);
+    const availableWidth = stage.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const widest = Math.max(...artboardModels.map(model => {
+      const name = model.name.toLowerCase();
+      if (name === "mobile-instream" && !options.mobileInstreamOriginal) return model.width * MOBILE_INSTREAM_DISPLAY_SCALE;
+      if (name === "428x622" && !options.mobileExpandableOriginal) return MOBILE_EXPANDABLE_VIEWPORT_WIDTH;
+      return model.width;
+    }));
+    return Math.min(1, availableWidth / widest);
   }
 
   const MOBILE_INSTREAM_DISPLAY_SCALE = 0.5;
@@ -4016,6 +4013,9 @@ function createStructuralMount(entry) {
         if (r.isIsi) {
           const div = document.createElement("div");
           div.style.position = "absolute";
+          // Structure groups ignore pointer input; the ISI must opt back in
+          // so wheel, touch, and keyboard scrolling reach its content.
+          div.style.pointerEvents = "auto";
           div.style.top = (r.top * scale) + "px";
           applyMobileExpandableHorizontalBox(div, entry, r, scale);
           div.style.height = (r.height * scale) + "px";
@@ -4034,13 +4034,18 @@ function createStructuralMount(entry) {
             titleEl.style.opacity = "1";
             const contentEl = document.createElement("div");
             contentEl.className = "content";
+            contentEl.tabIndex = 0;
+            contentEl.setAttribute("aria-label", r.disclaimer.titleText || "Important Safety Information");
             contentEl.innerHTML = r.disclaimer.contentHtml || "";
             contentEl.style.display = "block";
             contentEl.style.visibility = "visible";
             contentEl.style.opacity = "1";
             contentEl.style.flex = "1 1 auto";
             contentEl.style.minHeight = "0";
+            contentEl.style.overflowX = "hidden";
             contentEl.style.overflowY = "auto";
+            contentEl.style.overscrollBehavior = "contain";
+            contentEl.style.touchAction = "pan-y";
             contentEl.style.color = "#333";
             div.appendChild(titleEl);
             div.appendChild(contentEl);
@@ -4520,6 +4525,7 @@ function structureCoveragePresentation(result) {
   // on each side. Switch to the approved two-column bento as soon as it fits.
   const WIDE_BENTO_MIN_WIDTH = 1988;
   let lastBentoWide = null;
+  let lastStageScale = 1;
   let textQaAudit = { runId: 0, status: "idle", completed: 0, total: 0, results: [] };
 
   function preferredEntries(limit) {
@@ -4555,9 +4561,14 @@ function structureCoveragePresentation(result) {
   const topBar = document.getElementById("topBar");
   window.addEventListener("resize", syncStickyOffset);
   window.addEventListener("resize", () => {
-    if (!compareEnabled || !appShell.classList.contains("active")) return;
-    const isWide = window.innerWidth >= WIDE_BENTO_MIN_WIDTH;
-    if (isWide !== lastBentoWide) renderStage();
+    if (!appShell.classList.contains("active")) return;
+    const isWide = compareEnabled && window.innerWidth >= WIDE_BENTO_MIN_WIDTH;
+    const entries = allEntries.filter(entry => includedNames.has(entry.model.name));
+    const nextScale = P.computeScale(entries.map(entry => entry.model), {
+      mobileInstreamOriginal: !compareEnabled && mobileInstreamOriginalScale,
+      mobileExpandableOriginal: !compareEnabled && mobileExpandableOriginalScale
+    });
+    if (isWide !== lastBentoWide || Math.abs(nextScale - lastStageScale) > 0.001) renderStage();
   });
   syncStickyOffset();
   // A single measure-once-after-load sync isn't enough: topBar's real
@@ -4855,7 +4866,8 @@ function structureCoveragePresentation(result) {
     }
   }
 
-  kerningDetailsBtn.addEventListener("click", () => {
+  kerningDetailsBtn.addEventListener("click", event => {
+    event.stopPropagation();
     const willShow = kerningPanel.classList.contains("hidden");
     kerningPanel.classList.toggle("hidden", !willShow);
     kerningDetailsBtn.classList.toggle("active", willShow);
@@ -5369,6 +5381,12 @@ function structureCoveragePresentation(result) {
     if (!allEntries.length || captureRun) return;
     updateCaptureOptionsSummary(); captureOptionsDialog.showModal();
   }
+  if (document.querySelectorAll) {
+    document.querySelectorAll('input[name="screenshotScale"]').forEach(input => input.addEventListener("change", event => {
+      screenshotScaleSelect.value = event.target.value;
+      updateCaptureOptionsSummary();
+    }));
+  }
   document.getElementById("captureScope").addEventListener("change", updateCaptureOptionsSummary);
   document.getElementById("closeCaptureOptions").addEventListener("click", () => captureOptionsDialog.close());
   document.getElementById("captureOptionsForm").addEventListener("submit", event => {
@@ -5464,9 +5482,10 @@ function structureCoveragePresentation(result) {
 
       const warnedMissingAssets = new Set();
       P.setAssetResolver((fileName) => {
-        const url = nameToBlobUrl.get(fileName);
+        const retryName = String(fileName).replace(/\.png$/i, "-2x.png");
+        const url = nameToBlobUrl.get(fileName) || nameToBlobUrl.get(retryName);
         if (!url) {
-          if (!warnedMissingAssets.has(fileName) && !nameToBlobUrl.has(String(fileName).replace(/\.png$/i, "-2x.png"))) {
+          if (!warnedMissingAssets.has(fileName)) {
             warnedMissingAssets.add(fileName);
             console.warn("No asset in zip for:", fileName);
           }
@@ -5842,7 +5861,11 @@ function structureCoveragePresentation(result) {
       return;
     }
 
-    const scale = P.computeScale(included.map(e => e.model));
+    const scale = P.computeScale(included.map(e => e.model), {
+      mobileInstreamOriginal: !compareEnabled && mobileInstreamOriginalScale,
+      mobileExpandableOriginal: !compareEnabled && mobileExpandableOriginalScale
+    });
+    lastStageScale = scale;
     stageWrap.innerHTML = "";
     visibleTextQaResults = [];
     buildKerningQC();
@@ -5861,7 +5884,6 @@ function structureCoveragePresentation(result) {
           mobileInstreamOriginal: !compareEnabled && mobileInstreamOriginalScale,
           mobileExpandableOriginal: !compareEnabled && mobileExpandableOriginalScale
         });
-        if (compareEnabled) card.classList.add("reg-mark");
         if (!compareEnabled && entry.model.name.toLowerCase() === "mobile-instream") {
           const overlay = document.createElement("div");
           overlay.className = "mobile-scale-overlay";
@@ -5933,14 +5955,6 @@ function structureCoveragePresentation(result) {
           const cardLabel = card.querySelector(".cp-artboard-label");
           cardLabel.classList.add("has-scale-control");
           cardLabel.appendChild(overlay);
-        }
-        if (compareEnabled) {
-          const tl = document.createElement("span"); tl.className = "reg-corner tl";
-          const tr = document.createElement("span"); tr.className = "reg-corner tr";
-          const bl = document.createElement("span"); bl.className = "reg-corner bl";
-          const br = document.createElement("span"); br.className = "reg-corner br";
-          card.appendChild(tl); card.appendChild(tr);
-          card.appendChild(bl); card.appendChild(br);
         }
         container.appendChild(card);
         P.paintArtboard(entry, activeTab, activeSlide);
