@@ -1,6 +1,7 @@
 {
   "$schema": "./rules.schema.json",
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
+  "authoringContracts": "authoring-contracts.json",
   "status": "draft",
   "enforcement": "advisory",
   "description": "Authoring profiles and proposed validator checks. No production validation engine is installed by this registry. Patterns are canonical recommendations; observed plugin aliases must be handled separately.",
@@ -24,7 +25,8 @@
     {"id":"LS-009","title":"Order and numbering","severity":"warning","basis":"plugin-observed","stage":"source","check":"Record Photoshop panel order and numeric state order separately; flag ambiguous duplicates or mixed sequence direction for review.","exclusions":"Ascending and descending panel sequences are both accepted by existing plugin tests; number gaps alone do not establish failure.","repair":"Confirm intended state order and layering before changing either."},
     {"id":"LS-010","title":"State ownership and visibility","severity":"review","basis":"proposed","stage":"runtime","check":"Enumerate state paths within their owners, preserve persistent siblings, and verify initial/selected runtime state.","exclusions":"Comparison before/after surfaces may coexist; hidden saved states and closed Hotspots can be legitimate.","repair":"Correct the component state adapter using matched runtime behavior."},
     {"id":"LS-011","title":"Wrapper and nesting support","severity":"review","basis":"plugin-observed","stage":"source","check":"Preserve wrappers and report when the selected consumer cannot discover all components or exceeds its supported nesting depth.","exclusions":"A tool limit is not a PSD or production-invalid verdict.","repair":"Extend discovery with an evidenced component path or use a verified supported arrangement."},
-    {"id":"LS-012","title":"Asset, action and feed references","severity":"warning","basis":"proposed","stage":"export","check":"Resolve referenced feeds, assets and action targets within their owning component/package; preserve data tokens.","exclusions":"Configuration filename layers, native text and vector shapes do not necessarily have corresponding raster PNGs.","repair":"Supply the matched data/asset or correct the documented reference without stripping its semantic token."}
+    {"id":"LS-012","title":"Asset, action and feed references","severity":"warning","basis":"proposed","stage":"export","check":"Resolve referenced feeds, assets and action targets within their owning component/package; preserve data tokens.","exclusions":"Configuration filename layers, native text and vector shapes do not necessarily have corresponding raster PNGs.","repair":"Supply the matched data/asset or correct the documented reference without stripping its semantic token."},
+    {"id": "LS-013", "title": "CTA authoring contract", "severity": "warning", "basis": "user-confirmed", "stage": "source", "check": "CTA groups must be named buttonN with a positive integer suffix and contain a direct frame. A text label is permitted without a prescribed literal name. Any direct image/Smart Object used as CTA background must be named exactly background; its presence is optional.", "exclusions": "Apply only to contextual CTA groups, not map Smart Object buttons, other action profiles or arbitrary artwork. Runtime frame promotion and stacking remain unverified.", "repair": "Review CTA group naming, add the required frame, and name the optional background image/Smart Object background. Preserve legacy evidence; do not silently rename source layers."}
   ],
   "components": [
     {
@@ -108,11 +110,11 @@
       "runtimeStatus":"not-evaluated"
     },
     {
-      "id":"textCTA","canonicalNamePattern":"^button[0-9]*$","kind":"group","mode":"container","basis":"export-confirmed",
+      "id":"textCTA","canonicalNamePattern":"^button[1-9][0-9]*$","kind":"group","mode":"container","basis":"export-confirmed",
       "statePaths":[],"recommendedChildPaths":["frame","<type-layer>"],"observedControlPaths":[],
       "evidence":{"source":"sample/creative/LaRoche/design_1.psb","path":["970x546","tabComponent","tab1","CanvasDesign","button"]},
-      "rules":["LS-004","LS-007","LS-008","LS-010"],
-      "exceptions":["Profile applies only to a group used as a live-text CTA; it does not apply to map image buttons or button-clientLogo.","Raw label name is arbitrary.","Frame-to-runtime-container promotion is historical/proposed mapping, not newly verified live output."],
+      "rules":["LS-004","LS-007","LS-008","LS-010","LS-013"],
+      "exceptions":["Profile applies only to a group used as a live-text CTA; it does not apply to map image buttons or button-clientLogo.","Raw label name is arbitrary.","Current user-confirmed CTA contract requires buttonN and frame; optional image/Smart Object background must be named background. Historical unnumbered button evidence is retained, not treated as current naming compliance.","Frame-to-runtime-container promotion is historical/proposed mapping, not newly verified live output."],
       "runtimeStatus":"Historical TR-002; current live runtime not evaluated."
     },
     {

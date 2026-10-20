@@ -1,9 +1,15 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-**Doc version:** 1.4.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (current source) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-09
+> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+
+> **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
+
+**Doc version:** 1.7.8
+**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-14
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
+
+**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -22,12 +28,13 @@ Two independent distribution lines currently exist (see §2), which is itself th
 - Single-select size picker (checkboxes), tab/slide segmented controls, no theming, no compare mode.
 - Simplest, oldest lineage; does not yet include most of the fixes and features in the artifact line (see §5 matrix).
 
-### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.7.0 current source**
+### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.9.11 current source**
 
 - Built to run as a Claude artifact / any static host: everything (engine, UI, styling) is inlined in one `.html` file plus a CDN `<script>` for JSZip.
 - Ingests a **`.zip`** of the whole export package (via drag-drop or file picker), unzips in-browser with JSZip, and resolves every asset filename to an in-memory `Blob` URL through `CSM_PREVIEW.setAssetResolver()` — nothing is uploaded anywhere.
 - Dark/light theme toggle, sticky size/tab/slide control panel, Compare mode (all available sizes), Compare-card registration marks, always-on text-risk disclosure (§4.5), and a focused mobile-instream Fit/1× control (§4.7).
-- `turbo_preview_artifact_7_7_0.html` is the **current source** and declares `PREVIEW_BUILD = "7.7.0"`. v7.6.2 is retained as the reviewed baseline; v7.6.1 is retained as source only and its unlogged release contents are not reconstructed or fabricated.
+- `preview/turbo-preview-7.9.11.html` is the **current source** and declares `PREVIEW_BUILD = "7.9.11"`. v7.9.10 is preserved as the previous patch build; v7.7.0 remains the reconciled historical baseline.
+- QA Studio imports only `preview/current-preview.ts`. That pointer statically imports the confirmed current HTML and owns its version/path metadata. Historical builds live under `preview/archive/` and are available to regression tests without entering the application module graph. See `18-Preview-Build-Inventory.md` for the version-to-path register.
 - v7.7.0 combines PATCH-level regression corrections (D041/D042) with the backward-compatible mobile-instream scale capability (D043), so the release uses a MINOR increment per `05-Docs-Maintenance.md` §2.
 
 ## 3. Data model
@@ -77,7 +84,7 @@ Key derived structures:
 | Name matches never-rasterized patterns | Skipped (D026), except `playIcon`, `muteIcon`, or `unmuteIcon` within a visible `circularBar`, reconstructed from recovered production SVG paths (D034) |
 | Is a group layer (`layerSection === layerSectionStart`) | Recursed into, not rendered itself |
 | Name matches `video [id, ...]` and resolves via `videoPlaylist` | Rendered as `<video>` (D027) |
-| `layerKind === 4` (shape) | Rendered as a filled/bordered/shadowed `<div>`, or skipped if no fill data; a fill-less `circularBar/indicator` is rendered as a source-bounds SVG circle with its exported 1px colour stroke (D033) |
+| `layerKind === 4` (shape) | Rendered as a filled/bordered/shadowed `<div>` using exported per-corner radii through `getShapeBorderRadius()` (D066), or skipped if no fill data; a fill-less `circularBar/indicator` is rendered as a source-bounds SVG circle with its exported 1px colour stroke (D033) |
 | Has a `textKey` descriptor | Rendered as live HTML text, never an image (per PSD guidelines §7.4 — confirmed no PNG ever exists for text layers) |
 | Otherwise | Rendered as `<img>` against `{name}-{layerID}.png` or a custom asset name, with one `-2x.png` retry on 404 (D024) |
 
@@ -88,16 +95,19 @@ Key derived structures:
 - Per-character-range style runs (`textStyleRange`) preserved individually — this is what carries superscript/subscript, underline/strikethrough, and mid-string bold/size changes. Adjacent runs with identical computed style are merged.
 - Superscript/subscript approximated at ~58% font size (Photoshop doesn't expose this as a literal size reduction in the descriptor).
 - Per-run baseline shift applied as a *delta* from the layer's own base shift, since layer bounds already account for the first run's shift.
-- Transformed text leading is corrected onto the same implied-size basis as font size: `sizeCorrection = impliedFontSize / raw size`, then raw character- or paragraph-style leading is multiplied by that ratio (D040). In TR-001, `26.9647 × (30 / 26.0949) ≈ 31`, matching the exported `impliedLeading`. This does not change wrap width, which still comes from `textBoundsOf()` and the tight `bounds` path (D002).
+- Transformed text leading is corrected onto the same implied-size basis as font size: `sizeCorrection = impliedFontSize / raw size`, then raw character- or paragraph-style leading is multiplied by that ratio (D040). In TR-001, `26.9647 × (30 / 26.0949) ≈ 31`, matching the exported `impliedLeading`.
+- Corrected build 7.9.8 restores D002/D031's tight `bounds` host for all live text, with `boundingBox` used only if `bounds` is absent. The initial 7.9.8 paragraph-frame substitution was withdrawn after visible cross-package regressions. Agreement between `boundingBox` and transformed `textShape.bounds` does not establish the production host geometry (D065/TR-009).
 - v7.5.1 builds production-style `<p>` elements containing lexical `<span>` runs, then runs `syncTextWithProductionPsd()` after the node connects and package fonts settle. It clones the fixed PSD wrapper, measures DOM/canvas glyph bounds, conditionally scores the native width plus up to five bounded width candidates, applies the selected width, and sets each paragraph's `top`/`left` offset. The path applies to single-line, wrapped, explicit-break, and CTA text alike; it deliberately has no preview-only line-count search, height compression, or CTA-frame substitution (D031). **Unchanged in v7.6.0** — see §4.5 for the new reporting layer built on top of this same function.
 - Single-line detection (`isSingleLineText`) compares box height against a reference line height — **priority differs between files**, see D006.
 - Text color: `rgbChannels()` (7.4.1 only) handles both int (`red`/`grain`/`blue`) and float (`redFloat`/`greenFloat`/`blueFloat`) descriptor shapes (D005). `artifact_5` and `index.html`/`preview.js` read int channels only.
 
 ### 4.3 Nav bar reconstruction
 
+The complete production behavior is documented in [`11-Tab-Navigation-Production-Spec.md`](11-Tab-Navigation-Production-Spec.md). The key invariant is that the horizontal wrapper is centered inside each per-size menu frame; it must not be globally right-aligned or assigned a universal campaign width. The two-tab, three-tab, 300×250, 300×600, vertical, and no-tab cases all follow the rules in that specification.
+
 Master's `tabButtons/frame` folder is parsed once (`buildMasterNav`) into per-child geometry *relative to the frame's own origin*, so it can be remapped onto any differently-positioned/sized per-size placeholder. Per size:
 
-- **Horizontal** (default): pill positions computed from a production-accurate flex-style title track (24px gap, 20px shape overhang per side), centered on the placeholder. Active tab's pill/shadow is painted last so it visually overlaps neighbors.
+- **Horizontal** (default): pill positions computed from a production-accurate flex-style title track (24px gap, 20px shape overhang per side), centered on the placeholder. The wrapper is 22px high with 18px horizontal content-box padding and visible overflow; its natural width is allowed to overhang the frame symmetrically. Active tab's pill/shadow is painted last so it visually overlaps neighbors.
 - **Vertical / rotated** (7.4.1 only, triggered when `placeholder.height > placeholder.width`, e.g. 160×600): same geometry, computed pre-rotation via `naturalBox()` then rotated `-90deg` via CSS `transform` (D017).
 - Label text is always sourced by tab number (D013); visual style (fill/color/shape) is borrowed from whichever active/normal template exists anywhere in the folder, with `runs` explicitly nulled when the label is overridden so the wrong borrowed glyphs don't leak through (D014, 7.4.1 only — **known gap in artifact_5**).
 - Tab label font size scales with the pill's own scale factor in 7.4.1 (`scaleTextStyle`, D018) — **known gap in artifact_5**, where labels can overflow into neighboring tabs at scale < 1.
@@ -132,16 +142,24 @@ Chrome-only change; no effect on §3/§4.1–§4.4. See `03-UI-UX-Guidelines.md`
 
 `computeScale()` remains `1` for source geometry. In focused Preview mode only, a `mobile-instream` card defaults to `MOBILE_INSTREAM_DISPLAY_SCALE = 0.5`: the 970×546 stage is placed inside a 485×273 `.cp-stage-viewport-mobile-instream` and visually transformed from the top-left. The card label exposes a Fit/1× segmented control. Selecting 1× removes the presentation viewport/transform; entering Compare mode removes the control and renders the artboard at 1:1 with every other size. Text synchronization continues against the full-resolution stage in both presentations.
 
+### 4.8 Mobile-expandable 375×622 responsive rendering (Artifact line only, v7.9.11 — D067/D068)
+
+Focused Preview renders the authored `428x622` mobile-expandable stage through a `375×622` clipped host. Ordinary design leaves remain center-pinned and shift by half the 53px width delta. Circular controls select a left, center or right anchor from their authored position, so a centered indicator stays aligned with a centered contained video while edge controls retain their authored edge gaps. Full-width video contracts proportionally to 375px; contained video keeps its authored size and remains center-pinned.
+
+The ISI frame is a responsive exception: it fills the 375px host at x=0 and its inner content retains vertical scrolling. Full-width video also changes the vertical flow of its owning production tab. After the video is resized, the renderer computes `round(responsiveVideoHeight - authoredVideoHeight)` and applies that delta once to every direct sibling branch of the video. Descendants retain their coordinates relative to the shifted branch, so copy, CTA, disclosure, background and control clusters move together. The video branch itself and unrelated structures are not shifted. The renderer must never select individual leaves by comparing their tops with the shortened video boundary.
+
+Preview-mode tab and slide controls are derived only from the selected artboard, preventing controls for unavailable states. Compare mode deliberately aggregates the included artboards. Text synchronization matches the supplied production `vdx-container-turbo.js` 3.13.8-0 candidate basis: paragraph padding-left plus text-indent, with the most-negative text-indent retained; padding-right is not included in candidate width scoring.
+
 ## 5. Feature / fix matrix across the three files
 
-| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `artifact_7_7_0` (v7.7.0, current source) |
+| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/turbo-preview-7.9.11.html` (v7.9.11, current source) |
 |---|:---:|:---:|:---:|
 | Package input | Single `export.json`, same-folder assets | `.zip` via JSZip, blob URLs | `.zip` via bundled JSZip, blob URLs |
 | Theming | None | Dark/Light | Dark/Light |
 | Compare mode | No | Yes (max 4) | Yes (all available sizes; redesigned layout, D038/D039) |
 | Precise vector shape bounds | No | Yes (D004) | Yes |
 | Post-font PSD text synchronization | No (different heuristic) | Fixed 6px buffer (D003) | **Yes — recovered production glyph-geometry algorithm (D031), unchanged since 7.5.1** |
-| Transformed-text leading correction (`sizeCorrection`) | No | No | **Yes (D040); wrap-width remains on D002 path** |
+| Transformed-text leading correction (`sizeCorrection`) | No | No | **Yes (D040); tight text-host geometry restored per D002/D065** |
 | Authored blank PSD paragraphs (`\u0003\u0003`) | No | No | **Yes — explicit blank line box retained without changing glyph metrics (D036)** |
 | Static circular gallery progress/control glyphs | No | No | **Yes — PSD visibility plus recovered SVG ring/play/mute geometry (D034)** |
 | Float-channel RGB color parsing | No | No | **Yes (D005)** |
@@ -167,6 +185,7 @@ Chrome-only change; no effect on §3/§4.1–§4.4. See `03-UI-UX-Guidelines.md`
 | Mobile-instream Fit/1× control | No | No | **Yes; Preview-only (D043)** |
 | Dropdown size-popover / segmented Compare-Preview mode | No | No | **Yes (D038)** |
 | Bento-style Compare layout (hero/wide/banner/tall/square) | No | No | **Yes (D038)** |
+| Mobile-expandable responsive ISI, anchored controls, scoped state controls, video sibling-flow delta | No | No | **Yes (D067/D068, v7.9.11)** |
 
 ## 6. Engine constants (stable across all files unless noted)
 
@@ -207,3 +226,21 @@ Current Artifact QA/UI markers: `scanPackageKerningRisks` supplies the package-w
 3. `index.html`/`preview.js` and `turbo_preview_artifact_5.html` are missing the fixes listed in §5's "known gap" cells — most notably D005 (invisible text on float-color descriptors) and D010/D022 (stale-layout-on-font-swap class of bugs), which are silent-failure-mode bugs, not cosmetic ones.
 4. No automated test coverage of any kind was found for any of the three files.
 5. The ISI `titleAtTop` set (`970x546`, `mobile-instream`; explicitly excluding `970x250`) is code-confirmed and consistent with available package structures, but this pass did not locate a served-production capture proving the complete per-size placement rule. Do not broaden the set or log it as fully evidence-confirmed until that reference exists.
+
+
+## Screenshot capture addendum — 7.8.0
+
+The delivered standalone source is `preview/archive/turbo-preview-7.8.0.html`; the confirmed input is preserved as `preview/archive/turbo-preview-7_7_1_3.html` (internal tag 7.7.1). The baseline feature matrix above has not been asserted to describe every intervening, undocumented source change. D046 records that drift explicitly.
+
+Capture reuses `auditStatesForEntry`, creates unique planned paths, embeds package font CSS once, builds temporary original-size stages, settles PNG retries/fonts/text measurements, converts through embedded html-to-image 1.11.13, verifies PNG dimensions, and packages through embedded JSZip 3.10.1. Nested package assets and disclaimer images resolve through the package map. Unknown raster references use local missing-data markers rather than filesystem-relative fallback.
+
+`_capture-manifest.json` always records job outcomes. Ordinary job errors continue; cancellation, conversion timeout, setup failure, and PNG memory limits stop scheduling with explicit remaining-job accounting. `csm:capture-state` and `data-capture-busy` coordinate the parent QA Studio replacement control. Limits and schema are specified in [08 — Screenshot Capture Tool](08-Screenshot-Capture-Tool.md); code-level evidence and remaining fidelity gaps are recorded in [09 — Screenshot Capture Analysis](09-Screenshot-Capture-Analysis.md). No Playwright capture backend is implemented by this change.
+
+## CSM review PDF addendum — 7.8.4
+
+The capture orchestrator retains successful PNG blobs as review inputs while adding them to JSZip. It builds 1600×900 white canvas pages with a light-gray section bar, places creative directly using reference-specific grids, converts each page to JPEG, and writes a self-contained PDF 1.7 byte stream with an image XObject and content stream per page. The PDF page box remains 960×540 points. The generated PDF is added to the ZIP and retained behind a separate **Review PDF** download button. `_capture-manifest.json.reviewPdf` records status, filename, page count, included sections, limitations, nonfatal review warnings, and template identifier `USA-938-80400-style-v1`.
+
+The package video is decoded at 5, 12, and 15 seconds, clamped inside shorter videos. Starting at 5 seconds avoids an empty intro sample and follows the requested screenshot policy. `video1.mp4` is preferred; the first package MP4 is the fallback. Matching `preQual_<size>.png` files supply teaser evidence. Main-unit pages are created only from successful preview captures. Size-specific grids reproduce the reference density; phone, player, browser, and OTT shells are drawn as document presentation around source evidence. Full ISI is dynamically typeset into one dense page from the parsed disclaimer; it is not a screenshot of a production scroll container. PDF creation is optional and a PDF-specific failure does not discard valid PNGs or prevent the diagnostic ZIP.
+# Feedback/debug bundle addendum — 7.11.0-feedback
+
+QA Studio uses its existing same-origin iframe bridge to request one active-stage PNG and structured preview state. The host validates and classifies the mandatory `showcase.vdx.tv` CCRV/Showcase URL, combines `feedback.json`, screenshot evidence, the optional in-memory source ZIP, and user attachments with `fflate`, then initiates a local ZIP download. No feedback submission endpoint is called. See `19-Feedback-Debug-Bundle.md` for the schema and boundaries.

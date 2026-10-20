@@ -1,0 +1,21 @@
+[Unit]
+Description=Turbo QA Studio CTV/OTT FFmpeg renderer
+After=network.target
+
+[Service]
+Type=simple
+User=turboqa
+Group=turboqa
+WorkingDirectory=/srv/turbo-qa-studio/current
+ExecStart=/usr/bin/node /srv/turbo-qa-studio/current/scripts/ctv-ott-renderer.mjs
+Environment=NODE_ENV=production
+Environment=TURBO_PREVIEW_PORT=4177
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

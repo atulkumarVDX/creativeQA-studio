@@ -1,0 +1,29 @@
+{
+  "textKey": {
+    "textKey": "Mixed case\rSecond paragraph",
+    "paragraphStyleRange": [
+      {
+        "from": 0,
+        "to": 11,
+        "paragraphStyle": {
+          "align": { "_value": "left" },
+          "directionType": { "_value": "dirLeftToRight" },
+          "impliedStartIndent": { "_value": 3.7 },
+          "impliedEndIndent": { "_value": 1.25 },
+          "impliedFirstLineIndent": { "_value": -1.5 }
+        }
+      },
+      {
+        "from": 11,
+        "to": 27,
+        "paragraphStyle": {
+          "align": { "_value": "right" },
+          "directionType": { "_value": "dirRightToLeft" },
+          "startIndent": { "_value": 4 },
+          "endIndent": { "_value": 2 },
+          "firstLineIndent": { "_value": 1 }
+        }
+      }
+    ]
+  }
+}

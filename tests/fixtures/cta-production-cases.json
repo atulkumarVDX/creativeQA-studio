@@ -1,0 +1,894 @@
+{
+  "description": "Minimal authentic descriptors from supplied exports; production outcomes recorded in doc/16-CTA-Warning-Investigation.md. Omitted styles are irrelevant to CTA eligibility.",
+  "cases": [
+    {
+      "name": "ipsen-working-box-labels",
+      "source": "Ipsen production_v9/design.psd.zip",
+      "rawLayers": [
+        {
+          "layerID": 5582,
+          "parentLayerID": -1,
+          "name": "master",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 0,
+              "left": 0,
+              "bottom": 1896,
+              "right": 1920
+            },
+            "guideIDs": [
+              823,
+              824,
+              825,
+              826,
+              827,
+              828
+            ],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 714,
+          "parentLayerID": -1,
+          "name": "160x600",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 280,
+              "left": 2055,
+              "bottom": 880,
+              "right": 2215
+            },
+            "guideIDs": [],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 83,
+              "grain": 83,
+              "blue": 83
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 716,
+          "parentLayerID": 714,
+          "name": "tabComponent",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 216042,
+          "parentLayerID": 716,
+          "name": "tab3",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 216040,
+          "parentLayerID": 216042,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 216012,
+          "parentLayerID": 216040,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 224444,
+          "parentLayerID": 216012,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 224443,
+          "parentLayerID": 224444,
+          "name": "Get Fatigue Assessment Tool",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "Get Fatigue\rAssessment Tool",
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.8321628981774514,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.8329675414700524,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "box"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 224442,
+          "parentLayerID": 224444,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 37196,
+          "parentLayerID": 716,
+          "name": "tab2",
+          "visible": false,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 211023,
+          "parentLayerID": 37196,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 210998,
+          "parentLayerID": 211023,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 215584,
+          "parentLayerID": 210998,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 215583,
+          "parentLayerID": 215584,
+          "name": "Discover assessment criteria",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "Discover assessment criteria",
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.8321628981774514,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.8329675414700524,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "box"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 215581,
+          "parentLayerID": 215584,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tryptry-original-mobile",
+      "source": "tryptryDTC.psd.zip",
+      "rawLayers": [
+        {
+          "layerID": 5582,
+          "parentLayerID": -1,
+          "name": "master",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 0,
+              "left": 0,
+              "bottom": 1896,
+              "right": 1920
+            },
+            "guideIDs": [
+              820,
+              821,
+              822,
+              823,
+              824,
+              825
+            ],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 5042,
+          "parentLayerID": -1,
+          "name": "mobile-instream",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 0,
+              "left": 3651,
+              "bottom": 546,
+              "right": 4621
+            },
+            "guideIDs": [],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 168736,
+          "parentLayerID": 5042,
+          "name": "tabComponent",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187496,
+          "parentLayerID": 168736,
+          "name": "tab3",
+          "visible": false,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187495,
+          "parentLayerID": 187496,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187470,
+          "parentLayerID": 187495,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187468,
+          "parentLayerID": 187470,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187467,
+          "parentLayerID": 187468,
+          "name": "DISCOVER THE DIFFERENCE",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "DISCOVER THE DIFFERENCE",
+            "transform": {
+              "_obj": "transform",
+              "xx": 1.2000000000000002,
+              "xy": 0,
+              "yx": 0,
+              "yy": 1.2000000476837158,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "paint"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 187466,
+          "parentLayerID": 187468,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 187456,
+          "parentLayerID": 168736,
+          "name": "tab2",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187455,
+          "parentLayerID": 187456,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187430,
+          "parentLayerID": 187455,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187428,
+          "parentLayerID": 187430,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187427,
+          "parentLayerID": 187428,
+          "name": "WATCH VIDEO",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "WATCH VIDEO",
+            "transform": {
+              "_obj": "transform",
+              "xx": 1.2000000000000002,
+              "xy": 0,
+              "yx": 0,
+              "yy": 1.2000000476837158,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "paint"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 187426,
+          "parentLayerID": 187428,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 187416,
+          "parentLayerID": 168736,
+          "name": "tab1",
+          "visible": false,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187414,
+          "parentLayerID": 187416,
+          "name": "CanvasDesign",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187413,
+          "parentLayerID": 187414,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 188168,
+          "parentLayerID": 187413,
+          "name": "DISCOVER THE DIFFERENCE",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "DISCOVER THE DIFFERENCE",
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "box"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 187411,
+          "parentLayerID": 187413,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tryptry-later-mobile",
+      "source": "label-notVisible.zip",
+      "rawLayers": [
+        {
+          "layerID": 5582,
+          "parentLayerID": -1,
+          "name": "master",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 0,
+              "left": 0,
+              "bottom": 1896,
+              "right": 1920
+            },
+            "guideIDs": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45
+            ],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 5042,
+          "parentLayerID": -1,
+          "name": "mobile-instream",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          },
+          "artboard": {
+            "_obj": "artboard",
+            "artboardRect": {
+              "_obj": "classFloatRect",
+              "top": 0,
+              "left": 3651,
+              "bottom": 546,
+              "right": 4621
+            },
+            "guideIDs": [],
+            "artboardPresetName": "",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "artboardBackgroundType": 3
+          }
+        },
+        {
+          "layerID": 168736,
+          "parentLayerID": 5042,
+          "name": "tabComponent",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187496,
+          "parentLayerID": 168736,
+          "name": "tab3",
+          "visible": false,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187495,
+          "parentLayerID": 187496,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187470,
+          "parentLayerID": 187495,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187468,
+          "parentLayerID": 187470,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187467,
+          "parentLayerID": 187468,
+          "name": "DISCOVER THE DIFFERENCE",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "DISCOVER THE DIFFERENCE",
+            "transform": {
+              "_obj": "transform",
+              "xx": 1.2000000000000002,
+              "xy": 0,
+              "yx": 0,
+              "yy": 1.2000000476837158,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "paint"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 187466,
+          "parentLayerID": 187468,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 187456,
+          "parentLayerID": 168736,
+          "name": "tab2",
+          "visible": false,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187455,
+          "parentLayerID": 187456,
+          "name": "rmGallery",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187430,
+          "parentLayerID": 187455,
+          "name": "slide1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187428,
+          "parentLayerID": 187430,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187427,
+          "parentLayerID": 187428,
+          "name": "WATCH VIDEO",
+          "visible": true,
+          "layerKind": 3,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          },
+          "textKey": {
+            "textKey": "WATCH VIDEO",
+            "transform": {
+              "_obj": "transform",
+              "xx": 1.2000000000000002,
+              "xy": 0,
+              "yx": 0,
+              "yy": 1.2000000476837158,
+              "tx": 0,
+              "ty": 0
+            },
+            "textShape": [
+              {
+                "char": {
+                  "_enum": "char",
+                  "_value": "paint"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "layerID": 187426,
+          "parentLayerID": 187428,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 187416,
+          "parentLayerID": 168736,
+          "name": "tab1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187414,
+          "parentLayerID": 187416,
+          "name": "CanvasDesign",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187413,
+          "parentLayerID": 187414,
+          "name": "button1",
+          "visible": true,
+          "layerKind": 7,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionStart"
+          }
+        },
+        {
+          "layerID": 187831,
+          "parentLayerID": 187413,
+          "name": "copy_new",
+          "visible": true,
+          "layerKind": 5,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        },
+        {
+          "layerID": 187411,
+          "parentLayerID": 187413,
+          "name": "frame",
+          "visible": true,
+          "layerKind": 4,
+          "layerSection": {
+            "_enum": "layerSectionType",
+            "_value": "layerSectionContent"
+          }
+        }
+      ]
+    }
+  ]
+}

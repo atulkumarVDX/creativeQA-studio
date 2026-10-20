@@ -1,6 +1,12 @@
-# Layer structure rule book — draft 0.1.0
+# Layer structure rule book — draft 0.2.0
 
-Date: 2026-09-12. Scope: Photoshop authoring, export structure, component state and future validation. This document introduces no renderer or Photoshop changes.
+Date: 2026-09-13. Scope: Photoshop authoring, export structure, component state and future validation. This document introduces no renderer or Photoshop changes.
+
+## Guideline-backed source of truth
+
+The supplied `PSD export guidelines.pdf` and all six template ZIPs have now been reviewed together. The [authoring contracts supplement](layer-structure/authoring-contracts.md) and [machine-readable contracts](layer-structure/authoring-contracts.json) cover 22 structural profiles, with PDF page references, required/listed children, optional/alternate children, template paths and conflicts. These contracts take precedence over older provisional recommendations below where the PDF explicitly establishes a component requirement. The project-specific `buttonN` policy takes precedence over the PDF's broader CTA names.
+
+All six template archive hashes match the existing complete inventories (8,024 template layers). None has `export.json`. Templates confirm authoring examples; matching exports/runtime remain necessary to confirm production conversion. The registry is descriptive and advisory, not an implemented PSD validator.
 
 ## 1. How to use this book
 
@@ -13,6 +19,11 @@ There are three distinct trees to preserve and compare:
 3. **Runtime tree:** HTML containers, children, generated items and interaction states after component conversion.
 
 The runtime tree need not contain one DOM node for every Photoshop layer. A `frame` can supply its group's geometry; a data-driven component can generate many items from one template. Every such conversion needs an explicit mapping. Flattening all groups into unrelated artboard children loses the relationships needed to predict production behavior.
+
+Runtime package lookup for generated, Retina, custom and linked assets is
+defined separately in [Asset handling contract](12-Asset-Handling-Contract.md).
+That contract preserves this book's distinction between `2xl`, `2x` layer
+annotations and `-2x.png` generated filenames.
 
 An ordinary group should retain its grouping semantics in the render model. Whether it requires a physical DOM wrapper depends on the production compiler; adding wrappers indiscriminately can introduce new clipping, stacking and coordinate effects. Preserve the source ancestry even when an adapter consumes or omits a node.
 
@@ -342,6 +353,17 @@ The tested leaf convention is `targetN`, not `slideN`. The same nested gallery n
 
 ### Text CTA and button roles
 
+User-confirmed authoring contract (2026-09-13; latest preview source: `preview/archive/turbo-preview-7.8.0.html`): CTA groups are named `buttonN`, where N is a positive integer such as 1, 2 or 3. A direct `frame` is required. A text label may be present; its literal layer name is not specified. An image/Smart Object may also be present and must be named exactly `background` when present. The background itself is not mandatory. These requirements supersede the older advisory CTA naming/frame guidance below, without changing the recorded historical source evidence.
+
+```text
+button1
+  frame                               required
+  <text label>                        permitted text layer
+  background                          optional image/Smart Object; exact name required
+```
+
+Validation must select the CTA group profile by context and type before applying these rules; map Smart Object buttons and other action roles are separate profiles. Do not silently rename legacy unnumbered `button` groups. Report their nonconformance to the current authoring contract while retaining source evidence. Frame promotion, child positioning and background stacking still require matched production verification; this authoring confirmation is not production runtime evidence.
+
 Evidence: LRP `970x546/tabComponent/tab1/CanvasDesign/button`, ID 214851; label ID 222520; frame ID 214849. This exact source structure is preserved in the matching export.
 
 ```text
@@ -387,7 +409,7 @@ ctv_theme3_QRCode_FHD
 
 Some templates include `dynamicAddress`, and some exclude it with a dot prefix. HD alternatives have dot-prefixed artboard names. Preserve exclusion separately from scene visibility. The LRP active OTT artboard differs from these layered base scenes; do not demand identical inner structure in every delivered creative.
 
-These are the alternate screens referenced in the conversation: a peel or initial view, expanded content and QR/end-card artwork. Their exact timing and simultaneous overlays require a runtime or animation fixture. The plugin also searches `FrameN`, `StateN`, and `SceneN`; only `ScreenN` is established as a scene naming convention by these templates. Do not authorize the other spellings for production from that heuristic alone.
+These are alternate source scenes: the opening peel, Screen 2 video/QR hold, and (for supported CTV) Screen 3 expansion. The **current local-preview** timing, simultaneous overlays, asset provenance and layer order are now specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md), using the supplied AE reference and exported packages. This authoring-tree evidence alone still does not prove all publisher runtime behavior. The plugin also searches `FrameN`, `StateN`, and `SceneN`; only `ScreenN` is established as a scene naming convention by these templates. Do not authorize the other spellings for production from that heuristic alone.
 
 ## 5. Coordinate and DOM contract
 
@@ -469,6 +491,6 @@ Next useful evidence, without blocking this draft:
 4. An actual Nested Tabs PSD/export and a Static Product → Color Picker nested example.
 5. CTA variants when the user is ready; existing text CTA coverage is sufficient for this draft.
 
-No further CTV/OTT source is needed for initial layer-tree coverage. Later, a matching runtime/animation example would establish when Screen1/2/3 appear and which overlays remain visible across them.
+Initial CTV/OTT layer-tree coverage is complete. A supplied AE project and matching export packages now establish the motion/effects references used by the **local 7.11.16 preview**; see [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). A production runtime/export for every publisher and theme is still not established by this authoring-tree inventory.
 
 Reproduction: run `tools/inventory_layer_templates.py` with `psd-tools==1.19.0`. It reads PSDs from ZIP memory and the LaRoche PSB without saving them; emits inventory and tree appendices. Layer iteration follows foreground-to-background order per the parser's [official usage documentation](https://psd-tools.readthedocs.io/en/latest/usage.html). Parser output establishes structural evidence only; no composited-image fidelity is claimed.

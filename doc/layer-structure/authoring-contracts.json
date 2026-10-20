@@ -1,0 +1,1851 @@
+{
+  "schemaVersion": "0.1.0",
+  "status": "authoring-contract-draft",
+  "sources": [
+    {
+      "id": "GUIDE",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/doc/PSD export guidelines.pdf",
+      "sha256": "536327994083894ddabd5157c1fc27269bbb849ef1964cd3c4d7cc3afef325ee",
+      "pages": 13,
+      "basis": "guideline-documented"
+    },
+    {
+      "id": "360view",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/360view.zip",
+      "sha256": "10c98d7d6b61b755ab0ef4735d856f53f38e718e27214760dc0bf213ff0b2338",
+      "members": [
+        "auto_template9_v1/",
+        "auto_template9_v1/.DS_Store",
+        "__MACOSX/auto_template9_v1/._.DS_Store",
+        "auto_template9_v1/video_ctvott.mp4",
+        "auto_template9_v1/video1.mp4",
+        "auto_template9_v1/video2.mp4",
+        "__MACOSX/auto_template9_v1/._video2.mp4",
+        "auto_template9_v1/auto_template9_v1.psd",
+        "__MACOSX/auto_template9_v1/._auto_template9_v1.psd",
+        "auto_template9_v1/export.log",
+        "auto_template9_v1/auto_template9_v1-assets/",
+        "auto_template9_v1/fonts/",
+        "__MACOSX/auto_template9_v1/._fonts",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_300x600.png",
+        "auto_template9_v1/auto_template9_v1-assets/errors.txt",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_728x90.png",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_300x250.png",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_970x250.png",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_320x50.png",
+        "auto_template9_v1/auto_template9_v1-assets/preQual_160x600.png",
+        "auto_template9_v1/fonts/.DS_Store",
+        "__MACOSX/auto_template9_v1/fonts/._.DS_Store",
+        "auto_template9_v1/fonts/Arial.ttf",
+        "__MACOSX/auto_template9_v1/fonts/._Arial.ttf",
+        "auto_template9_v1/fonts/Arial.woff",
+        "__MACOSX/auto_template9_v1/fonts/._Arial.woff"
+      ],
+      "layerCount": 1153,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    },
+    {
+      "id": "categoryGallery_Map",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/categoryGallery_Map.zip",
+      "sha256": "16939a9224daa6c48a2d5dd85f5f5e4941487f9450599c7208e45ac36528eb70",
+      "members": [
+        "auto_template11_v1/",
+        "auto_template11_v1/.DS_Store",
+        "__MACOSX/auto_template11_v1/._.DS_Store",
+        "auto_template11_v1/video_ctvott.mp4",
+        "__MACOSX/auto_template11_v1/._video_ctvott.mp4",
+        "auto_template11_v1/auto_template11_v1-assets/",
+        "auto_template11_v1/video1.mp4",
+        "__MACOSX/auto_template11_v1/._video1.mp4",
+        "auto_template11_v1/video2.mp4",
+        "__MACOSX/auto_template11_v1/._video2.mp4",
+        "auto_template11_v1/data.json",
+        "__MACOSX/auto_template11_v1/._data.json",
+        "auto_template11_v1/export.log",
+        "__MACOSX/auto_template11_v1/._export.log",
+        "auto_template11_v1/auto_template11_v1.psd",
+        "__MACOSX/auto_template11_v1/._auto_template11_v1.psd",
+        "auto_template11_v1/fonts/",
+        "__MACOSX/auto_template11_v1/._fonts",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_300x600.png",
+        "auto_template11_v1/auto_template11_v1-assets/errors.txt",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_728x90.png",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_300x250.png",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_970x250.png",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_320x50.png",
+        "auto_template11_v1/auto_template11_v1-assets/preQual_160x600.png",
+        "auto_template11_v1/fonts/.DS_Store",
+        "__MACOSX/auto_template11_v1/fonts/._.DS_Store",
+        "auto_template11_v1/fonts/Arial.ttf",
+        "__MACOSX/auto_template11_v1/fonts/._Arial.ttf",
+        "auto_template11_v1/fonts/Arial.woff",
+        "__MACOSX/auto_template11_v1/fonts/._Arial.woff"
+      ],
+      "layerCount": 1576,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    },
+    {
+      "id": "colorpicker",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/colorpicker.zip",
+      "sha256": "4336bd4e19684439ab571ad1147d8fbf1faeb024418eed6240eeb0752bb5a3ed",
+      "members": [
+        "auto_template8_v1/",
+        "auto_template8_v1/auto_template8_v1.psd",
+        "__MACOSX/auto_template8_v1/._auto_template8_v1.psd",
+        "auto_template8_v1/.DS_Store",
+        "__MACOSX/auto_template8_v1/._.DS_Store",
+        "auto_template8_v1/video_ctvott.mp4",
+        "auto_template8_v1/video1.mp4",
+        "auto_template8_v1/video2.mp4",
+        "__MACOSX/auto_template8_v1/._video2.mp4",
+        "auto_template8_v1/export.log",
+        "auto_template8_v1/fonts/",
+        "__MACOSX/auto_template8_v1/._fonts",
+        "auto_template8_v1/auto_template8_v1-assets/",
+        "auto_template8_v1/fonts/.DS_Store",
+        "__MACOSX/auto_template8_v1/fonts/._.DS_Store",
+        "auto_template8_v1/fonts/Arial.ttf",
+        "__MACOSX/auto_template8_v1/fonts/._Arial.ttf",
+        "auto_template8_v1/fonts/Arial.woff",
+        "__MACOSX/auto_template8_v1/fonts/._Arial.woff",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_300x600.png",
+        "auto_template8_v1/auto_template8_v1-assets/errors.txt",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_728x90.png",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_300x250.png",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_970x250.png",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_320x50.png",
+        "auto_template8_v1/auto_template8_v1-assets/preQual_160x600.png"
+      ],
+      "layerCount": 1209,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    },
+    {
+      "id": "comparisonslider",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/comparisonslider.zip",
+      "sha256": "7bc0cec4dfbed290fa4a55a2ca1ae76d1f796cd4dbf517c41f11c2d23ee30125",
+      "members": [
+        "cg_template6_v1/",
+        "__MACOSX/._cg_template6_v1",
+        "cg_template6_v1/preloader.gif",
+        "__MACOSX/cg_template6_v1/._preloader.gif",
+        "cg_template6_v1/.DS_Store",
+        "__MACOSX/cg_template6_v1/._.DS_Store",
+        "cg_template6_v1/video_ctvott.mp4",
+        "__MACOSX/cg_template6_v1/._video_ctvott.mp4",
+        "cg_template6_v1/cg_template6_v1-assets/",
+        "cg_template6_v1/video1.mp4",
+        "cg_template6_v1/video2.mp4",
+        "__MACOSX/cg_template6_v1/._video2.mp4",
+        "cg_template6_v1/export.log",
+        "cg_template6_v1/cg_template6_v1.psd",
+        "__MACOSX/cg_template6_v1/._cg_template6_v1.psd",
+        "cg_template6_v1/fonts/",
+        "__MACOSX/cg_template6_v1/._fonts",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_300x600.png",
+        "cg_template6_v1/cg_template6_v1-assets/errors.txt",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_728x90.png",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_300x250.png",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_970x250.png",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_320x50.png",
+        "cg_template6_v1/cg_template6_v1-assets/preQual_160x600.png",
+        "cg_template6_v1/fonts/.DS_Store",
+        "__MACOSX/cg_template6_v1/fonts/._.DS_Store",
+        "cg_template6_v1/fonts/Arial.ttf",
+        "__MACOSX/cg_template6_v1/fonts/._Arial.ttf",
+        "cg_template6_v1/fonts/Arial.woff",
+        "__MACOSX/cg_template6_v1/fonts/._Arial.woff"
+      ],
+      "layerCount": 1325,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    },
+    {
+      "id": "dottergallery",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/dottergallery.zip",
+      "sha256": "e5987c30b536d1a34d4b83f2921cc927e2445ed998bdb8712ca92a6b1873019a",
+      "members": [
+        "cg_template4_v1/",
+        "__MACOSX/._cg_template4_v1",
+        "cg_template4_v1/.DS_Store",
+        "__MACOSX/cg_template4_v1/._.DS_Store",
+        "cg_template4_v1/dotterFeed.json",
+        "__MACOSX/cg_template4_v1/._dotterFeed.json",
+        "cg_template4_v1/video_ctvott.mp4",
+        "__MACOSX/cg_template4_v1/._video_ctvott.mp4",
+        "cg_template4_v1/video1.mp4",
+        "cg_template4_v1/video2.mp4",
+        "__MACOSX/cg_template4_v1/._video2.mp4",
+        "cg_template4_v1/cg_template4_v1.psd",
+        "__MACOSX/cg_template4_v1/._cg_template4_v1.psd",
+        "cg_template4_v1/export.log",
+        "cg_template4_v1/cg_template4_v1-assets/",
+        "cg_template4_v1/fonts/",
+        "__MACOSX/cg_template4_v1/._fonts",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_300x600.png",
+        "cg_template4_v1/cg_template4_v1-assets/errors.txt",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_728x90.png",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_300x250.png",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_970x250.png",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_320x50.png",
+        "cg_template4_v1/cg_template4_v1-assets/preQual_160x600.png",
+        "cg_template4_v1/fonts/.DS_Store",
+        "__MACOSX/cg_template4_v1/fonts/._.DS_Store",
+        "cg_template4_v1/fonts/Arial.ttf",
+        "__MACOSX/cg_template4_v1/fonts/._Arial.ttf",
+        "cg_template4_v1/fonts/Arial.woff",
+        "__MACOSX/cg_template4_v1/fonts/._Arial.woff"
+      ],
+      "layerCount": 1139,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    },
+    {
+      "id": "hotspot",
+      "path": "/Users/atul/Documents/Photoshop Automation/Preview Package/sample/basetemplates/hotspot.zip",
+      "sha256": "c0532e87d24088bf5837fd73985334aa47fd54ef3535a49e013652900bb7e4d9",
+      "members": [
+        "travel_template5_v1/",
+        "travel_template5_v1/travel_template5_v1-assets/",
+        "travel_template5_v1/.DS_Store",
+        "__MACOSX/travel_template5_v1/._.DS_Store",
+        "travel_template5_v1/video_ctvott.mp4",
+        "travel_template5_v1/video1.mp4",
+        "travel_template5_v1/video2.mp4",
+        "__MACOSX/travel_template5_v1/._video2.mp4",
+        "travel_template5_v1/data.json",
+        "__MACOSX/travel_template5_v1/._data.json",
+        "travel_template5_v1/export.log",
+        "travel_template5_v1/travel_template5_v1.psd",
+        "__MACOSX/travel_template5_v1/._travel_template5_v1.psd",
+        "travel_template5_v1/fonts/",
+        "__MACOSX/travel_template5_v1/._fonts",
+        "travel_template5_v1/travel_template5_v1-assets/ISI_preQual_160x600.png",
+        "travel_template5_v1/travel_template5_v1-assets/ISI_preQual_728x90.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_300x600.png",
+        "travel_template5_v1/travel_template5_v1-assets/errors.txt",
+        "travel_template5_v1/travel_template5_v1-assets/ISI_preQual_970x250.png",
+        "travel_template5_v1/travel_template5_v1-assets/ISI_preQual_300x250.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_728x90.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_300x250.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_970x250.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_320x50.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_160x600.png",
+        "travel_template5_v1/travel_template5_v1-assets/preQual_970x546.png",
+        "travel_template5_v1/travel_template5_v1-assets/ISI_preQual_300x600.png",
+        "travel_template5_v1/fonts/.DS_Store",
+        "__MACOSX/travel_template5_v1/fonts/._.DS_Store",
+        "travel_template5_v1/fonts/Arial.ttf",
+        "__MACOSX/travel_template5_v1/fonts/._Arial.ttf",
+        "travel_template5_v1/fonts/Arial.woff",
+        "__MACOSX/travel_template5_v1/fonts/._Arial.woff"
+      ],
+      "layerCount": 1622,
+      "hasExportJson": false,
+      "basis": "template-observed"
+    }
+  ],
+  "precedence": [
+    "explicit project authoring policy",
+    "guideline-documented component contract",
+    "template-observed examples",
+    "plugin-observed behavior"
+  ],
+  "enforcement": "advisory until version-scoped validator acceptance; runtime parity unverified",
+  "profiles": [
+    {
+      "id": "container",
+      "basis": "guideline-documented",
+      "pages": [
+        3
+      ],
+      "requiredChildren": [
+        "frame: rectangle shape"
+      ],
+      "optionalChildren": [
+        "background: pixel/Smart Object"
+      ],
+      "checks": [
+        "Frame owns position, bounds, fill, radius and border color/width.",
+        "CSS border styles unsupported; custom dashed artwork belongs in background.",
+        "Use component-specific exceptions for slide/target frames rather than requiring frames in every artwork group."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "tabs",
+      "basis": "guideline-documented",
+      "pages": [
+        2,
+        3,
+        4
+      ],
+      "requiredChildren": [
+        "tabComponent: group even for single-tab campaigns",
+        "tabComponent/tabN: group",
+        "tabComponent/frame: rectangle shape",
+        "tabComponent/tabN/frame: rectangle shape",
+        "tabButtons: size-specific bounds marker/container"
+      ],
+      "optionalChildren": [
+        "background",
+        "master/tabButtons"
+      ],
+      "checks": [
+        "Without master configuration, repeat the same tabButtons layer structure per artboard; with master, size-specific frame defines bounds.",
+        "Master text order defines titles; _normal/_active/_hover define states.",
+        "Mobile expandable ISI must be shared before tabComponent, sticky at top."
+      ],
+      "statePaths": [
+        "tabComponent/tabN"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/360view.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/colorpicker.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/comparisonslider.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/dottergallery.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "tabComponent"
+          ],
+          "layerId": 136,
+          "children": [
+            {
+              "name": "tab3",
+              "kind": "group"
+            },
+            {
+              "name": "tab2",
+              "kind": "group"
+            },
+            {
+              "name": "tab1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "basis": "user-confirmed",
+      "pages": [
+        6
+      ],
+      "requiredChildren": [
+        "buttonN: CTA group with positive integer N",
+        "frame: shape"
+      ],
+      "optionalChildren": [
+        "text label: arbitrary name",
+        "background: pixel/Smart Object"
+      ],
+      "checks": [
+        "Project policy buttonN overrides broader documented button{any unique identifier}.",
+        "When image/Smart Object background is present, its role name must be background.",
+        "Guide specifies a text CTA label; image-only CTA variants remain unconfirmed.",
+        "Other layers inside CTA folder are ignored by documented exporter.",
+        "Preserve recognized generator/annotation suffixes separately from role name."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/360view.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/colorpicker.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/comparisonslider.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/dottergallery.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "header",
+            "button-clientLogo"
+          ],
+          "layerId": 18356,
+          "children": [
+            {
+              "name": "background",
+              "kind": "smartobject"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jumpTo",
+      "basis": "guideline-documented",
+      "pages": [
+        6
+      ],
+      "requiredChildren": [
+        "action target reference: componentId-itemNo"
+      ],
+      "optionalChildren": [
+        "CTA-like group with frame and optional background",
+        "standalone image/shape form"
+      ],
+      "checks": [
+        "Preserve button-jump [componentId-itemNo] syntax and resolve target within owner/package.",
+        "Guide supports multiple representations; do not require CTA group structure for standalone image/shape variants."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "video",
+      "basis": "guideline-documented",
+      "pages": [
+        2,
+        6
+      ],
+      "requiredChildren": [
+        "primary video inside tabComponent/tab1",
+        "playlist IDs resolved in master/videoPlaylist"
+      ],
+      "optionalChildren": [
+        "video [v1, v2]: rectangle shape",
+        "video container with frame"
+      ],
+      "checks": [
+        "Playlist marker format videoId : filename [posterSecondOffset].",
+        "Preserve playlist layer order. First-tab playlist count must match across sizes.",
+        "Referenced assets must resolve relative to PSD folder; subfolders supported."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/360view.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/colorpicker.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/comparisonslider.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/dottergallery.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "ott_theme2_FHD",
+            "ott_theme2_noqrcode",
+            "video"
+          ],
+          "layerId": 5633,
+          "children": [
+            {
+              "name": "video_ctvott.mp4",
+              "kind": "pixel"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "videoComponent",
+      "basis": "guideline-documented",
+      "pages": [
+        6
+      ],
+      "requiredChildren": [
+        "videoComponent identifier and playlist references",
+        "frame: rectangle shape"
+      ],
+      "optionalChildren": [
+        "arrows/right",
+        "arrows/left",
+        "slideProgress/progressBar",
+        "playIcon",
+        "muteIcon",
+        "position marker"
+      ],
+      "checks": [
+        "Self-sufficient component; do not require gallery wrapper.",
+        "Resolve all playlist IDs."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "imageGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        7
+      ],
+      "requiredChildren": [
+        "imageGallery identifier",
+        "image identifier layers",
+        "frame: rectangle shape"
+      ],
+      "optionalChildren": [
+        "arrows/right",
+        "arrows/left"
+      ],
+      "checks": [
+        "Images are states; preserve layer order, do not require slideN groups."
+      ],
+      "statePaths": [
+        "image{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "rmGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        7,
+        8
+      ],
+      "requiredChildren": [
+        "rmGallery identifier",
+        "slide identifier groups",
+        "frame: rectangle shape"
+      ],
+      "optionalChildren": [
+        "arrows/right",
+        "arrows/left",
+        "slideProgress",
+        "background",
+        "slideN/frame",
+        "slideN/background"
+      ],
+      "checks": [
+        "Slide frame is optional.",
+        "If gallery and slide frames both exist, their bounds must match per guide.",
+        "slideProgress absence disables autoplay slide animation.",
+        "Gallery-level controls/CTA persist; slide-owned elements are state-scoped."
+      ],
+      "statePaths": [
+        "slide{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/360view.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab2",
+            "rmGallery"
+          ],
+          "layerId": 164194,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab1",
+            "CanvasDesign",
+            "rmGallery"
+          ],
+          "layerId": 116035,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/colorpicker.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab2",
+            "rmGallery"
+          ],
+          "layerId": 164194,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/comparisonslider.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "rmGallery"
+          ],
+          "layerId": 195847,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/dottergallery.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "rmGallery"
+          ],
+          "layerId": 110003,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        },
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab2",
+            "rmGallery"
+          ],
+          "layerId": 76042,
+          "children": [
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "colorPickerGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        8
+      ],
+      "requiredChildren": [
+        "RM Gallery structure",
+        "trigger identifier groups",
+        "triggerN/frame: rectangle or ellipse"
+      ],
+      "optionalChildren": [
+        "triggerN/normalImage",
+        "triggerN/activeImage",
+        "triggerN/hoverImage",
+        "triggerN/normal",
+        "triggerN/active",
+        "triggerN/hover"
+      ],
+      "checks": [
+        "Trigger frame defines bounds and shape. State shapes/images customize states.",
+        "Keep triggers separate from slide content; runtime index mapping requires verification."
+      ],
+      "statePaths": [
+        "slide{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/colorpicker.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "colorPickerGallery1"
+          ],
+          "layerId": 161753,
+          "children": [
+            {
+              "name": "trigger3",
+              "kind": "group"
+            },
+            {
+              "name": "trigger2",
+              "kind": "group"
+            },
+            {
+              "name": "trigger1",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hotSpotGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        8
+      ],
+      "requiredChildren": [
+        "hotSpotGallery identifier",
+        "slide identifier groups",
+        "slideN/frame: rectangle shape",
+        "slideN/closeButton: pixel/Smart Object",
+        "trigger identifier groups",
+        "triggerN/frame: rectangle or ellipse"
+      ],
+      "optionalChildren": [
+        "slideN/background",
+        "trigger state shapes/images",
+        "backdrop"
+      ],
+      "checks": [
+        "Extends Color Picker. Slide frame owns popup geometry, border and radius.",
+        "Do not confuse sequence position-marker shapes with popup content groups."
+      ],
+      "statePaths": [
+        "slide{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "hotSpotGallery"
+          ],
+          "layerId": 75566,
+          "children": [
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "trigger3",
+              "kind": "group"
+            },
+            {
+              "name": "trigger2",
+              "kind": "group"
+            },
+            {
+              "name": "trigger1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view360",
+      "basis": "guideline-documented",
+      "pages": [
+        8
+      ],
+      "requiredChildren": [
+        "hotspot-compatible component structure",
+        "sequence/cadreN groups starting at 1",
+        "cadreN/underlay: image",
+        "cadreN slide/trigger position-marker shapes"
+      ],
+      "optionalChildren": [
+        "arrows/right",
+        "arrows/left"
+      ],
+      "checks": [
+        "Guide uses view360_{identifier}; supplied template uses view360. Treat as documented/template aliases pending exporter verification.",
+        "cadreN prevents collision with geometry frame. Underlay supplies image, its bounds ignored.",
+        "Position-marker shapes and popup content are distinct roles."
+      ],
+      "statePaths": [
+        "sequence/cadreN"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/360view.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "view360"
+          ],
+          "layerId": 160085,
+          "children": [
+            {
+              "name": ".layer4AlignAdSize",
+              "kind": "shape"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "sequence",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "locationMap",
+      "basis": "guideline-documented",
+      "pages": [
+        7
+      ],
+      "requiredChildren": [
+        "frame: rectangle shape",
+        "popup: rectangle shape",
+        "pin",
+        "logo",
+        "button: pixel/Smart Object",
+        "noData",
+        "loading",
+        "default",
+        "data/filename.json: filename marker"
+      ],
+      "optionalChildren": [],
+      "checks": [
+        "No authored slideN requirement.",
+        "Map button is an image role, exempt from CTA buttonN group policy.",
+        "Validate asset/feed references without executing data."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "locationMap"
+          ],
+          "layerId": 108698,
+          "children": [
+            {
+              "name": "logo",
+              "kind": "smartobject"
+            },
+            {
+              "name": "button",
+              "kind": "smartobject"
+            },
+            {
+              "name": "pin",
+              "kind": "smartobject"
+            },
+            {
+              "name": "loading",
+              "kind": "smartobject"
+            },
+            {
+              "name": "popup",
+              "kind": "shape"
+            },
+            {
+              "name": "noData",
+              "kind": "smartobject"
+            },
+            {
+              "name": "default",
+              "kind": "smartobject"
+            },
+            {
+              "name": "data",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            },
+            {
+              "name": ".background",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comparisonSlider",
+      "basis": "guideline-documented",
+      "pages": [
+        7
+      ],
+      "requiredChildren": [
+        "before or left: group",
+        "after or right: group"
+      ],
+      "optionalChildren": [
+        "preloader/filename marker",
+        "bar: loading rectangle",
+        "side/video playlist marker",
+        "side/image layer",
+        "side/content: rich-media group"
+      ],
+      "checks": [
+        "Within each side, documented selection priority is video > image > content.",
+        "Template frame/dragIcon are observed; guide does not explicitly list root frame here, so root-frame enforcement remains reviewable."
+      ],
+      "statePaths": [
+        "before|left",
+        "after|right"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/comparisonslider.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab3",
+            "rmGallery",
+            "slide3",
+            "comparisonSlider3"
+          ],
+          "layerId": 195894,
+          "children": [
+            {
+              "name": "dragIcon",
+              "kind": "smartobject"
+            },
+            {
+              "name": "preloader",
+              "kind": "group"
+            },
+            {
+              "name": "before",
+              "kind": "group"
+            },
+            {
+              "name": "after",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            },
+            {
+              "name": ".background",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nestedTabs",
+      "basis": "guideline-documented",
+      "pages": [
+        10
+      ],
+      "requiredChildren": [
+        "frame: rectangle shape",
+        "target identifier groups",
+        "trigger identifier groups"
+      ],
+      "optionalChildren": [
+        "targetN/frame",
+        "targetN/background",
+        "triggerN/frame",
+        "triggerN/background",
+        "trigger normal/active variants",
+        "master/nestedTabs trigger overrides"
+      ],
+      "checks": [
+        "Target and trigger frames optional per component-specific guide.",
+        "Master overrides require matching size-specific structure.",
+        "Do not flatten nested state ownership."
+      ],
+      "statePaths": [
+        "target{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "staticProductGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        11,
+        12
+      ],
+      "requiredChildren": [
+        "frame: rectangle shape",
+        "slide identifier groups"
+      ],
+      "optionalChildren": [
+        "arrows",
+        "slideProgress",
+        "background",
+        "slideN/frame",
+        "slideN/background"
+      ],
+      "checks": [
+        "Slide frames optional; preserve nested component ownership."
+      ],
+      "statePaths": [
+        "slide{identifier}"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab1",
+            "CanvasDesign",
+            "staticProductGallery"
+          ],
+          "layerId": 39023,
+          "children": [
+            {
+              "name": ".dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "slide3",
+              "kind": "group"
+            },
+            {
+              "name": "slide2",
+              "kind": "group"
+            },
+            {
+              "name": "slide1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scrollpane",
+      "basis": "guideline-documented",
+      "pages": [
+        8,
+        9
+      ],
+      "requiredChildren": [
+        "content [identifier]: reference marker",
+        "matching scrollpane content artboard",
+        "referenced content group/frame"
+      ],
+      "optionalChildren": [
+        "component frame",
+        "scrollVertical/bar",
+        "scrollVertical/rail",
+        "scrollHorizontal/bar",
+        "scrollHorizontal/rail",
+        "content background"
+      ],
+      "checks": [
+        "Content artboard name must match scrollpane component name; resolve content identifier."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "countdown",
+      "basis": "guideline-documented",
+      "pages": [
+        9,
+        10
+      ],
+      "requiredChildren": [],
+      "optionalChildren": [
+        "clock-content groups",
+        "slot [day|hour|minute|second]/textStyle",
+        "slot/frame",
+        "content without clocks"
+      ],
+      "checks": [
+        "Slots optional; frame is important for roll theme.",
+        "Target date behavior not sufficiently specified for automatic source validation.",
+        "Do not infer mandatory slots or state visibility."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/hotspot.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab1",
+            "CanvasDesign",
+            "countdown"
+          ],
+          "layerId": 62623,
+          "children": [
+            {
+              "name": "event1",
+              "kind": "group"
+            },
+            {
+              "name": "event2",
+              "kind": "group"
+            },
+            {
+              "name": "event3",
+              "kind": "group"
+            },
+            {
+              "name": "after event",
+              "kind": "group"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dynamicCopy",
+      "basis": "guideline-documented",
+      "pages": [
+        12
+      ],
+      "requiredChildren": [
+        "data/filename.json marker",
+        "default group with text layers",
+        "frame: rectangle shape"
+      ],
+      "optionalChildren": [
+        "background"
+      ],
+      "checks": [
+        "Preserve $token$ syntax.",
+        "Use paragraph text boxes for auto-fit bounds.",
+        "Token text disables pixel-perfect positioning; do not misclassify expected runtime copy changes as PSD mismatch."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "productGallery",
+      "basis": "guideline-documented",
+      "pages": [
+        12,
+        13
+      ],
+      "requiredChildren": [],
+      "optionalChildren": [
+        "arrows",
+        "slideProgress",
+        "data",
+        "grid",
+        "error",
+        "css"
+      ],
+      "checks": [
+        "Record dataInput/dataUrl/dataFile or raw data with dataCook; dataCreate may supply generated data.",
+        "Grid markers define layout, cell size, centering and gap; required combinations are not fully specified.",
+        "HTML/CSS/data-cook layers are configuration evidence only; do not execute during validation.",
+        "Guide does not explicitly specify slideN/root frame for this profile; do not import RM requirements automatically."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    },
+    {
+      "id": "categoryGallery",
+      "basis": "template-observed",
+      "pages": [],
+      "requiredChildren": [
+        "home: group",
+        "categoryN: groups",
+        "frame: shape"
+      ],
+      "optionalChildren": [
+        "navBar",
+        "arrows",
+        "slideProgress",
+        "categoryN/slideN"
+      ],
+      "checks": [
+        "Template-observed only; absent from supplied PDF. Do not impose flat slideN root states."
+      ],
+      "statePaths": [
+        "home",
+        "categoryN",
+        "categoryN/slideN"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/categoryGallery_Map.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab2",
+            "categoryGallery1"
+          ],
+          "layerId": 76042,
+          "children": [
+            {
+              "name": "home",
+              "kind": "group"
+            },
+            {
+              "name": "navBar",
+              "kind": "group"
+            },
+            {
+              "name": ".dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "category3",
+              "kind": "group"
+            },
+            {
+              "name": "category2",
+              "kind": "group"
+            },
+            {
+              "name": "category1",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dotterGallery",
+      "basis": "template-observed",
+      "pages": [],
+      "requiredChildren": [
+        "productTemplate: group",
+        "frame: shape"
+      ],
+      "optionalChildren": [
+        "noData",
+        "arrows",
+        "dots",
+        "slideProgress"
+      ],
+      "checks": [
+        "Template-observed only; absent from supplied PDF. Data-driven, no authored slideN requirement.",
+        "Feed presence/schema must be verified separately."
+      ],
+      "statePaths": [],
+      "runtimeStatus": "unverified",
+      "templateExamples": [
+        {
+          "source": "sample/basetemplates/dottergallery.zip",
+          "path": [
+            "428x622",
+            "tabComponent",
+            "tab2",
+            "dotterGallery1"
+          ],
+          "layerId": 107854,
+          "children": [
+            {
+              "name": "noData",
+              "kind": "group"
+            },
+            {
+              "name": "dots",
+              "kind": "group"
+            },
+            {
+              "name": "arrows",
+              "kind": "group"
+            },
+            {
+              "name": "slideProgress",
+              "kind": "group"
+            },
+            {
+              "name": "productTemplate",
+              "kind": "group"
+            },
+            {
+              "name": "frame",
+              "kind": "shape"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ctvOtt",
+      "basis": "guideline-documented",
+      "pages": [
+        2,
+        3
+      ],
+      "requiredChildren": [
+        "artboard type ctv|ott|ctvott with _HD|_FHD quality",
+        "supported theme group",
+        "video/filename marker"
+      ],
+      "optionalChildren": [
+        "Screen1 peelLogo",
+        "Screen2 background/foreground",
+        "Screen3 QR assets",
+        "qrCodeConfig/brandingLogo",
+        "qrCodeConfig/colorCode",
+        "qrCodeConfig/url",
+        "pharma disclaimer",
+        "custom/video"
+      ],
+      "checks": [
+        "Use documented theme names; retain template aliases as observed until export-verified.",
+        "Pharma disclaimer is pixel/Smart Object inside theme.",
+        "Scene timing and runtime selection remain unverified."
+      ],
+      "statePaths": [
+        "Screen1",
+        "Screen2",
+        "Screen3"
+      ],
+      "runtimeStatus": "unverified",
+      "templateExamples": []
+    }
+  ],
+  "sharedChecks": [
+    {
+      "pages": [
+        1,
+        13
+      ],
+      "check": "Supported main artboard names and saved artboard visibility; dot prefix hides rendering."
+    },
+    {
+      "pages": [
+        4
+      ],
+      "check": "Generator asset filenames unique; preserve + generator suffix. Retina companion uses identical base name plus 2x, hidden, genuinely high-resolution."
+    },
+    {
+      "pages": [
+        4
+      ],
+      "check": "Pinning folders x-pinning-left/right and layout-start/center/end/responsive/offset annotations are semantic. Responsive/offset subtree behavior requires review."
+    },
+    {
+      "pages": [
+        4
+      ],
+      "check": "Mobile tab background role has documented responsiveness caveat; ordinary bg image with center pinning is recommended."
+    },
+    {
+      "pages": [
+        5,
+        6
+      ],
+      "check": "Package used fonts; woff2 filename family/style convention. Text shift and center-aligned annotations preserved."
+    },
+    {
+      "pages": [
+        13
+      ],
+      "check": "Photoshop 26.8.1 is the version stated in this PDF, not independently verified current support."
+    }
+  ]
+}

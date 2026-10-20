@@ -1,0 +1,11 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+const target = new URL('../../preview/archive/turbo-preview-7.8.0.html', import.meta.url);
+const registry = JSON.parse(readFileSync(new URL('../../doc/layer-structure/rules.json', import.meta.url), 'utf8'));
+const contracts = JSON.parse(readFileSync(new URL('../../doc/layer-structure/authoring-contracts.json', import.meta.url), 'utf8'));
+const engine = readFileSync(new URL('./validator.js', import.meta.url), 'utf8').replace("if (typeof module !== 'undefined') module.exports = { scanStructure };", '');
+const html = readFileSync(target, 'utf8');
+const start = html.indexOf('  const STRUCTURE_REGISTRY = ');
+const end = html.indexOf('  const TEXT_QA_ENABLED =', start);
+if (start < 0 || end < 0) throw new Error('Structure QA embedding markers missing');
+const data = JSON.stringify(registry).replaceAll('</', '<\\/');
+writeFileSync(target, html.slice(0, start) + '  const STRUCTURE_REGISTRY = ' + data + ';\n  const STRUCTURE_CONTRACTS = ' + JSON.stringify(contracts).replaceAll('</', '<\\/') + ';\n' + engine + '\n' + html.slice(end));
