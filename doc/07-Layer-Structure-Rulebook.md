@@ -353,7 +353,7 @@ The tested leaf convention is `targetN`, not `slideN`. The same nested gallery n
 
 ### Text CTA and button roles
 
-User-confirmed authoring contract (2026-09-13; latest preview source: `preview/turbo-preview-7.8.0.html`): CTA groups are named `buttonN`, where N is a positive integer such as 1, 2 or 3. A direct `frame` is required. A text label may be present; its literal layer name is not specified. An image/Smart Object may also be present and must be named exactly `background` when present. The background itself is not mandatory. These requirements supersede the older advisory CTA naming/frame guidance below, without changing the recorded historical source evidence.
+User-confirmed authoring contract (2026-09-13; latest preview source: `preview/archive/turbo-preview-7.8.0.html`): CTA groups are named `buttonN`, where N is a positive integer such as 1, 2 or 3. A direct `frame` is required. A text label may be present; its literal layer name is not specified. An image/Smart Object may also be present and must be named exactly `background` when present. The background itself is not mandatory. These requirements supersede the older advisory CTA naming/frame guidance below, without changing the recorded historical source evidence.
 
 ```text
 button1
@@ -409,7 +409,7 @@ ctv_theme3_QRCode_FHD
 
 Some templates include `dynamicAddress`, and some exclude it with a dot prefix. HD alternatives have dot-prefixed artboard names. Preserve exclusion separately from scene visibility. The LRP active OTT artboard differs from these layered base scenes; do not demand identical inner structure in every delivered creative.
 
-These are the alternate screens referenced in the conversation: a peel or initial view, expanded content and QR/end-card artwork. Their exact timing and simultaneous overlays require a runtime or animation fixture. The plugin also searches `FrameN`, `StateN`, and `SceneN`; only `ScreenN` is established as a scene naming convention by these templates. Do not authorize the other spellings for production from that heuristic alone.
+These are alternate source scenes: the opening peel, Screen 2 video/QR hold, and (for supported CTV) Screen 3 expansion. The **current local-preview** timing, simultaneous overlays, asset provenance and layer order are now specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md), using the supplied AE reference and exported packages. This authoring-tree evidence alone still does not prove all publisher runtime behavior. The plugin also searches `FrameN`, `StateN`, and `SceneN`; only `ScreenN` is established as a scene naming convention by these templates. Do not authorize the other spellings for production from that heuristic alone.
 
 ## 5. Coordinate and DOM contract
 
@@ -491,6 +491,6 @@ Next useful evidence, without blocking this draft:
 4. An actual Nested Tabs PSD/export and a Static Product → Color Picker nested example.
 5. CTA variants when the user is ready; existing text CTA coverage is sufficient for this draft.
 
-No further CTV/OTT source is needed for initial layer-tree coverage. Later, a matching runtime/animation example would establish when Screen1/2/3 appear and which overlays remain visible across them.
+Initial CTV/OTT layer-tree coverage is complete. A supplied AE project and matching export packages now establish the motion/effects references used by the **local 7.11.16 preview**; see [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). A production runtime/export for every publisher and theme is still not established by this authoring-tree inventory.
 
 Reproduction: run `tools/inventory_layer_templates.py` with `psd-tools==1.19.0`. It reads PSDs from ZIP memory and the LaRoche PSB without saving them; emits inventory and tree appendices. Layer iteration follows foreground-to-background order per the parser's [official usage documentation](https://psd-tools.readthedocs.io/en/latest/usage.html). Parser output establishes structural evidence only; no composited-image fidelity is claimed.

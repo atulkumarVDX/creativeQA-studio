@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 class El {constructor(tag='div'){this.tag=tag;this.style={};this.dataset={};this.children=[];this.attributes={};this.className='';this.classList={add:(...x)=>this.className+=' '+x.join(' '),toggle:()=>{},contains:x=>this.className.split(' ').includes(x)};} get childNodes(){return this.children;}appendChild(x){this.children.push(x);x.parentElement=this;return x;}insertBefore(child,before){const i=this.children.indexOf(before);if(i<0)return this.appendChild(child);this.children.splice(i,0,child);child.parentElement=this;return child;}replaceChildren(...x){this.children=[];for(const child of x)this.appendChild(child);}setAttribute(k,v){this.attributes[k]=v;}getAttribute(k){return this.attributes[k];}addEventListener(){} querySelectorAll(){return [];}querySelector(){return null;}getBoundingClientRect(){return {left:0,top:0,width:parseFloat(this.style.width)||0,height:parseFloat(this.style.height)||0};} }
-const html=fs.readFileSync('preview/turbo-preview-7.8.1.html','utf8');let js=html.slice(html.indexOf('const PREVIEW_BUILD'),html.indexOf('</script>',html.indexOf('const PREVIEW_BUILD')));
+const html=fs.readFileSync('preview/archive/turbo-preview-7.8.1.html','utf8');let js=html.slice(html.indexOf('const PREVIEW_BUILD'),html.indexOf('</script>',html.indexOf('const PREVIEW_BUILD')));
 const ctx={window:{},console,document:{createElement:tag=>new El(tag),createElementNS:(_,tag)=>new El(tag)},requestAnimationFrame:()=>{},setTimeout:()=>{}};vm.runInNewContext(js,ctx);
 const P=ctx.window.CSM_PREVIEW;P.setAssetResolver(name=>name);
 for(const packagePath of process.argv.slice(2)){const data=JSON.parse(fs.readFileSync(packagePath,'utf8')),parsed=P.parseExport(data);let states=0,total=0;

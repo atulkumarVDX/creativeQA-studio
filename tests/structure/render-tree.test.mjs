@@ -108,5 +108,5 @@ test('source audit retains excluded/hidden nodes and terminates malformed ancest
   assert.ok(index.diagnostics.some(item => item.type === 'cycle'));
 });
 test('standalone preview embeds renderer implementation exactly', () => {
-  assert.ok(readFileSync('preview/turbo-preview-7.8.0.html', 'utf8').includes(source));
+  assert.ok(readFileSync('preview/archive/turbo-preview-7.8.0.html', 'utf8').includes(source));
 });

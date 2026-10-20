@@ -1,11 +1,13 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-**Doc version:** 1.7.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_7_6_2.html` @ **v7.6.2 baseline** · `turbo_preview_artifact_7_5_6.html` @ **v7.5.6 baseline** · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-22
+> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+
+**Doc version:** 1.7.8
+**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-14
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
+**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
 
 ---
 
@@ -304,7 +306,7 @@ This is confirmed against real package data: the COSENTYX DTC export marks `tab1
 
 The confirmed latest input is `turbo-preview-7_7_1_3.html` from Downloads. It declares `PREVIEW_BUILD = "7.7.1"`; the existing documentation described a 7.7.0 baseline. The supplied conversation describes later tolerant capture that is absent from this input. Neither the filename suffix nor conversation is sufficient to reconstruct a release history.
 
-**Decision:** preserve the exact input at `preview/turbo-preview-7_7_1_3.html`, retain existing 7.7.0/7.7.1 files, and identify the new user-facing capture capability as 7.8.0. Historical document sections remain labeled as baselines, with explicit screenshot addenda and a dedicated current specification. Do not retrospectively label all intervening changes. D045 remains unassigned.
+**Decision:** preserve the exact input at `preview/archive/turbo-preview-7_7_1_3.html`, retain existing 7.7.0/7.7.1 files, and identify the new user-facing capture capability as 7.8.0. Historical document sections remain labeled as baselines, with explicit screenshot addenda and a dedicated current specification. Do not retrospectively label all intervening changes. D045 remains unassigned.
 
 ## D047 — Harden preview screenshots and separate completeness from fidelity (7.8.0)
 
@@ -332,7 +334,7 @@ A missing shared disclaimer image must not erase every PNG in tolerant mode; eve
 
 **Decision:** create an optional landscape review PDF in the browser from successful 2× capture PNGs, package-video checkpoints, available teaser assets, and full-ISI text. Put the PDF inside the ZIP and retain a direct PDF download. State the unsupported production layers on the cover rather than fabricating casing or transition frames. Record PDF status and coverage in the capture manifest. A PDF failure remains isolated from valid PNG output.
 
-**Versioning:** the user explicitly requested a patch build from the confirmed latest source `preview/turbo-preview-7.8.2.html`; the delivered source is `preview/turbo-preview-7.8.3.html` with matching app import, bridge token, and build tag.
+**Versioning:** the user explicitly requested a patch build from the confirmed latest source `preview/archive/turbo-preview-7.8.2.html`; the delivered source is `preview/archive/turbo-preview-7.8.3.html` with matching app import, bridge token, and build tag.
 
 ---
 
@@ -344,9 +346,196 @@ A missing shared disclaimer image must not erase every PNG in tolerant mode; eve
 
 **Validation:** the representative eight-size package generated 41 pages with all 16 reference section categories, a 960×540-point page box, zero capture failures, and a CRC-valid ZIP. The reference has 47 pages; the remaining difference comes from package-specific state counts and unavailable production-only states rather than the page template.
 
-**Versioning:** the user confirmed `preview/turbo-preview-7.8.3.html` as the latest source. The patch is `preview/turbo-preview-7.8.4.html`, with matching app import, bridge token, tests, and build tag.
+**Versioning:** the user confirmed `preview/archive/turbo-preview-7.8.3.html` as the latest source. The patch is `preview/archive/turbo-preview-7.8.4.html`, with matching app import, bridge token, tests, and build tag.
 
 ---
+
+## D051 — [Nav] Center the natural tab wrapper inside every horizontal placeholder (7.8.12)
+
+**Evidence:** live production DOM inspection of Ipsen 300×600 showed a 300×28 outer menu with a centered, naturally sized wrapper: the wrapper's computed content width was 275.289px plus 36px horizontal padding, giving an outer width of 311.289px and an x-position of -5.640625px. The production menu uses `justify-content:center`; the local preview had been forcing `flex-end`, shifting the tab row in both Ipsen 300×250 and 300×600. The Ipsen export confirms 300px horizontal `tabButtons` placeholders at top 219 (300×250) and top 849 (300×600), each 28px high.
+
+**Decision:** keep the per-size placeholder width as the menu frame, center the horizontal wrapper, and preserve its natural intrinsic width, 24px gaps, 18px content-box padding, 22px height, and visible overflow. Do not replace this with a universal width or right alignment. Two-tab and three-tab menus share the layout rules but retain campaign-specific font metrics and resolved widths.
+
+**Validation:** the production specification is recorded in `doc/11-Tab-Navigation-Production-Spec.md`; the 7.8.12 patch build and test suite pass.
+
+**Versioning:** `preview/turbo-preview-7.8.12.html` is the current patch source imported by `app/page.tsx`.
+
+## D052 — [Nav] Exported tab title typography is authoritative (7.8.12)
+
+**Evidence:** a Vonjo-specific `13px` title-size override had been introduced from a live DOM measurement. That made the preview correct only for one observed campaign while violating the package contract: each creative's active and normal tab title styles are authored in `export.json`, and those values must remain the source of truth.
+
+**Decision:** remove all campaign-specific navigation font-size overrides. For every creative and every tab state, use the exported title font family, size, weight, color, tracking, and state style. Live production measurements remain validation evidence, not replacement styling data.
+
+**Versioning:** the correction is included in `preview/turbo-preview-7.8.12.html`, which remains the current app source.
+
+## D053 — [Nav] Per-size exported placeholder owns menu placement and frame width (7.8.12)
+
+**Evidence:** Ipsen `export.json` defines separate `tabButtons` bounds for each artboard, including right-pinned 970×250 and 728×90 menus and full-width 300×250/300×600 menus. The renderer still contained measured Vonjo/Pure widths as campaign-specific substitutions, which could make placement diverge from a package's exported bounds.
+
+**Decision:** use the current artboard's exported `tabButtons.left`, `top`, `width`, and `height` for the outer menu frame on every creative. Use master navigation data only for tab labels and active/normal visual styles. Do not hard-code menu widths by label sequence or campaign.
+
+## D054 — [Nav] Derive horizontal wrapper alignment from exported anchoring (7.8.14)
+
+**Evidence:** live Ipsen production measurement shows `970x250` uses `justify-content:flex-end` for its right-pinned 300px placeholder, while `300x250` and `300x600` use `justify-content:center` for left-pinned 300px placeholders. The same right-pinned behavior applies to the 728×90 layout. A single global alignment cannot match all sizes.
+
+**Decision:** compute `rightPinned = (tabButtons.left + tabButtons.width) ≈ artboard.width` from `export.json`. Use `flex-end` for right-pinned horizontal menus and `center` otherwise. Keep the menu frame position and width directly sourced from the same exported placeholder.
+
+## D056 — [Findings] Replace the broad CTA disappearance warning (7.8.16)
+
+**Evidence:** Ipsen's two 160×600 paragraph-text CTA labels exist in production.
+The original Tryptry Mobile Instream label is omitted, with a user-reported
+point-text repair; the later export instead contains an unsupported `copy_new`
+image. Page 6 of the export guide says other button children are ignored.
+
+**Decision:** Remove the universal, high-confidence paragraph-text warning.
+Keep an informational production review scoped to Mobile Instream, explicitly
+disclosing that omission is unconfirmed for the current label. Add a documented
+ignored-image finding with a Photoshop repair. Match CTA profiles and account
+for background generator/retina names, excluded subtrees, and unrelated action
+roles. Do not infer a missing label when valid background artwork can contain it.
+
+**Validation:** Authentic descriptor fixtures cover both Tryptry revisions and
+the working Ipsen labels. The 7.8.16 preview is byte-identical to 7.8.15 except
+for its build identifier; this release changes QA classification, not rendering.
+See `16-CTA-Warning-Investigation.md` and `17-CTA-QA-Correction-Plan.md`.
+
+## D057 — [Findings] Distinguish internal spacing from line-end padding and show the affected layer (7.8.17)
+
+**Evidence:** the Ipsen export contains seven values such as `Impact of Fatigue  ` and `PBC=primary biliary cholangitis.  \r`. The repeated whitespace is at the end of the Photoshop text value, not between visible words. The existing broad spacing check therefore reported layout padding as a copy issue.
+
+**Decision:** keep internal repeated spacing as a Copy note. Report whitespace before a line ending as a separate low-priority informational note that explains it may be intentional padding. Add a `Show in preview` action that selects the matching artboard, tab, and slide and temporarily outlines the exported layer by its layer ID. If the layer has no renderable element, keep the location and explain that the layer can only be reviewed in Photoshop.
+
+**Validation:** regression coverage distinguishes internal spacing from trailing line-end padding. The preview bridge accepts finding context without changing text-rendering behavior.
+
+## D058 — [Findings] Use a compact play icon for preview pinpointing (7.8.19)
+
+**Evidence:** the first icon-only action still sat on its own row and was larger than the compact play affordance used in the production showcase.
+
+**Decision:** place a smaller blue play icon inline with the size/tab/slide location chips. Keep the accessible label and tooltip, and preserve the same artboard, tab, slide, and layer highlight behavior.
+
+**Validation:** the application build and full automated suite pass with the icon-only action.
+
+## D059 — [Findings] Mark detected whitespace in the affected copy (7.8.19)
+
+**Evidence:** spacing findings identified the layer but left the exact extra characters implicit, making it hard to tell whether the note referred to a visible gap or exported padding.
+
+**Decision:** show an Affected copy line for spacing findings. Render spaces as `·`, tabs as `⇥`, line endings as `↵`, and apply a yellow marker to the characters that triggered the finding.
+
+**Validation:** QA regression tests assert the highlighted range for both internal spacing and trailing line-end padding.
+
+## D060 — [Preview] Retire legacy Review Text and Structure QA panels (7.8.19)
+
+**Evidence:** the Findings workspace now provides the user-facing QA results and canvas pinpointing; the preview’s older diagnostics panels duplicated that work and exposed internal calibration details.
+
+**Decision:** hide the legacy panels, disable their eager scans, and remove their text outlines from the preview surface. Keep production text measurement active because it is part of rendering parity, and keep the Findings bridge active.
+
+**Validation:** the full automated suite, type check, and application build pass with the panels disabled.
+
+## D061 — [Preview] Make spacing pinpoint highlights visibly blink (7.8.19)
+
+**Evidence:** the spacing pinpoint correctly received the existing highlight class, but the prior soft opacity/color animation was too subtle on one- or two-space spans to be perceived as an active marker.
+
+**Decision:** keep the existing yellow highlighter and its current 3.5-second cleanup, but alternate clearly between a yellow highlight with a short glow and no highlight using a stepped animation. This keeps the marker visible without adding a rectangle outline or changing rendered copy.
+
+**Validation:** the full automated suite, type check, application build, and whitespace pinpoint bridge remain passing.
+
+## D062 — [Preview] Blink dotted pinpoint outlines (7.8.19)
+
+**Evidence:** non-spacing findings use the dotted canvas outline, which remained static even after spacing highlights were made visibly animated.
+
+**Decision:** animate the dotted outline with the same stepped on/off rhythm as the whitespace marker. The outline continues to be removed by the existing finding timeout, and the rendered copy remains unchanged.
+
+**Validation:** regression coverage asserts the outline animation and the full suite, type check, and application build pass.
+
+## D063 — [Preview] Keep size state consistent when opening findings (7.8.19)
+
+**Evidence:** opening a size from a finding could retain the preview's previous comparison mode or gallery slide. The same artboard could therefore render with a different state than when the user selected that size directly.
+
+**Decision:** finding navigation always switches to single-size mode, resolves the finding's tab and slide when supplied, and resets to the selected size's first slide when no slide is part of the finding. Direct size selection also resets the slide before rebuilding its controls.
+
+**Validation:** the preview regression checks cover the state reset hooks; the full suite, type check, application build, and diff check pass.
+
+## D064 — [Preview] Preserve the authored canvas origin while pinpointing (7.8.19)
+
+**Evidence:** reproducing a 970×250 spacing finding showed the stage's hidden scroll container at `scrollTop: 19`, while direct size selection stayed at `scrollTop: 0`. `Element.scrollIntoView()` was scrolling the internal stage instead of only revealing the artboard card, which shifted the creative upward.
+
+**Decision:** reveal the outer artboard card and reset the stage scroll offsets to zero before and after the reveal. Pinpointing can move the page to the finding without changing the authored canvas geometry.
+
+**Validation:** the reproduction path was measured in the running app, and the full suite, type check, application build, and diff check pass.
+
+## D065 — [Text parity] Withdraw paragraph-frame substitution and restore tight hosts (7.9.8)
+
+**Status:** Initial implementation withdrawn after visual regressions. The original Tryngolza diagnosis is superseded by the live-production shape evidence in D066.
+
+**Confirmed evidence:** Tryngolza layer 243085 exports tight `bounds` of 192×109px and `boundingBox` of 196×120px. The transformed `textShape.bounds` approximately matches the latter. This establishes what Photoshop's design-time frame is; it does not establish which rectangle production passes to its synchronizer. The supplied `vdx-container-turbo.js` reads existing inline CSS and contains no export-to-host conversion. Catalog section 12 already records a live production example using tight bounds despite a larger, corroborated paragraph frame.
+
+**Rejected decision:** the initial 7.9.8 implementation replaced tight hosts with matching design-time frames. The descriptor audit accepted 311 Tryngolza, 196 SPIRIVA, and 134 COSENTYX DTC text layers. That was a broad geometry change, not a narrowly validated correction. Larger frames change wrapping, alignment and the synchronizer's vertical-centering offsets. User screenshots subsequently confirmed overlapping text in SPIRIVA, COSENTYX DTC and Ipsen.
+
+**Correction:** restore D002/D031 and the exact 7.9.7 renderer, retaining only the 7.9.8 build identifier. Do not infer production host geometry from agreement between two Photoshop descriptors. Any future change requires the affected production element's actual input CSS and paragraph/run topology, followed by rendered comparison.
+
+**Validation correction:** the initial cross-package checks parsed exports and counted descriptor matches; they did not render or compare screenshots. The initial passing tests encoded the proposed frame-selection policy, so they could not establish production parity. The replacement regression asserts tight-host preservation and exact source equivalence to 7.9.7. The available browser tool rejects `file://` pages, so local visual acceptance must not be claimed.
+
+**Versioning:** corrected in the existing 7.9.8 build to remove the regression introduced by this task. Earlier builds and unrelated workspace changes are preserved.
+
+## D066 — [Shape parity] Use authored corner radii for ordinary shape layers (7.9.9)
+
+**Evidence:** the supplied [Tryngolza production showcase](https://showcase.vdx.tv/cc/n/0/#FgjxqA/10) was inspected in Desktop Inframe 300×600, Why Lower?, slide 2, with gallery playback paused. Production layer 243083 is 217×218px with `border-radius: 14px`. The latest ZIP independently exports shape origin type 2 and four 14px corner radii. The original local screenshot instead shows an ellipse. The ordinary shape collector used `isRoundShape(layer) ? "9999px" : null`; `isRoundShape()` includes origin type 2, so it discarded the authored rounded-rectangle radii. The existing `getShapeBorderRadius()` helper already handles those radii but was only wired into other shape paths.
+
+The production text layer 243085 has a synchronized width of 194.625px and a 109px host height, 13px Poppins type, line-height 1.2 and paragraph offsets of -0.25px/0px. Its seven displayed lines match the original local screenshot's breaks. The visible difference explaining the apparent escape is the background silhouette. Production does not substitute the 120px design-time text-frame height.
+
+**Decision:** ordinary shapes now call `getShapeBorderRadius(layer)`. This preserves asymmetric and zero-valued corners, reuses existing scaling at paint time and retains the existing ellipse/plain-rectangle fallback. No text geometry, font, paragraph or synchronization code is changed. The implementation delta from corrected 7.9.8 is one radius-wiring line plus the version identifier.
+
+**Validation:** functional tests evaluate the complete engine, collect ordinary shapes and paint their CSS; they cover the live production fixture, asymmetric corners, half-scale output and ellipse/plain-rectangle behavior. `scripts/verify-shape-radius-parity.mjs` traverses all 229 selectable states across Tryngolza, SPIRIVA, COSENTYX DTC and Ipsen. It verifies 30 authored-radius corrections and no other render-model changes, including all 852 collected text instances. These are model/CSS checks, not pixel comparisons. The production screenshot and DOM were observed directly; local browser pixel validation remains blocked by the browser tool's `file://` policy.
+
+**Versioning:** new patch build 7.9.9 from corrected 7.9.8, under the user's existing authorization for a new patch build. The app automatically selects the highest semantic preview version.
+
+**User acceptance — 2026-10-14:** the user confirmed that the 7.9.9 fix works correctly in the local preview. This closes the reported Tryngolza rounded-panel/apparent-text-overflow issue. This confirmation applies to 7.9.9; it does not establish acceptance of subsequent builds or replace the recorded limits of automated validation.
+
+## D067 — [Mobile expandable] Apply one global 375×622 responsive contract (7.9.10)
+
+**Evidence:** live 375×622 testing of build 7.9.9 covered six supplied packages (Tryngolza, Ipsen, TRYPTYR, Alprolix, SPIRIVA and COSENTYX DTC) and 77 UI-exposed states. The ISI remained 428px wide at x=-26.5 and was cropped without a usable internal content width; at least 12 states contained visible text collisions; circular/video controls retained 428px coordinates and were clipped or offset by 26.5px; and the global tab/slide union exposed 33 selections unavailable on the focused artboard. The old responsive vertical helper shortened full-width video and then shifted individual leaves whose top crossed the new video bottom, splitting related copy, CTA and disclosure siblings. The supplied production container source, `vdx-container-turbo.js` 3.13.8-0, also confirmed that text width candidates use padding-left plus text-indent and retain the most-negative text-indent; padding-right is not part of that basis.
+
+**Decision:** use one package-independent responsive policy. ISI fills the 375px host at x=0 and scrolls its content vertically. Full-width video contracts proportionally; contained video remains center-pinned; circular controls select a left, center or right anchor from their authored position. Preserve authored vertical coordinates rather than shifting individual leaves at the shortened video boundary. In Preview mode, derive tab/slide controls from the selected artboard only; Compare mode may aggregate included artboards. Align text candidate scoring with the supplied 3.13.8-0 source. No campaign, layer ID, copy string or package-name exception is introduced.
+
+**Validation:** a live 375×622 pass over the same six packages covered all 42 valid focused states after control scoping. It found zero unavailable selections and zero detected text/content overlaps. Every checked ISI measured 375px wide at x=0 with internal vertical scrolling; centered TRYPTYR video and its circular indicator shared x-center 187.5; right-edge controls in Alprolix and SPIRIVA preserved their right gaps inside the 375px host. Structure regressions cover ISI width, full/contained video, circular left/center/right anchoring, authored vertical positions, control scoping and the production text-candidate formula.
+
+**Versioning:** new patch build 7.9.10 from 7.9.9. Earlier builds and unrelated workspace changes remain preserved; the app selects the highest semantic preview version.
+
+**Superseded clause:** D067's instruction to preserve every authored vertical coordinate was based on rejecting the earlier per-leaf boundary heuristic. Production inspection later established a third behavior: shift each direct sibling branch of the resized video once. D068 replaces only that vertical-flow clause; D067's ISI, horizontal pinning, control scoping and text-candidate decisions remain active.
+
+## D068 — [Mobile expandable] Reflow direct sibling branches after responsive full-width video (7.9.11)
+
+**Evidence:** the supplied live mobile-expandable ad (`mediaDataID=14185590`) loaded production component bundle 3.13.11-8. Its `_modifyVideoTab()` measures the active tab's resized video, computes the rounded difference between rendered and authored video height, adjusts the owning tab panel, and applies that single delta to the video's direct sibling elements. In the measured 375×622 Tryngolza state, the authored 428×241 video rendered at 375×211.16; the following `CanvasDesign` branch moved from authored y=241 to production y=211. Descendants followed through their parent branch rather than receiving independent boundary-based offsets. The separately supplied `vdx-container-turbo.js` 3.13.8-0 remains the text-conversion reference; it is not the source of this tab-flow behavior.
+
+**Decision:** when a responsive 428×622 tab contains a left-aligned, full-width video as a direct child, compute `delta = round(authoredVideoHeight × 375 / 428 − authoredVideoHeight)`. Apply that delta once to every direct sibling branch of the video. Descendants preserve their local coordinates inside the shifted branch; the video branch receives no vertical delta. Do not shift leaves individually according to whether their top is above or below the resized video's bottom. Do not apply the rule to contained video, unrelated branches, or structures without the qualifying direct-sibling relationship. The rule is structural and package-independent; it must not depend on campaign names, layer IDs, copy strings or observed pixel values from one creative.
+
+**Validation:** live 375×622 DOM measurements covered Tryngolza, Ipsen, TRYPTYR and Alprolix. Tryngolza, Ipsen and TRYPTYR each closed the full-width-video/content seam to `-0.156px`, the expected browser subpixel rounding overlap. Alprolix did not have the qualifying following sibling branch and retained its authored approximately `16.8px` internal content spacing, confirming the exclusion. The full automated suite passes 116/116 tests; TypeScript checks, production build and lint complete with zero errors. Regression coverage asserts one branch-level delta, unchanged descendant spacing and no movement for unrelated branches.
+
+**Versioning:** new patch-version build 7.9.11 from 7.9.10. Earlier builds remain preserved and the app selects the highest semantic preview version.
+
+**User acceptance — 2026-10-14:** the user confirmed the four-package test was successful and authorized rewriting the production-behavior rules around the verified sibling-flow contract.
+
+## D069 — [Build hygiene] Use one explicit QA Studio preview pointer and archive historical HTML
+
+**Evidence:** `app/page.tsx` used `import.meta.glob("../preview/turbo-preview-*.html", { eager: true })` and selected the highest semantic filename at runtime. Vite therefore bundled every matching historical HTML source into the production JavaScript. The pre-change production JavaScript was 15,016.96 kB (4,015.68 kB gzip). The user explicitly confirmed 7.9.11 as current; filename ordering and browser state were not used as authority.
+
+**Decision:** QA Studio statically imports `preview/current-preview.ts`, the one documented release pointer. Only confirmed 7.9.11 remains in the runtime source directory. All 27 historical HTML files move unchanged to `preview/archive/`, and tests/scripts that intentionally use a baseline read it there. The archive is not imported by application code. No renderer source or creative-layout logic changes.
+
+**Historical comparison:** after normalizing only `PREVIEW_BUILD`, five pairs are exact implementation duplicates: 7.8.1/7.8.2, 7.8.4/7.8.5, 7.8.15/7.8.16, 7.8.17/7.8.18, and 7.9.7/7.9.8. The complete byte-size, declared-version, reference and uniqueness register is `18-Preview-Build-Inventory.md`.
+
+**Deletion policy:** no build is deleted in this change. Unreferenced duplicates 7.8.5 and 7.8.18 are documented as deletion candidates, but require separate explicit approval.
+
+**Validation:** the live QA Studio iframe logged `preview.js loaded: 7.9.11`, exposed bridge state `ready`, and displayed `build 7.9.11`. All 118 automated tests and TypeScript checks passed. Lint completed with zero errors and 11 pre-existing warnings. The production build completed with the existing large-chunk warning. Main JavaScript fell from 15,016.96 kB (4,015.68 kB gzip) to 1,002.60 kB (282.16 kB gzip), a 93.32% raw and 92.97% gzip reduction. The production bundle contains one renderer marker and no sampled historical build identifiers. The current 7.9.11 HTML was not edited.
+
+## D055 — [Text parity] Match production Shift+Enter paragraphs and narrow the finding (7.8.15)
+
+**Evidence:** the supplied `production_v9/design.psd.zip` export has layer `221946` at `300x250 > tabComponent > tab3 > rmGallery > slide3`. Its raw `textKey` contains U+0003 between the first and second references; the two applicable paragraph-style ranges have `spaceAfter` and `impliedSpaceAfter` equal to zero. The production DOM supplied for this layer contains two paragraph elements, and the retrieved VDX Container 3.13.8-0 source confirms its text synchronization operates on existing paragraph and lexical-span DOM.
+
+**Decision:** preserve U+0003 in raw source text while rendering it as a separate paragraph, and select its paragraph style from the source-offset range following the break. Do not treat every U+0003 as a defect. Emit a warning only when nonzero paragraph spacing follows a soft return; show the finding as a typography spacing risk with a Photoshop check.
+
+**Validation:** regression coverage confirms zero-spacing soft returns produce no finding, nonzero spacing produces a warning, and preview paragraph structure/style selection preserves the U+0003 source character. All 86 tests pass, TypeScript checks pass, and the production build completes.
+
+**Versioning:** `preview/archive/turbo-preview-7.8.15.html` is the current patch source imported by `app/page.tsx`; 7.8.14 remains preserved.
 
 ## Open issues carried forward (as of this reconstruction)
 
@@ -358,3 +547,10 @@ These are carried-forward gaps across the deprecated/baseline files, the current
 4. **ISI title placement evidence:** current code uses top placement only for `970x546` and `mobile-instream`, excluding `970x250`. Available packages confirm those sizes and current rendering, but no served-production reference captured the complete per-size policy in this pass. D045 is intentionally not assigned until that evidence exists.
 
 See `02-Technical-Spec.md` for the full feature/fix matrix per file.
+# D070 — [Feedback] Export a local, production-linked debug bundle (7.11.0-feedback)
+
+**Evidence:** free-form bug messages do not reliably identify the affected preview state, source package, application environment, or production output. The user requires the feedback entry point in the existing app menu and requires either a CCRV URL or a Showcase URL for comparison.
+
+**Decision:** add **Report feedback** beside report and screenshot actions. Require a valid `showcase.vdx.tv` CCRV/Showcase reference only for Visual mismatch; keep it optional but validated when supplied for every other type. Preselect a feedback type from categories covering the app's common failure areas; keep Description and reproduction steps optional; show optional Actual and Expected fields only for Visual mismatch. Description, Actual, and Expected accept clipboard images directly, show removable in-field previews, and store them in separate context folders. Default to including the active-stage screenshot and source ZIP when available; allow additional attachments; disclose the evidence before export. Generate a local ZIP only and preserve the existing “nothing is uploaded” privacy contract. The user explicitly selected the release label `7.11.0-feedback`; this is a named feature build based on confirmed source 7.10.3.
+
+**Validation:** static regression coverage checks menu placement, URL gating, local bundle contents, privacy copy, build identity, and the current-preview pointer. TypeScript, automated tests, lint, production build, and browser interaction are the completion gates.

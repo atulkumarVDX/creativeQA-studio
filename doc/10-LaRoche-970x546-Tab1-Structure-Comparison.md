@@ -1,7 +1,7 @@
 # LaRoche 970×546 tab 1 — production and preview comparison
 
 Compared September 14, 2026 against the user-confirmed
-`preview/turbo-preview-7.8.0.html`, supplied `design_1.psb.zip`, and supplied
+`preview/archive/turbo-preview-7.8.0.html`, supplied `design_1.psb.zip`, and supplied
 production HTML fragment. The extracted export was checked for equality with
 the ZIP's `export.json`.
 

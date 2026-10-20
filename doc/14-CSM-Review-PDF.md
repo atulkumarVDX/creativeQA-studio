@@ -1,7 +1,7 @@
 # CSM Review PDF
 
 **Release:** Turbo Preview 7.8.4  
-**Source:** `preview/turbo-preview-7.8.4.html`  
+**Source:** `preview/archive/turbo-preview-7.8.4.html`
 **Last updated:** 2026-09-22
 
 ## Purpose

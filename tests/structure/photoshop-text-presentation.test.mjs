@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
 
-const preview = readFileSync("preview/turbo-preview-7.8.4.html", "utf8");
+const preview = readFileSync("preview/turbo-preview-7.9.11.html", "utf8");
 const start = preview.indexOf("function getPsdFontCaps");
 const end = preview.indexOf("function textRangeSignature", start);
 assert.ok(start >= 0 && end > start, "Photoshop presentation helpers must be present");
@@ -56,11 +56,34 @@ test("maps implied and raw Photoshop paragraph indents per paragraph", () => {
   });
 });
 
+test("maps Shift+Enter to a production paragraph and its exported style range", () => {
+  const layer = {
+    textKey: {
+      textKey: "First line\u0003second line",
+      paragraphStyleRange: [
+        { from: 0, to: 11, paragraphStyle: { align: { _value: "left" } } },
+        { from: 11, to: 22, paragraphStyle: { align: { _value: "right" } } }
+      ]
+    }
+  };
+  const styles = context.getPsdParagraphStyles(layer, 1);
+  assert.equal(styles.length, 2);
+  assert.equal(styles[0].align, "left");
+  assert.equal(styles[1].align, "right");
+});
+
+test("renders Shift+Enter as a separate paragraph while retaining its raw source character", () => {
+  assert.match(preview, /split\(\/\(\\n\|\\u0003\)\/\)/);
+  assert.match(preview, /fragment === "\\n" \|\| fragment === "\\u0003"/);
+  assert.match(preview, /rawContent\.matchAll\(\/\\r\\n\|\\r\|\\n\|\\u0003\/g\)/);
+});
+
 test("production preview wires caps and logical indents into rendering and measurement", () => {
   assert.match(preview, /fontCaps:\s*getPsdFontCaps\(st\)/);
   assert.match(preview, /paragraphStyles:\s*getPsdParagraphStyles\(layer, sizeCorrection\)/);
   assert.match(preview, /paragraph\.style\.paddingInlineStart/);
   assert.match(preview, /paragraph\.style\.paddingInlineEnd/);
   assert.match(preview, /paragraph\.style\.textIndent/);
-  assert.match(preview, /measured\.paddingLeft \+ measured\.paddingRight \+ measured\.textIndent/);
+  assert.match(preview, /measured\.paddingLeft \+ measured\.textIndent/);
+  assert.doesNotMatch(preview, /measured\.paddingLeft \+ measured\.paddingRight \+ measured\.textIndent/);
 });

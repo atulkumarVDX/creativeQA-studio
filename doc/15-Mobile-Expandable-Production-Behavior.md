@@ -1,10 +1,11 @@
 # 15 — Mobile Expandable Production Behavior
 
-**Status:** Evidence-backed parity contract (documentation only)
-**Observed build:** Turbo Preview `7.8.4`
-**Observed:** 2026-10-01 (Asia/Kolkata)
-**Production reference:** [Showcase creative 14126630](https://showcase.vdx.tv/ccpreview/14126630#29f08b47-6418-4748-8c29-49b909e72034/14)
-**Latest supplied source:** `design.psd.zip` for Vonjo, Production V1
+**Status:** Evidence-backed parity contract
+**Observed build:** Turbo Preview `7.9.11`
+**Observed:** 2026-10-14 (Asia/Kolkata)
+**Implementation build:** Turbo Preview `7.9.11`, validated 2026-10-14
+**Production references:** supplied live mobile-expandable ad (`mediaDataID=14185590`), production component bundle `3.13.11-8`, and `vdx-container-turbo.js` `3.13.8-0`
+**Package evidence:** Tryngolza, Ipsen, TRYPTYR and Alprolix, plus the earlier Vonjo expanded-main-unit inspection
 **Current scope:** Expanded main unit only. The teaser/collapsed placement is
 out of scope and must remain unchanged.
 
@@ -23,7 +24,7 @@ latest source package supplied for comparison is:
 | Authored artboard | `428 × 622` | not used as the browser viewport |
 | Creative viewport | source canvas | expanded `428 × 622` or clipped `375 × 622` |
 | Horizontal behavior | authored coordinates | responsive leaf layout into 375 px |
-| Vertical behavior | authored y positions | same y timeline, clipped to 622 px |
+| Vertical behavior | authored y positions | qualifying direct sibling branches inherit the resized video's single height delta; unrelated structures retain authored flow |
 | Browser-window resize | must not rescale the artboard | the creative remains 375 px wide; the page may scroll to expose it |
 
 The 428 px source is not a license to uniformly scale the whole creative. The
@@ -108,41 +109,40 @@ production placement (the inspected routes changed to hash states `/12` and
 This `300×600` placement is different from the expanded mobile expandable
 state and must not be substituted for it in parity checks.
 
-### Browser device-emulation finding (`375×622` after expansion)
+### Current production finding (`375×622` after expansion)
 
-After expanding the same placement, the browser viewport was changed to
-`375×622`. Production kept the expanded creative's authored media width and
-clipped it at the narrower viewport:
+The supplied live mobile-expandable ad loaded component bundle `3.13.11-8`.
+At `375×622`, its full-width authored video was resized from approximately
+`428×241` to `375×211.16`. Production then moved each direct sibling branch of
+the video upward by the rounded video-height difference. In the measured state,
+the following `CanvasDesign` branch began at the resized video bottom, so no
+blank band remained between media and content.
 
-- host browser viewport and iframe/body: `375×622`;
-- close control: `20×20` at x=`345`, y=`10`;
-- active entries: width `375`, height `436`, y=`186` and `622`;
-- video: still `428×240.75`, x=`0`, `object-fit: contain`, clipped by the
-  `375px` body.
-
-This proves that browser device emulation and creative expansion are separate
-variables. For the current scope, the preview must model the expanded
-`428×622` state and the clipped `375×622` device view independently, while
-leaving the teaser placement unchanged.
+Production performs this at the branch level. Nested copy, CTA, disclosure,
+background and control leaves follow their owning branch without receiving an
+independent offset. A structure without the qualifying direct sibling
+relationship is not shifted. This finding supersedes the earlier inference
+that production kept a 428px-wide video and merely clipped it at 375px.
 
 ## 4. Responsive geometry rules
 
-Responsive behavior applies to leaves and their owning layout frames, not to a
-single global transform.
+Responsive behavior applies to leaves and their owning layout frames while
+preserving the authored composition's center pinning.
 
 ### 4.1 Full-width elements
 
-Background bands, tab strips, safety-information bars, and other edge-to-edge
-elements use x=`0` and the active production width (`375` or `300`) in
-production. Their authored height is preserved unless the component has an
-explicit responsive height rule.
+Background bands, tab strips, safety-information bars, and other design
+elements remain on the authored 428px coordinate system and shift together by
+half the width delta in the 375px host. Their authored height is preserved
+unless the component has an explicit responsive height rule.
 
 ### 4.2 Pinning
 
-- left-pinned leaves preserve their left inset;
-- right-pinned leaves preserve their right inset;
-- centered groups shift by half the width delta when no other responsive rule
-  applies: `(428 - 375) / 2 = 26.5px` per side;
+- all ordinary non-video design elements are center-pinned and shift by half
+  the width delta: `(428 - 375) / 2 = 26.5px`;
+- circular bars select a left, center or right anchor from their authored
+  position: a centered control stays centered with contained media, while an
+  edge control preserves its edge gap (a right-pinned control shifts by 53px);
 - siblings that form one visual cluster (copy, accent bar, icon, and CTA) must
   use the same responsive frame so their authored gap is preserved;
 - do not pin individual siblings independently when Photoshop shows them as a
@@ -156,6 +156,26 @@ where a line wraps, but it must not silently change paragraph alignment to
 justified, insert hyphenation, or discard an explicit break. Those are separate
 text-rendering findings and should be reported rather than “corrected” by
 mobile layout code.
+
+### 4.4 Vertical flow after full-width video
+
+When a production tab contains a left-aligned, full-width video as a direct
+child, resize the video first and calculate:
+
+```text
+videoFlowDelta = round(responsiveVideoHeight - authoredVideoHeight)
+```
+
+Apply `videoFlowDelta` once to every direct sibling branch of that video. The
+video branch itself receives no vertical delta. Descendants keep their authored
+local coordinates relative to the shifted branch, so the branch moves as one
+unit and internal spacing remains unchanged.
+
+Do not identify affected leaves by comparing each leaf's top with the resized
+video bottom. That threshold approach can split one visual cluster when some
+children start above the boundary and others start below it. Do not apply this
+rule to contained video, unrelated branches, or layouts without the qualifying
+direct-child structure.
 
 ## 5. Video behavior (measured production evidence)
 
@@ -183,13 +203,24 @@ separate collapsed/300×600 placement measured `object-fit: cover`. The preview
 must capture the actual component/state style rather than assuming one
 universal object-fit value.
 
-### Current Turbo parity gap
+### Turbo implementation
 
-The current preview responsive path changes the video width but still assigns
-the authored height (`r.height × scale`) and then forces `object-fit: cover`.
-That is not the measured production contract for the expanded state, which
-retains the 428 px media and uses `contain` while the 375 px body clips it.
-This document intentionally records the gap; it does not patch it.
+The preview responsive path applies the measured production media rule: the
+video is rendered at `375px` wide with proportional height
+(`241 × 375 / 428 = 211.16px`), positioned at `x=0`, and clipped by the
+375px host viewport. The 428px authored view retains the original media
+dimensions.
+
+After resizing a qualifying full-width video, Turbo mirrors the production tab
+component by applying the rounded height delta to the video's direct sibling
+branches. For a 241px source video, the responsive height is approximately
+211.16px and the branch delta is `-30px`. The branch wrapper and its descendants
+resolve to one effective movement; descendant-local gaps are not compressed or
+shifted a second time.
+
+Contained video does not scale to 375px. It retains its authored dimensions and
+uses the same left/center/right anchor as other leaves, keeping a centered video
+and its centered circular control on x-center 187.5.
 
 ## 6. Controls and overlays
 
@@ -212,24 +243,41 @@ The preview must maintain these distinct modes:
 
 1. **Production/mobile-expandable-expanded mode:** viewport/creative is
    `428×622`; this is confirmed by the live expansion interaction.
-2. **Production/mobile-expandable-clipped mode:** viewport is `375×622`; the
-   expanded 428 px creative remains authored-width and is clipped.
+2. **Production/mobile-expandable-responsive mode:** viewport is `375×622`;
+   responsive leaves and media follow the rules in §4–§5 while the authored
+   428px stage remains the source coordinate system and the host clips overflow.
 3. **Authored/source mode:** source geometry is shown without responsive
    substitution.
 4. **Browser-window resize:** neither expanded mode changes its intrinsic artboard
    dimensions. A smaller browser window may reveal less of the fixed artboard,
    but must not compress, stretch, or reflow it.
 
+### Local preview interaction policy
+
+The local preview does not implement the production stack's internal scroll
+interaction. The expanded `428x622` artboard is clipped to its preview viewport,
+and alternate content is selected through the same tab buttons used by the
+other artboards. Tab selection must not be replaced with a scrollable creative
+or an internal vertical scroller.
+
 The current fixed-artboard preview change follows this policy: the browser
 viewport can scroll around the artboard instead of making the artboard itself
 responsive.
+
+In focused Preview, tab and slide controls are scoped to the selected artboard;
+this prevents unavailable global-union states from producing blank creatives.
+Compare mode may aggregate the states of all included artboards. The ISI frame
+is a responsive component inside the clipped host: x=0, width=375, with its
+content scrolling vertically. Vertical video reflow follows §4.4: shift the
+qualifying sibling branch once, never individual leaves selected by a boundary
+test.
 
 ## 8. Parity checklist for every mobile expandable state
 
 Before calling a state production-matched, verify all of the following:
 
 - [ ] viewport is identified (`428×622` expanded production, `375×622`
-      clipped-expanded production, or `428×622` authored source);
+      responsive production, or `428×622` authored source);
 - [ ] tab, slide, and hash/timeline state are recorded;
 - [ ] active and neighboring stack entries have the expected positions;
 - [ ] root and iframe clipping are `375×622` in production mode;
@@ -237,6 +285,10 @@ Before calling a state production-matched, verify all of the following:
 - [ ] left/right/center pinning follows the rules above;
 - [ ] responsive clusters preserve authored sibling gaps;
 - [ ] video width and proportional height are measured, not guessed;
+- [ ] each qualifying direct sibling branch receives exactly one rounded video-height delta;
+- [ ] descendants preserve their local positions inside the shifted branch;
+- [ ] contained video and unrelated structures receive no video-flow delta;
+- [ ] the video/content seam has no positive blank gap after browser subpixel rounding;
 - [ ] object-fit is checked from the selected production state;
 - [ ] overlays, controls, and z-index are compared inside the same frame;
 - [ ] text alignment, hard returns, indentation, capitalization, and line
@@ -254,6 +306,9 @@ The test fixture for this behavior should contain at least:
 - a `375×622` responsive render of the same tab/slide;
 - one state with an active entry and neighbors above/below the viewport;
 - one edge-to-edge video at source bounds `428×241`;
+- one direct sibling content branch immediately following that video;
+- one nested child cluster proving that descendant spacing is unchanged;
+- one unrelated or contained-video structure proving that no delta is applied;
 - one right-pinned navigation cluster;
 - one text cluster with an explicit hard return and a non-justified paragraph;
 - screenshots at normal width and at a browser width narrower than 375 px.
@@ -262,21 +317,21 @@ Acceptance is based on measured geometry and clipping, not visual similarity at
 one zoom level. “100% matched” should only be claimed after the responsive DOM,
 computed styles, and screenshots agree for every tab/slide state in the fixture.
 
-## 10. Evidence limits and next implementation step
+## 10. Evidence limits and future parity work
 
-The production inspection establishes the collapsed placement, expanded
-`428×622` viewport, clipped `375×622` viewport, stack lifecycle, and
-state-specific video behavior above. It does not prove that every creative
-uses identical component CSS or that every state uses the same object-fit
-value. Production compiled HTML/CSS for additional mobile-expandable fixtures
-is required before generalizing beyond this reference.
+The production inspection establishes the expanded `428×622` viewport, the
+responsive `375×622` host, state-specific video sizing, and direct-sibling
+vertical flow. It does not prove that every creative uses identical component
+CSS or that every state uses the same object-fit value. Apply the sibling-flow
+rule only when the exported structure supplies its qualifying relationship;
+otherwise preserve the authored structure and report the state as unverified
+when production evidence is unavailable.
 
-When implementation is authorized, validate the expanded media width/object-fit
-first, then the clipped 375 px view. After that, run the full expanded tab/slide
-matrix at both 375 px and 428 px, then re-check fixed-artboard behavior under a
-narrow browser window. Do not alter the teaser placement while doing so.
+Future parity work should continue to test the full expanded tab/slide matrix
+at both 375px and 428px, then re-check fixed-artboard behavior under a narrow
+browser window. Do not alter the teaser placement while doing so.
 
-## 11. Prioritized parity fixes
+## 11. Implementation requirements and remaining parity work
 
 These are the implementation changes required before claiming expanded-main-unit
 parity. The teaser/collapsed placement is explicitly excluded from this list
@@ -288,19 +343,21 @@ and must not be changed.
    top-right (`x=width−30`, `y=10`) in both `428×622` and `375×622` expanded
    states, with the production z-index and hit area.
 2. **Use the correct expanded canvas width.** At `428×622`, render the
-   expanded artboard at 428 px. At `375×622`, keep the expanded authored-width
-   media where production does and clip it at the viewport; do not replace
-   expansion with a generic 375 px reflow.
+   expanded artboard at 428 px. At `375×622`, use the 375px responsive host
+   and preserve the authored coordinate system for non-media content.
 
 ### P0 — media parity
 
-4. **Separate media rules by state.** Expanded media is `428×240.75` with
+4. **Separate media rules by state.** Expanded media is `428×240.75` at
+428px and `375×211.16` in the responsive expanded host, with
    `object-fit: contain`; the separate `300×600` placement measured
    `300×168.75` with `object-fit: cover`. Remove the unconditional preview
    `object-fit: cover` for expandable media.
 5. **Preserve the production video/frame relationship.** Keep the video at
-   the authored y position and let the fixed viewport clip it. Do not resize
-   the video height merely because the browser viewport is 375 px wide.
+   the authored y position, scale its height proportionally with its responsive
+   width, then apply the rounded height delta once to every qualifying direct
+   sibling branch. Preserve descendant-local coordinates and do not use a
+   per-leaf boundary test.
 
 ### P1 — stack and clipping parity
 
@@ -333,3 +390,22 @@ and must not be changed.
 12. **Report unsupported state mappings.** If a package has no production
     compiled fixture for a state, mark it as unverified instead of declaring
     full parity from the authored PSD alone.
+
+## 12. Build 7.9.11 implementation validation
+
+Build 7.9.10 established the global responsive ISI, horizontal pinning,
+control anchoring and focused-state rules. Build 7.9.11 corrects its incomplete
+vertical rule using the production sibling-flow behavior.
+
+Live 375×622 DOM measurements covered Tryngolza, Ipsen, TRYPTYR and Alprolix.
+Tryngolza, Ipsen and TRYPTYR each produced a `-0.156px` video/content seam,
+which is the expected browser subpixel overlap rather than a visible gap.
+Alprolix lacks the qualifying following sibling branch and retained its authored
+approximately `16.8px` internal content spacing. This negative case confirms
+that the rule does not move unrelated structures.
+
+The complete automated suite passes 116/116 tests. TypeScript checks, the
+production build and lint complete with zero errors. Regression coverage
+asserts the branch-level delta, unchanged descendant spacing, and the exclusion
+for unrelated branches. The user accepted the four-package result on
+2026-10-14.

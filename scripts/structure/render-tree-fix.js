@@ -70,7 +70,10 @@ function createStructuralMount(entry) {
     element.dataset.psdPath = node.path; element.dataset.psdRole = 'group';
     element.dataset.psdVisibility = String(node.visible); element.dataset.psdOrder = String(node.order);
     element.dataset.geometryPolicy = 'transparent-source-wrapper';
-    Object.assign(element.style, { position: 'absolute', left: '0px', top: '0px', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' });
+    // A Photoshop group composites as one item in its parent's paint stack.
+    // Giving every retained group that source depth prevents any descendant's
+    // z-index from escaping above or below the group's raster/vector siblings.
+    Object.assign(element.style, { position: 'absolute', left: '0px', top: '0px', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: String(Number.isFinite(layer.itemIndex) ? layer.itemIndex : 0) });
     let left = parent.left, top = parent.top, frameId = null;
     element.setAttribute('name', layer.name || '');
     // Ordinary groups own their exported coordinate rectangle. Large or
@@ -164,6 +167,20 @@ function createStructuralMount(entry) {
       parent.element.style.backgroundPosition = '0px 0px'; parent.element.style.backgroundRepeat = 'no-repeat';
     }
     if (parent.frameId === layer?.layerID || parent.backgroundId === layer?.layerID) return;
+    const isCollectionBackground = parent.childHost && parent.childHost !== parent.element
+      && layer?.name === 'background' && layer.layerKind === 5 && renderable.fileName;
+    if (isCollectionBackground) {
+      // A collection-level background is the backdrop for every state, not a
+      // state/content layer. Keep it on the collection owner so the browser
+      // cannot let its exported itemIndex outrank the active slide contents.
+      parent.backgroundId = layer.layerID;
+      parent.element.dataset.backgroundLayerId = String(layer.layerID);
+      parent.element.style.backgroundImage = `url(${JSON.stringify(resolveAssetUrl(renderable.fileName))})`;
+      parent.element.style.backgroundSize = '100% 100%';
+      parent.element.style.backgroundPosition = '0px 0px';
+      parent.element.style.backgroundRepeat = 'no-repeat';
+      return;
+    }
     if (layer) {
       element.dataset.structureLayerId = String(layer.layerID); element.dataset.psdParentId = String(layer.parentLayerID);
       element.dataset.psdPath = node?.path || layer.name; element.dataset.psdOrder = String(layer.itemIndex);

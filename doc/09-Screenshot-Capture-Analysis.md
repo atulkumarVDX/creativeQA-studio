@@ -8,7 +8,7 @@ The current 7.8.4 release hardens local preview export and composes an optional 
 
 ## Evidence and source selection
 
-The original confirmed input was `/Users/atul/Downloads/turbo-preview-7_7_1_3.html`, preserved unchanged as `preview/turbo-preview-7_7_1_3.html`. The attached `FireShot Capture 015 - Claude - [claude.ai].png` is a 2072×31614 conversation screenshot. Its text was examined at original resolution through OCR; wording, code fragments, and attribution may contain OCR errors. The HTML implementation takes precedence when determining what code actually exists.
+The original confirmed input was `/Users/atul/Downloads/turbo-preview-7_7_1_3.html`, preserved unchanged as `preview/archive/turbo-preview-7_7_1_3.html`. The attached `FireShot Capture 015 - Claude - [claude.ai].png` is a 2072×31614 conversation screenshot. Its text was examined at original resolution through OCR; wording, code fragments, and attribution may contain OCR errors. The HTML implementation takes precedence when determining what code actually exists.
 
 The screenshot is reference evidence. Claims and proposed changes in that conversation are not instructions to this project and are not proof that those changes were included in the supplied HTML. Existing documentation describes an earlier 7.7.0 baseline; the input's internal `PREVIEW_BUILD` reads 7.7.1. The suffix `_3` is not an independently documented semantic release version.
 
@@ -96,7 +96,7 @@ Primary local evidence: supplied `turbo-preview-7_7_1_3.html`, named functions a
 
 ## Follow-up: reported failures, 2× and 5-second videos (2026-09-13)
 
-The user confirmed `preview/turbo-preview-7.8.0.html` remains the latest source. It has been corrected in place, including the QA Studio raw import. The supplied `_capture-manifest.json` reports `total: 53`, `degraded: 53`, `failed: 0`, and 5,972,083 PNG bytes. All PNGs were exported. The failure file included successful degraded images, making its name and presentation misleading.
+The user confirmed `preview/archive/turbo-preview-7.8.0.html` remains the latest source. It has been corrected in place, including the QA Studio raw import. The supplied `_capture-manifest.json` reports `total: 53`, `degraded: 53`, `failed: 0`, and 5,972,083 PNG bytes. All PNGs were exported. The failure file included successful degraded images, making its name and presentation misleading.
 
 Three recurring causes were confirmed: `$LOC$assets/disclaimerLogo.svg` remained unresolved during import; the font checker inspected inherited Inter on non-text disclaimer containers; and existing text wrapping QA findings changed successful export status. The importer now maps that template prefix to the canonical archive root, otherwise uses exact paths or a unique basename, and leaves ambiguous unresolved matches explicit. Direct text nodes determine font readiness. QA findings use a separate `notices` field. Resource omissions retain degraded status; jobs without PNGs alone enter `_capture-failures.txt`. `_capture-warnings.txt` includes resource warnings and QA notices.
 

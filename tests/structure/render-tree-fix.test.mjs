@@ -11,7 +11,7 @@ class Element {
 const source=readFileSync('scripts/structure/render-tree-fix.js','utf8');
 const c=vm.createContext({document:{createElement:()=>new Element()},preciseShapeBoundsOf:x=>x.bounds,mobileExpandableHorizontalBox:(_,r)=>r,getShapeFillStyle:()=>({color:'black'}),getShapeBorderStyle:()=>null,getShapeBorderRadius:()=>null,resolveAssetUrl:x=>x});
 vm.runInContext(source,c);
-const group=(layerID,name,parentLayerID,left,top,width,height)=>({layerID,name,parentLayerID,layerKind:7,bounds:{left:0,top:0,width:6173,height:3424},boundsNoEffects:{left,top,width,height}});
+const group=(layerID,name,parentLayerID,left,top,width,height,itemIndex)=>({layerID,name,parentLayerID,layerKind:7,itemIndex,bounds:{left:0,top:0,width:6173,height:3424},boundsNoEffects:{left,top,width,height}});
 function setup(extra=[]){
  const data={document:{artboards:[1]},rawLayers:[group(1,'970x546',null,2581,25,970,546),group(2,'tabComponent',1,2569,-15,982,661),group(3,'tab1',2,2581,25,970,546),group(4,'CanvasDesign',3,2600,126,925,439),...extra]};
  return {model:{rootLayerId:1,originLeft:2581,originTop:25},structureIndex:c.buildStructureIndex(data),stageEl:new Element(),scale:1,assetMap:new Map()};
@@ -48,6 +48,29 @@ test('DOM sibling order follows compiled source paint order despite reversed tra
  for(const itemIndex of [50,30,40])m.mount(new Element(),{layer:{layerID:itemIndex,parentLayerID:4,itemIndex}});
  assert.deepEqual(m.groups.get(4).element.children.map(x=>Number(x.dataset.sourcePaintOrder)),[30,40,50]);
 });
+test('every retained group composites at its own source depth among arbitrary siblings',()=>{
+ const e=setup([
+  {layerID:8,parentLayerID:4,name:'lower artwork',layerKind:5,itemIndex:10},
+  group(9,'arbitrary retained group',4,2610,146,100,80,20),
+  group(10,'nested retained group',9,2615,151,90,70,18),
+  {layerID:12,parentLayerID:4,name:'upper artwork',layerKind:5,itemIndex:30}
+ ]),m=c.createStructuralMount(e),lower=new Element(),nestedContent=new Element(),upper=new Element();
+ lower.style.zIndex='10';upper.style.zIndex='30';
+ m.mount(lower,{layer:e.structureIndex.sourceById.get(8)});
+ m.mount(nestedContent,{layer:{layerID:11,parentLayerID:10,name:'content',itemIndex:19}});
+ m.mount(upper,{layer:e.structureIndex.sourceById.get(12)});
+ assert.equal(m.groups.get(9).element.style.zIndex,'20');
+ assert.equal(m.groups.get(10).element.style.zIndex,'18');
+ assert.deepEqual(m.groups.get(4).element.children.map(x=>Number(x.dataset.sourcePaintOrder)),[10,20,30]);
+ assert.equal(nestedContent.parentElement,m.groups.get(10).element);
+ assert.ok(Number(lower.style.zIndex)<Number(m.groups.get(9).element.style.zIndex));
+ assert.ok(Number(m.groups.get(9).element.style.zIndex)<Number(upper.style.zIndex));
+});
+test('groups without a finite source index use a deterministic zero depth',()=>{
+ const e=setup([group(8,'unindexed group',4,2610,146,100,80)]),m=c.createStructuralMount(e);
+ m.mount(new Element(),{layer:{layerID:9,parentLayerID:8,name:'content'}});
+ assert.equal(m.groups.get(8).element.style.zIndex,'0');
+});
 test('size-specific instances use their assigned paint order instead of master source order',()=>{
  const e=setup(),m=c.createStructuralMount(e),master={layerID:90,parentLayerID:91,itemIndex:2,name:'bottom-border'};
  const header=new Element(),divider=new Element();
@@ -65,12 +88,27 @@ test('gallery collection owns slides while persistent CTA remains outside collec
  assert.equal(button.parentElement,gallery.element);
  assert.equal(slide.parentElement.attributes.role,'tabpanel');
 });
+test('collection-owned backgrounds stay inside the active collection stack',()=>{
+ const e=setup([group(8,'rmGallery',3,2581,106,970,465),group(9,'slide1',8,2581,106,970,465),{layerID:10,parentLayerID:8,name:'background',layerKind:5,itemIndex:10}]),m=c.createStructuralMount(e);
+ const background=new Element();
+ m.mount(background,{layer:e.structureIndex.sourceById.get(10),fileName:'background.png'});
+ const gallery=m.groups.get(8);
+ assert.equal(background.parentElement,undefined);
+ assert.equal(gallery.element.dataset.backgroundLayerId,'10');
+ assert.equal(gallery.element.style.backgroundImage,'url("background.png")');
+ assert.equal(gallery.element.style.backgroundSize,'100% 100%');
+});
 test('fix version embeds its own engine while the base retains its original engine',()=>{
- const base=readFileSync('preview/turbo-preview-7.8.0.html','utf8'),fix=readFileSync('preview/turbo-preview-7.8.1.html','utf8');
- assert.ok(fix.includes(source));assert.ok(base.includes(readFileSync('scripts/structure/render-tree.js','utf8')));assert.ok(fix.includes('const PREVIEW_BUILD = "7.8.1"'));
+ const base=readFileSync('preview/archive/turbo-preview-7.8.0.html','utf8'),fix=readFileSync('preview/archive/turbo-preview-7.8.6.html','utf8');
+ assert.ok(fix.includes('const isCollectionBackground'));assert.ok(base.includes(readFileSync('scripts/structure/render-tree.js','utf8')));assert.ok(fix.includes('const PREVIEW_BUILD = "7.8.6"'));
+});
+test('7.9.7 build gives every retained group a source-order stacking context',()=>{
+ const fix=readFileSync('preview/archive/turbo-preview-7.9.7.html','utf8');
+ assert.ok(fix.includes("zIndex: String(Number.isFinite(layer.itemIndex) ? layer.itemIndex : 0)"));
+ assert.ok(fix.includes('const PREVIEW_BUILD = "7.9.7"'));
 });
 test('fix package loader resolves a missing PNG to its available Retina asset',()=>{
- const fix=readFileSync('preview/turbo-preview-7.8.1.html','utf8');
+ const fix=readFileSync('preview/archive/turbo-preview-7.8.1.html','utf8');
  const resolverBody=fix.match(/P\.setAssetResolver\(\(fileName\) => \{([\s\S]*?)\n      \}\);/)[1];
  const nameToBlobUrl=new Map([['background-31082-2x.png','retina-blob-url']]);
  const warnedMissingAssets=new Set();
@@ -111,5 +149,23 @@ test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=
  assert.ok(Number(logo.style.zIndex)>757,'the logo must paint above the full-canvas image');
  assert.equal(logo.style.width,value(logoGroup.boundsNoEffects.width)+'px');
  assert.equal(logo.style.height,value(logoGroup.boundsNoEffects.height)+'px');
- assert.match(readFileSync('app/page.tsx','utf8'),/turbo-preview-7\.8\.4\.html\?raw/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/import \{ currentPreview \} from "\.\.\/preview\/current-preview"/);
+ assert.doesNotMatch(readFileSync('app/page.tsx','utf8'),/import\.meta\.glob/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/onClick=\{\(\) => openMainUnit\("970x546"\)\}/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/const selectedSize = Array\.from\(document\.querySelectorAll\("#sizePicker \.chip"\)\)/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/Teaser generation temporarily selects mobile-instream/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/tqa:focus-finding/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openQaFinding\(finding\)/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openStructureFinding\(finding\)[\s\S]*?compareEnabled = false;[\s\S]*?activeSlide = slide \|\| null;/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openQaFinding\(finding\)[\s\S]*?compareEnabled = false;[\s\S]*?activeSlide = slideName;/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function revealFindingTarget\(target\)[\s\S]*?closest\("\.cp-artboard-card"\)/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function revealFindingTarget\(target\)[\s\S]*?stage\.scrollTop = 0;/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function highlightSpacingTargets\(targets, ruleId\)/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/structure-text-highlight/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/animation: structure-text-blink \.8s steps\(1, end\) infinite/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/\.structure-highlight \{ --structure-highlight-color:#d9a441; outline:1\.5px dotted var\(--structure-highlight-color\)/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/\.cp-text\.structure-highlight \{ --structure-highlight-color: #d9a441; outline: 1\.5px dotted var\(--structure-highlight-color\)/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/animation: structure-outline-blink \.8s steps\(1, end\) infinite/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/const TEXT_QA_ENABLED = false/);
+ assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/#textQaBadge, #kerningPanel, #structureQA \{ display: none !important; \}/);
 });

@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-const target = new URL('../../preview/turbo-preview-7.8.0.html', import.meta.url);
+const target = new URL('../../preview/archive/turbo-preview-7.8.0.html', import.meta.url);
 const registry = JSON.parse(readFileSync(new URL('../../doc/layer-structure/rules.json', import.meta.url), 'utf8'));
 const contracts = JSON.parse(readFileSync(new URL('../../doc/layer-structure/authoring-contracts.json', import.meta.url), 'utf8'));
 const engine = readFileSync(new URL('./validator.js', import.meta.url), 'utf8').replace("if (typeof module !== 'undefined') module.exports = { scanStructure };", '');

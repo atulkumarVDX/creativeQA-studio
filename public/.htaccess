@@ -1,0 +1,8 @@
+# Apache 2.4: copied into dist by Vite. Requires AllowOverride FileInfo
+# (or an equivalent server-level configuration) and mod_headers.
+<IfModule mod_headers.c>
+    <FilesMatch "\.html$">
+        Header always set Cache-Control "no-store"
+        Header always unset Expires
+    </FilesMatch>
+</IfModule>

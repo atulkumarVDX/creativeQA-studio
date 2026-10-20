@@ -1021,7 +1021,7 @@ Used to rasterize each creative frame (per ad size / tab / slide) to PNG for the
   </div>
 
 <script>
-const PREVIEW_BUILD = "7.8.4";
+const PREVIEW_BUILD = "7.8.12";
 console.log("preview.js loaded:", PREVIEW_BUILD);
 window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
 /**
@@ -1406,7 +1406,10 @@ window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
 
   function getFontWeight(style) {
     if (!style) return "normal";
-    if (style.syntheticBold === true || /bold|extra.?bold/i.test(style.fontStyleName || "")) return "700";
+    // Static Photoshop font families commonly include "Bold" in their
+    // family name. Production renders those families at normal CSS weight;
+    // only an explicitly synthetic bold should request browser emboldening.
+    if (style.syntheticBold === true) return "700";
     if (/medium/i.test(style.fontStyleName || "")) return "normal";
     if (/light/i.test(style.fontStyleName || "")) return "300";
     return "normal";
@@ -1443,9 +1446,21 @@ window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
     return originType === 2 || originType === 5;
   }
 
-  function getShapeBorderRadius(layer) {
+  function getShapeBorderRadius(layer, scale = 1) {
+    const origin = layer && layer.keyOriginType && layer.keyOriginType[0];
+    const radii = origin && origin.keyOriginRRectRadii;
+    const value = key => unitValue(radii && radii[key]);
+    const corners = [value("topLeft"), value("topRight"), value("bottomRight"), value("bottomLeft")];
+    if (corners.every(Number.isFinite)) {
+      return corners.map(radius => `${radius * scale}px`).join(" ");
+    }
     if (isRoundShape(layer)) return "9999px";
     return null;
+  }
+
+  function scaleShapeBorderRadius(radius, scale) {
+    if (!radius || !Number.isFinite(scale) || scale === 1) return radius;
+    return radius.replace(/(-?\d*\.?\d+)px/g, (_, value) => `${Number(value) * scale}px`);
   }
 
   function getShapeClipPath(layer, width, height) {
@@ -1724,7 +1739,7 @@ function createStructuralMount(entry) {
         element.dataset.psdRole = isCta ? 'cta' : 'frame-container';
         element.setAttribute('name', layer.name); element.dataset.geometryPolicy = 'frame-path-bounds'; element.dataset.frameLayerId = String(frameId);
         Object.assign(element.style, { left: (left - parent.left) * scale + 'px', top: (top - parent.top) * scale + 'px', width: horizontal.width * scale + 'px', height: box.height * scale + 'px', pointerEvents: isCta ? 'auto' : 'none', backgroundSize: 'cover', backgroundPosition: 'center center' });
-        const fill = getShapeFillStyle(frame), border = getShapeBorderStyle(frame), radius = getShapeBorderRadius(frame);
+        const fill = getShapeFillStyle(frame), border = getShapeBorderStyle(frame), radius = getShapeBorderRadius(frame, scale);
         if (fill) element.style.backgroundColor = fill.color;
         if (border) element.style.border = `${border.width * scale}px ${border.style} ${border.color}`;
         if (radius) element.style.borderRadius = radius;
@@ -1791,6 +1806,20 @@ function createStructuralMount(entry) {
       parent.element.style.backgroundPosition = '0px 0px'; parent.element.style.backgroundRepeat = 'no-repeat';
     }
     if (parent.frameId === layer?.layerID || parent.backgroundId === layer?.layerID) return;
+    const isCollectionBackground = parent.childHost && parent.childHost !== parent.element
+      && layer?.name === 'background' && layer.layerKind === 5 && renderable.fileName;
+    if (isCollectionBackground) {
+      // A collection-level background is the backdrop for every state, not a
+      // state/content layer. Keep it on the collection owner so the browser
+      // cannot let its exported itemIndex outrank the active slide contents.
+      parent.backgroundId = layer.layerID;
+      parent.element.dataset.backgroundLayerId = String(layer.layerID);
+      parent.element.style.backgroundImage = `url(${JSON.stringify(resolveAssetUrl(renderable.fileName))})`;
+      parent.element.style.backgroundSize = '100% 100%';
+      parent.element.style.backgroundPosition = '0px 0px';
+      parent.element.style.backgroundRepeat = 'no-repeat';
+      return;
+    }
     if (layer) {
       element.dataset.structureLayerId = String(layer.layerID); element.dataset.psdParentId = String(layer.parentLayerID);
       element.dataset.psdPath = node?.path || layer.name; element.dataset.psdOrder = String(layer.itemIndex);
@@ -2141,6 +2170,17 @@ function createStructuralMount(entry) {
       .replace(/\u0003/g, "\n");
   }
 
+  function getPsdAutoLeading(style) {
+    let current = style;
+    while (current && typeof current === "object") {
+      if (Object.prototype.hasOwnProperty.call(current, "autoLeading")) {
+        return current.autoLeading === true;
+      }
+      current = current.baseParentStyle;
+    }
+    return false;
+  }
+
   // Photoshop paragraph text usually ends with a trailing return. Strip
   // that terminator so the preview does not render a fake blank line.
   function normalizeTextContent(str) {
@@ -2315,7 +2355,14 @@ function createStructuralMount(entry) {
     // any given layer.
     const rawSize = unitValue(style.size);
     const sizeCorrection = (rawSize && sizePt) ? (sizePt / rawSize) : 1;
-    const leading = (unitValue(style.leading) * sizeCorrection) || (unitValue(para.leading) * sizeCorrection) || (sizePt * 1.2);
+    // Photoshop exports a numeric `leading` even when the authored setting
+    // is Auto. The semantic flag can be inherited through baseParentStyle;
+    // when it is active, production uses the 120% auto-leading rule rather
+    // than the stale numeric descriptor. Explicit leading remains untouched.
+    const autoLeading = getPsdAutoLeading(style) || getPsdAutoLeading(para);
+    const leading = autoLeading
+      ? sizePt * 1.2
+      : ((unitValue(style.leading) * sizeCorrection) || (unitValue(para.leading) * sizeCorrection) || (sizePt * 1.2));
     const tracking = unitValue(style.tracking);
     const baselineShift = unitValue(style.impliedBaselineShift) ?? unitValue(style.baselineShift) ?? 0;
     const fontFamily = resolveFontFamily(style, fontLookup);
@@ -2343,6 +2390,7 @@ function createStructuralMount(entry) {
       color,
       align: enumValue(para.align, "left"),
       lineHeightPx: leading,
+      autoLeading,
       tracking: tracking === null ? 0 : tracking,
       baselineShift,
       horizontalScale: typeof style.horizontalScale === "number" ? style.horizontalScale / 100 : 1,
@@ -2399,8 +2447,9 @@ function createStructuralMount(entry) {
     applyPsdFontCaps(span, effectiveRun.fontCaps || textStyle.fontCaps);
 
     if (effectiveRun.superscript || effectiveRun.subscript) {
-      span.style.fontSize = ((effectiveRun.sizePt || textStyle.sizePt) * 0.58 * scale) + "px";
-      span.style.verticalAlign = effectiveRun.superscript ? "super" : "sub";
+      const baseSize = (effectiveRun.sizePt || textStyle.sizePt) * scale;
+      span.style.fontSize = (baseSize * 0.6) + "px";
+      span.style.verticalAlign = (effectiveRun.superscript ? 1 : -1) * baseSize * 0.33 + "px";
       span.style.lineHeight = "0";
     } else if (effectiveRun.sizePt && effectiveRun.sizePt !== textStyle.sizePt) {
       span.style.fontSize = (effectiveRun.sizePt * scale) + "px";
@@ -2410,6 +2459,22 @@ function createStructuralMount(entry) {
     if (effectiveRun.underline) decorations.push("underline");
     if (effectiveRun.strikethrough) decorations.push("line-through");
     if (decorations.length) span.style.textDecoration = decorations.join(" ");
+  }
+
+  // All live-text entry points use the same run element and style mapping.
+  // Keeping baseline handling here prevents paragraph text, tab labels, and
+  // fallback text from disagreeing about Photoshop's character ranges.
+  function createPsdTextRunElement(run, textStyle, scale) {
+    const span = document.createElement("span");
+    setPsdTextRunStyle(span, run, textStyle, scale);
+    const baselineDelta = (run.baselineShift || 0) - (textStyle.baselineShift || 0);
+    if (!run.superscript && !run.subscript && baselineDelta) {
+      span.style.position = "relative";
+      span.style.top = (-baselineDelta * scale) + "px";
+    }
+    span.dataset.psdBaseline = run.superscript ? "superscript"
+      : (run.subscript ? "subscript" : "normal");
+    return span;
   }
 
   function applyPsdParagraphStyle(paragraph, renderable, scale, paragraphIndex) {
@@ -2451,8 +2516,7 @@ function createStructuralMount(entry) {
     const runs = text.runs && text.runs.length ? text.runs : [{ text: text.content }];
     const appendToken = (token, run) => {
       if (!token) return;
-      const span = document.createElement("span");
-      setPsdTextRunStyle(span, run, text, scale);
+      const span = createPsdTextRunElement(run, text, scale);
       span.textContent = token;
       paragraph.appendChild(span);
     };
@@ -3382,7 +3446,15 @@ function createStructuralMount(entry) {
       // orientations use the same tab/title pairs. Keeping this outside
       // the orientation branches prevents the 160x600 path from referring
       // to a block-scoped horizontal-only variable.
-      const orderedTabNumbers = [...tabNumbers].sort((a, b) => a - b);
+      // The master can contain the superset of tabs used by the campaign.
+      // A two-tab size must not inherit the third master trigger: production
+      // enumerates the tabs that exist in the current artboard/component.
+      const availableTabNumbers = new Set((model.tabOrder || [])
+        .map(name => Number(String(name).match(/\d+/)?.[0]))
+        .filter(Number.isFinite));
+      const orderedTabNumbers = [...tabNumbers]
+        .filter(number => availableTabNumbers.size === 0 || availableTabNumbers.has(number))
+        .sort((a, b) => a - b);
       const navEntries = orderedTabNumbers.map(n => {
         const title = masterNav.children.find(c =>
           c.kind === "title" && c.tabNumber === n && c.state !== "hover");
@@ -3397,7 +3469,7 @@ function createStructuralMount(entry) {
       // This is intentionally not flattened into unrelated Photoshop
       // rectangles: trigger-level stacking and intrinsic title width are
       // what make the tab edges overlap consistently in production.
-      function buildNavTrigger(entry, factor) {
+      function buildNavTrigger(entry, factor, geometry = {}) {
         const { n, title, pill } = entry;
         const active = activeTab === ("tab" + n);
         const wantedState = active ? "active" : "normal";
@@ -3413,6 +3485,9 @@ function createStructuralMount(entry) {
           tabNumber: n,
           active,
           authoredTitleWidth: title.width * factor,
+          leading: geometry.leading || 0,
+          shapeOffset: geometry.shapeOffset || 0,
+          shapeWidth: geometry.shapeWidth || (title.width * factor),
           text: scaleTextStyle({
             ...titleStyle,
             align: "center",
@@ -3427,12 +3502,11 @@ function createStructuralMount(entry) {
         };
       }
 
-      // Production values supplied from the vdxconnect component CSS.
-      // The requested 24px visible edge overlap is achieved with a 24px
-      // overhang on each side of an intrinsic-width trigger separated by
-      // the production 24px flex gap: 24 + 24 - 24 = 24px overlap.
-      const PILL_GAP_PX = 24;
-      const PILL_OVERHANG_PX = 24;
+      // These values come from the production vdxconnect menu CSS. The
+      // authored Photoshop geometry supplies the label widths/placement, but
+      // the browser component owns the spacing and pill overhang.
+      const MENU_GAP_PX = 24;
+      const MENU_OVERHANG_PX = 20;
       const MENU_PADDING_PX = 18;
       const MENU_WRAPPER_HEIGHT_PX = 22;
       // Mobile instream uses the production 2x tab treatment. Keep the
@@ -3445,30 +3519,24 @@ function createStructuralMount(entry) {
         const scaleX = ph.width / masterNav.frameWidth;
         const scaleY = ph.height / masterNav.frameHeight;
 
-        const horizontalTriggerSlots = new Map();
         const titleEntries = navEntries;
-        const TITLE_GAP = PILL_GAP_PX;
-        const SHAPE_OVERHANG = PILL_OVERHANG_PX;
-        const titleTrackWidth = titleEntries.reduce((sum, entry) =>
-          sum + entry.title.width * scaleX, 0) +
-          Math.max(0, titleEntries.length - 1) * TITLE_GAP;
-        // Production centres the COMPLETE visual band on the placeholder.
-        // The shape overhang is deliberately allowed to extend past
-        // both sides of the placeholder; right-aligning that full band
-        // incorrectly shifts every label/shape relationship to the left.
-        const visualTrackWidth = titleTrackWidth + SHAPE_OVERHANG * 2;
-        let trackLeft = (ph.width - visualTrackWidth) / 2 + SHAPE_OVERHANG;
-        const titleTrackStart = trackLeft;
-        for (const entry of titleEntries) {
-          const { n, title } = entry;
-          const titleWidth = title.width * scaleX;
-          horizontalTriggerSlots.set(n, {
-            titleLeft: trackLeft,
-            titleWidth,
-            shapeLeft: trackLeft - SHAPE_OVERHANG,
-            shapeWidth: titleWidth + SHAPE_OVERHANG * 2
+        const titleTrackStart = titleEntries.length
+          ? Math.min(...titleEntries.map(entry => entry.title.left)) * scaleX
+          : 0;
+        const horizontalGeometry = new Map();
+        // Legacy flattened fallback only handles non-tab children (such as
+        // the divider); keep it empty so tab content is never painted twice.
+        const horizontalTriggerSlots = new Map();
+        for (let i = 0; i < titleEntries.length; i++) {
+          const entry = titleEntries[i];
+          const previous = titleEntries[i - 1];
+          horizontalGeometry.set(entry.n, {
+            // The production wrapper supplies the fixed 24px gap. The
+            // production shape supplies its own -20px / +40px overhang.
+            leading: 0,
+            shapeOffset: -MENU_OVERHANG_PX,
+            shapeWidth: (entry.title.width + MENU_OVERHANG_PX * 2) * scaleX
           });
-          trackLeft += titleWidth + TITLE_GAP;
         }
 
         out.push({
@@ -3480,13 +3548,13 @@ function createStructuralMount(entry) {
           left: ph.left,
           width: ph.width,
           height: ph.height,
-          gap: PILL_GAP_PX,
-          overhang: PILL_OVERHANG_PX,
+          gap: MENU_GAP_PX,
+          overhang: MENU_OVERHANG_PX,
           padding: MENU_PADDING_PX,
           wrapperHeight: MENU_WRAPPER_HEIGHT_PX,
           visualScale: NAV_VISUAL_SCALE,
           trackStart: titleTrackStart,
-          triggers: titleEntries.map(entry => buildNavTrigger(entry, scaleX)).filter(Boolean)
+          triggers: titleEntries.map(entry => buildNavTrigger(entry, scaleX, horizontalGeometry.get(entry.n))).filter(Boolean)
         });
 
         // Only the independent full-width divider stays in the flattened
@@ -3652,37 +3720,23 @@ function createStructuralMount(entry) {
           };
         }
 
-        // Same production-confirmed geometry as the horizontal branch (see
-        // the PILL_GAP_PX/PILL_OVERHANG_PX comment above): production's
-        // .vdx-menu-wrapper[data-axis=vertical] rule only overrides
-        // flex-direction, not gap, so the real 24px trigger gap and 20px
-        // literal shape overhang (net 16px overlap) apply identically
-        // here. Mirrored for the rotated sidebar so both orientations
-        // stay visually consistent, then reflected so tab1 is closest to
-        // the bottom. Literal px, not scaled by axisScale — see the note
-        // on the horizontal branch for why.
+        // Rotate the authored horizontal track. The rightmost authored tab
+        // becomes the topmost vertical tab; the leftmost remains nearest
+        // the bottom. Preserve authored title gaps and pill geometry.
+        const sourceMin = navEntries.length ? Math.min(...navEntries.map(entry => entry.title.left)) : 0;
+        const sourceMax = navEntries.length ? Math.max(...navEntries.map(entry => entry.title.left + entry.title.width)) : 0;
+        const verticalTrackLength = Math.max(0, sourceMax - sourceMin) * axisScale;
+        const verticalTrackStart = ph.top + ph.height - sourceMax * axisScale;
+        const verticalGeometry = new Map();
         const verticalTriggerSlots = new Map();
-        const verticalEntries = [...navEntries].reverse();
-        const VERTICAL_TITLE_GAP = PILL_GAP_PX;
-        const VERTICAL_SHAPE_OVERHANG = PILL_OVERHANG_PX;
-        // Preserve the 7.4.3 title-track location. The new 24px visual
-        // overhang changes only the pill edges, not the old bottom anchor.
-        const VERTICAL_PLACEMENT_OVERHANG = 20;
-        const verticalTrackLength = verticalEntries.reduce((sum, entry) =>
-          sum + entry.title.width * axisScale, 0) +
-          Math.max(0, verticalEntries.length - 1) * VERTICAL_TITLE_GAP;
-        let verticalCursor = ph.top + ph.height -
-          verticalTrackLength - VERTICAL_PLACEMENT_OVERHANG;
-        const verticalTrackStart = verticalCursor;
-        for (const entry of verticalEntries) {
-          const titleLength = entry.title.width * axisScale;
-          verticalTriggerSlots.set(entry.n, {
-            titleTop: verticalCursor,
-            titleLength,
-            shapeTop: verticalCursor - VERTICAL_SHAPE_OVERHANG,
-            shapeLength: titleLength + VERTICAL_SHAPE_OVERHANG * 2
+        for (let i = 0; i < navEntries.length; i++) {
+          const entry = navEntries[i];
+          const previous = navEntries[i - 1];
+          verticalGeometry.set(entry.n, {
+            leading: 0,
+            shapeOffset: -MENU_OVERHANG_PX,
+            shapeWidth: (entry.title.width + MENU_OVERHANG_PX * 2) * axisScale
           });
-          verticalCursor += titleLength + VERTICAL_TITLE_GAP;
         }
 
         out.push({
@@ -3694,14 +3748,14 @@ function createStructuralMount(entry) {
           left: flushX,
           width: thickness,
           height: ph.height,
-          gap: PILL_GAP_PX,
-          overhang: PILL_OVERHANG_PX,
+          gap: MENU_GAP_PX,
+          overhang: MENU_OVERHANG_PX,
           padding: MENU_PADDING_PX,
           wrapperHeight: MENU_WRAPPER_HEIGHT_PX,
           visualScale: NAV_VISUAL_SCALE,
           trackStart: verticalTrackStart,
           trackLength: verticalTrackLength,
-          triggers: navEntries.map(entry => buildNavTrigger(entry, axisScale)).filter(Boolean)
+          triggers: navEntries.map(entry => buildNavTrigger(entry, axisScale, verticalGeometry.get(entry.n))).filter(Boolean)
         });
 
         // The vertical divider remains independent; pills/titles are owned
@@ -3882,6 +3936,17 @@ function createStructuralMount(entry) {
           menu.style.height = (r.height * scale) + "px";
           menu.style.zIndex = r.itemIndex;
           menu.style.overflow = "visible";
+          menu.style.display = "flex";
+          // Production resolves horizontal alignment from the per-size
+          // placeholder anchoring. Right-pinned placeholders (for example
+          // Ipsen 970x250 and 728x90) use flex-end; left-pinned full-width
+          // placeholders (Ipsen 300x250/300x600) use center. Derive this
+          // from export.json rather than applying one global alignment.
+          const rightPinnedPlaceholder = Math.abs((r.left + r.width) - entry.model.width) <= 1;
+          menu.style.justifyContent = rightPinnedPlaceholder ? "flex-end" : "center";
+          menu.style.alignItems = "flex-end";
+          menu.style.pointerEvents = "none";
+          menu.style.transformOrigin = "0 0";
 
           const wrapper = document.createElement("div");
           wrapper.className = "vdx-menu-wrapper";
@@ -3892,10 +3957,10 @@ function createStructuralMount(entry) {
           wrapper.style.display = "flex";
           wrapper.style.flexDirection = "row";
           wrapper.style.alignItems = "flex-end";
-          wrapper.style.flex = "0 0 auto";
-          wrapper.style.gap = (r.gap * scale) + "px";
-          wrapper.style.height = (r.wrapperHeight * scale) + "px";
-          wrapper.style.padding = `0 ${r.padding * scale}px`;
+          wrapper.style.flex = "0 1 auto";
+          wrapper.style.gap = "24px";
+          wrapper.style.height = "22px";
+          wrapper.style.padding = "0 18px";
           // Keep production's content-box padding, but place the wrapper
           // from the PSD-derived track anchor rather than from flex-end.
           // The latter was the 7.4.5 regression: it translated every tab
@@ -3904,10 +3969,13 @@ function createStructuralMount(entry) {
           wrapper.style.boxSizing = "content-box";
           wrapper.style.overflow = "visible";
           wrapper.style.whiteSpace = "nowrap";
-          wrapper.style.position = "absolute";
+          // Production keeps the horizontal wrapper in normal flow. This is
+          // what lets the component resolve the enclosing placeholder to the
+          // natural 251px Vonjo menu width instead of leaving an absolutely
+          // positioned max-content child detached from its parent box.
+          wrapper.style.position = r.vertical ? "absolute" : "relative";
 
           if (r.vertical) {
-            menu.style.display = "block";
             const trackLength = r.trackLength * scale;
             const outerTrackWidth = trackLength + (r.padding * scale * 2);
             const trackCenterY = ((r.trackStart - r.top) * scale) + trackLength / 2;
@@ -3917,13 +3985,18 @@ function createStructuralMount(entry) {
             wrapper.style.transform = "rotate(-90deg)";
             wrapper.style.transformOrigin = "center";
           } else {
-            menu.style.display = "block";
-            // The first title begins after the production 18px padding.
-            // Offset the wrapper by that same amount so it lands exactly at
-            // the 7.4.3 title-track start.
-            wrapper.style.left = ((r.trackStart - r.padding) * scale) + "px";
-            wrapper.style.bottom = "0";
-            wrapper.style.width = "max-content";
+            // Production's wrapper owns the complete natural menu box
+            // (padding + intrinsic triggers + gaps). Its left edge is the
+            // component frame edge; the first trigger then begins after the
+            // 18px padding. Do not re-anchor it to the Photoshop title layer.
+            wrapper.style.left = "auto";
+            wrapper.style.bottom = "auto";
+            // The per-size tabButtons placeholder is the production menu
+            // frame. Its exported width is authoritative for every creative
+            // and every tab count; never substitute campaign-specific widths.
+            const exportMenuWidth = r.width;
+            wrapper.style.width = exportMenuWidth ? "100%" : "auto";
+            menu.style.width = exportMenuWidth ? `${exportMenuWidth}px` : "max-content";
             if (r.visualScale && r.visualScale !== 1) {
               wrapper.style.transform = `scale(${r.visualScale})`;
               wrapper.style.transformOrigin = "right bottom";
@@ -3933,13 +4006,11 @@ function createStructuralMount(entry) {
           menu.appendChild(wrapper);
           structuralMount.mount(menu, r);
 
-          const overhang = r.overhang * scale;
-          const shapeHeight = (r.vertical ? r.width : r.height) * scale;
-          const triggerHeight = r.wrapperHeight * scale;
+          const triggerHeight = 22;
 
-          for (const t of r.triggers) {
+          for (const [triggerIndex, t] of r.triggers.entries()) {
             const trigger = document.createElement("div");
-            trigger.className = "vdx-menu-trigger" + (t.active ? " active" : "");
+            trigger.className = "vdx-menu-trigger" + (t.active ? " active" : " normal");
             trigger.setAttribute("role", "tab");
             trigger.dataset.index = String(t.tabNumber - 1);
             trigger.dataset.theme = "vdxconnect";
@@ -3947,18 +4018,26 @@ function createStructuralMount(entry) {
             trigger.dataset.rotation = r.vertical ? "cw270" : "cw0";
             trigger.dataset.overflow = "resize";
             trigger.style.position = "relative";
-            trigger.style.display = "block";
-            trigger.style.flex = "0 0 auto";
-            // Retain the 7.4.3 title-track widths for placement. The pill
-            // still gains its visible label padding from the absolute shape.
-            trigger.style.width = (t.authoredTitleWidth * scale) + "px";
+            trigger.style.display = "flex";
+            trigger.style.justifyContent = "center";
+            trigger.style.alignItems = "center";
+            trigger.style.whiteSpace = "nowrap";
+            // Production uses the rendered title as the trigger's intrinsic
+            // width (`flex: 1 1 auto`), not the Photoshop title-layer bounds.
+            // The latter are placement metadata and make the local menu look
+            // visibly scaled down when the font metrics are wider.
+            trigger.style.flex = "1 1 auto";
+            trigger.style.width = "auto";
             trigger.style.height = triggerHeight + "px";
             trigger.style.overflow = "visible";
             trigger.style.isolation = "isolate";
-            trigger.style.zIndex = t.active ? "3" : "2";
+            trigger.style.zIndex = t.active
+              ? "3"
+              : String(Math.max(1, r.triggers.length - triggerIndex));
+            trigger.style.filter = "drop-shadow(0 -2.5px 1.5px rgba(0, 0, 0, 0.2))";
 
             const title = document.createElement("div");
-            title.className = "vdx-menu-title";
+            title.className = "vdx-menu-title" + (t.active ? " active" : " normal");
             title.dataset.index = String(t.tabNumber - 1);
             title.dataset.theme = "vdxconnect";
             title.dataset.axis = "horizontal";
@@ -3966,21 +4045,23 @@ function createStructuralMount(entry) {
             title.dataset.overflow = "resize";
             title.style.position = "relative";
             title.style.zIndex = "1";
-            title.style.display = "flex";
-            title.style.alignItems = "center";
-            title.style.justifyContent = "center";
-            title.style.width = "100%";
-            title.style.height = triggerHeight + "px";
-            title.style.boxSizing = "border-box";
+            title.style.display = "block";
+            title.style.width = "max-content";
+            title.style.height = "auto";
+            title.style.boxSizing = "content-box";
             title.style.overflow = "visible";
             title.style.whiteSpace = "nowrap";
             title.style.fontFamily = t.text.fontStack.map(cssQuote).join(", ");
             title.style.fontWeight = t.text.fontWeight || "400";
             title.style.fontStyle = t.text.fontStyle || "normal";
-            title.style.fontSize = (t.text.sizePt * scale) + "px";
-            title.style.lineHeight = (24 * scale) + "px";
+            // Navigation typography is package-authored. Use the exported
+            // title style for every creative and every active/normal state;
+            // no campaign-specific font-size override is allowed here.
+            const navigationFontSize = t.text.sizePt;
+            title.style.fontSize = (navigationFontSize * scale) + "px";
+            title.style.lineHeight = "24px";
             title.style.letterSpacing = (t.text.tracking
-              ? ((t.text.tracking / 1000) * t.text.sizePt * scale)
+              ? ((t.text.tracking / 1000) * navigationFontSize * scale)
               : 0) + "px";
             title.style.color = t.text.color;
             title.style.textAlign = "center";
@@ -4000,66 +4081,20 @@ function createStructuralMount(entry) {
             shape.dataset.rotation = r.vertical ? "cw270" : "cw0";
             shape.dataset.overflow = "resize";
             shape.style.position = "absolute";
-            shape.style.left = (-overhang) + "px";
-            shape.style.bottom = "0";
-            shape.style.width = `calc(100% + ${overhang * 2}px)`;
-            shape.style.height = shapeHeight + "px";
+            shape.style.left = "-20px";
+            shape.style.top = "0";
+            shape.style.width = "calc(100% + 40px)";
+            shape.style.height = "200%";
             shape.style.zIndex = "0";
-            shape.style.pointerEvents = "none";
+            shape.style.pointerEvents = "auto";
+            shape.style.backgroundSize = "contain";
+            shape.style.backgroundPosition = "center";
+            shape.style.borderRadius = "22px 22px 0 0 / 100% 100% 0 0";
+            shape.style.clipPath = "inset(0 0 50%)";
 
-            // paintArtboard can run while stageWrap is still display:none.
-            // In that state all DOM measurements are zero; feeding width=48
-            // (overhang only) into the 106px production path makes its left
-            // and right shoulders cross and collapse into narrow wedges.
-            // Start from the authored title width, then replace it with the
-            // browser's intrinsic width after the stage becomes visible.
-            const fallbackTitleWidth = Math.max(1, t.authoredTitleWidth * scale);
-            const initialShapeWidth = fallbackTitleWidth + overhang * 2;
-            const clipPath = getShapeClipPath(t.shapeLayer, initialShapeWidth, shapeHeight);
-            const fillEl = clipPath ? document.createElement("div") : shape;
-            if (clipPath) {
-              fillEl.className = "vdx-menu-shape-fill";
-              fillEl.style.position = "absolute";
-              fillEl.style.inset = "0";
-              fillEl.style.clipPath = clipPath;
-              fillEl.style.overflow = "hidden";
-              shape.style.overflow = "visible";
-              shape.appendChild(fillEl);
-            } else {
-              shape.style.overflow = "hidden";
-            }
-
-            if (clipPath) {
-              const refreshClipPath = () => {
-                if (!title.isConnected) return;
-                // offsetWidth/scrollWidth are unrotated layout dimensions,
-                // so the same update works for the 160x600 rotated wrapper.
-                const renderedTitleWidth = title.offsetWidth || title.scrollWidth || fallbackTitleWidth;
-                const nextClipPath = getShapeClipPath(
-                  t.shapeLayer,
-                  renderedTitleWidth + overhang * 2,
-                  shapeHeight
-                );
-                if (nextClipPath) fillEl.style.clipPath = nextClipPath;
-              };
-              requestAnimationFrame(refreshClipPath);
-              if (document.fonts && document.fonts.ready) {
-                document.fonts.ready.then(() => requestAnimationFrame(refreshClipPath));
-              }
-            }
+            const fillEl = shape;
+            shape.style.overflow = "visible";
             fillEl.style.background = t.fill.color;
-            if (t.borderRadius) fillEl.style.borderRadius = t.borderRadius;
-            if (t.border) {
-              fillEl.style.boxSizing = "border-box";
-              fillEl.style.border = `${t.border.width * scale}px ${t.border.style} ${t.border.color}`;
-            }
-            if (t.shadow) {
-              if (clipPath) {
-                shape.style.filter = `drop-shadow(0 0 ${t.shadow.blur * scale}px ${t.shadow.color})`;
-              } else {
-                shape.style.boxShadow = `0 0 ${t.shadow.blur * scale}px ${t.shadow.color}`;
-              }
-            }
 
             // Insert the shape behind its own title while leaving the
             // complete trigger as the active/normal stacking context.
@@ -4129,7 +4164,7 @@ function createStructuralMount(entry) {
             div.style.overflow = "hidden";
           }
           fillEl.style.background = r.fill.color;
-          if (r.borderRadius) fillEl.style.borderRadius = r.borderRadius;
+          if (r.borderRadius) fillEl.style.borderRadius = scaleShapeBorderRadius(r.borderRadius, scale);
           if (r.border) {
             fillEl.style.boxSizing = "border-box";
             fillEl.style.border = `${r.border.width * scale}px ${r.border.style} ${r.border.color}`;
@@ -4307,39 +4342,7 @@ function createStructuralMount(entry) {
             if (runs && runs.length) {
             for (const run of runs) {
               if (!run.text) continue;
-              const tag = run.superscript ? "sup" : (run.subscript ? "sub" : "span");
-              const span = document.createElement(tag);
-              span.style.fontFamily = run.fontStack.map(cssQuote).join(", ");
-              span.style.fontWeight = run.fontWeight || (run.bold ? "700" : "400");
-              span.style.fontStyle = run.fontStyle || (run.italic ? "italic" : "normal");
-              span.style.color = run.color;
-              applyPsdFontCaps(span, run.fontCaps || r.text.fontCaps);
-              // Photoshop's baselineShift is absolute within the text
-              // style, while the layer bounds already include the first
-              // run's shift. Apply only the per-run delta so mixed runs do
-              // not move the entire text layer twice.
-              const baselineDelta = (run.baselineShift || 0) - (r.text.baselineShift || 0);
-              if (!run.superscript && !run.subscript && baselineDelta) {
-                span.style.position = "relative";
-                span.style.top = (-baselineDelta * scale) + "px";
-              }
-              // Photoshop's baseline-shift superscript/subscript isn't
-              // captured as a shrunk "size" value in the descriptor — it's
-              // applied at render time. Approximate with the standard
-              // typographic convention (~58% size) rather than the run's
-              // reported (unchanged) size, since using the reported size
-              // verbatim renders superscript at full body-text size.
-              if (run.superscript || run.subscript) {
-                span.style.fontSize = (run.sizePt * 0.58 * scale) + "px";
-                span.style.verticalAlign = run.superscript ? "super" : "sub";
-                span.style.lineHeight = "0"; // prevents inflating the parent line box
-              } else if (run.sizePt !== r.text.sizePt) {
-                span.style.fontSize = (run.sizePt * scale) + "px";
-              }
-              const decorations = [];
-              if (run.underline) decorations.push("underline");
-              if (run.strikethrough) decorations.push("line-through");
-              if (decorations.length) span.style.textDecoration = decorations.join(" ");
+              const span = createPsdTextRunElement(run, r.text, scale);
               span.textContent = run.text;
               div.appendChild(span);
             }

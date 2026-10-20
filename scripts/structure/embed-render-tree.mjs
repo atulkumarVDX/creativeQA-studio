@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-const path = new URL(process.argv[2] || '../../preview/turbo-preview-7.8.0.html', import.meta.url);
+const path = new URL(process.argv[2] || '../../preview/archive/turbo-preview-7.8.0.html', import.meta.url);
 const html = readFileSync(path, 'utf8');
 const start = html.indexOf('  // BEGIN SHARED STRUCTURE RENDERER');
 const end = html.indexOf('  // END SHARED STRUCTURE RENDERER', start);

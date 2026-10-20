@@ -1,7 +1,9 @@
 # Asset handling contract — Turbo Preview 7.8.1
 
+> **Scope:** This is a historical ordinary-layer asset-resolution contract for the embedded main-unit preview. Current CTV/OTT video rendering uses its own ZIP/`export.json` asset contract, documented in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md); do not apply the ordinary-layer fallback table below as a guarantee for CTV/OTT footage or QR assets.
+
 **Status:** Current-preview contract with evidence boundaries  
-**Applies to:** `preview/turbo-preview-7.8.1.html`  
+**Applies to:** `preview/archive/turbo-preview-7.8.1.html`
 **Last reviewed:** 2026-09-15
 
 ## 1. Purpose
@@ -174,7 +176,7 @@ assumptions for future implementation.
 
 ## 10. Implementation and source references
 
-- `preview/turbo-preview-7.8.1.html`
+- `preview/archive/turbo-preview-7.8.1.html`
   - `getCustomAssetName`: custom and legacy linked filename selection.
   - `parseExport`: layer-ID-to-custom-filename map.
   - `assetMimeType`: package Blob MIME assignment.

@@ -1,11 +1,17 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-**Doc version:** 1.7.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline)
-**Last updated:** 2026-09-22
+> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+
+> **Current release note:** QA Studio now points to 7.11.16 for the embedded preview and companion CTV/OTT renderer. The 7.9.x tables below are historical reconstruction records, not today's release pointer. For active CTV/OTT design and technical rules, maintain [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md) and the [build inventory](18-Preview-Build-Inventory.md) together.
+
+> **7.11.0-feedback note:** the user explicitly selected this named feature-build label and confirmed 7.10.3 as its source. QA Studio's host-level feedback bundle contract is documented in `19-Feedback-Debug-Bundle.md`; the embedded renderer is otherwise unchanged from that confirmed source.
+
+**Doc version:** 1.7.8
+**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-14
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe the current release.
+**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe the current release.
 
 ---
 
@@ -34,10 +40,17 @@ When one release bundles more than one change type, use the highest required inc
 
 - `index.html` also references `preview.js?v=<tag>` as a cache-buster query param — keep this equal to the current semver too when it's next touched, so the two can't silently drift from each other again.
 
-### 2.2 Current versions (as of this baseline)
+### 2.2 QA Studio current-preview pointer
+
+`preview/current-preview.ts` is the only runtime release pointer. Promoting a build requires changing only that file's static import, `version`, and `path` fields together, after the user confirms the latest source. The imported HTML must remain directly under `preview/`; all older HTML builds belong under `preview/archive/`. Never replace the pointer with a wildcard or eager glob. Update `18-Preview-Build-Inventory.md` whenever a build changes location or status.
+
+### 2.3 Current versions (as of this baseline)
 
 | File | Line | Version | Notes |
 |---|---|---|---|
+| `preview/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Current patch: production-parity branch-level vertical reflow after responsive full-width video. Applies one rounded video-height delta to qualifying direct sibling branches while preserving descendant spacing and unrelated structures (D068/TR-011). |
+| `preview/archive/turbo-preview-7.9.10.html` | Turbo Preview Artifact | **7.9.10** | Previous patch: global 375×622 correction for responsive ISI, anchored video/circular controls, selected-artboard state controls, and production 3.13.8-0 text-candidate parity. Its preserve-all-y vertical clause is superseded by D068. |
+| `preview/archive/turbo-preview-7.9.9.html` | Turbo Preview Artifact | **7.9.9** | Current patch: ordinary shape collection uses the existing authored-corner-radius helper. Live Tryngolza production confirms a 14px rounded rectangle where the preview incorrectly painted a circle. Text rendering is identical to restored 7.9.8. |
 | `index.html` + `preview.js` | Standalone | **1.0.0** | First formally tracked version (baseline) |
 | `turbo_preview_artifact_5.html` | Turbo Preview Artifact | **superseded / deprecated** | Do not assign a fabricated precise predecessor number — see D001 |
 | `turbo_preview_artifact_7_7_0.html` | Turbo Preview Artifact | **7.7.0** | Historical baseline. Reconciles always-on text disclosure and registration marks, and formally releases the mobile-instream Fit/1× capability (D040–D044; D045 withheld pending evidence). |
@@ -52,9 +65,9 @@ When one release bundles more than one change type, use the highest required inc
 | `turbo_preview_artifact_7_5_1.html` | Turbo Preview Artifact | **7.5.1 baseline** | Preserved text-parity baseline (D031). |
 | `turbo_preview_artifact_7_5_0_8.html` | Turbo Preview Artifact | **7.5.0 baseline** | Preserved pre-fix baseline with a non-canonical filename; do not treat it as the current release. |
 
-### 2.3 This doc set's own version
+### 2.4 This doc set's own version
 
-The five docs are versioned together as a bundle, independent of the code's version: currently **1.7.0**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
+The five docs are versioned together as a bundle, independent of the code's version: currently **1.7.7**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
 
 ## 3. Change-type → doc-update table
 
@@ -73,7 +86,7 @@ Run this **every time** before merging a change to `preview.js` / any `index.htm
 
 ## 4. Drift-check procedure (run before starting any new change)
 
-1. **Compare build tags.** For each file you're about to touch, `grep PREVIEW_BUILD` (and `preview.js?v=` in `index.html`) and compare against this doc set's §2.2 table and each doc's `Reflects build:` header. If they don't match, something changed without a doc update since the header was last written — stop and reconcile before proceeding (update the Decisions Log with what you find, per §3's "docs-only correction" row).
+1. **Compare build tags.** For each file you're about to touch, `grep PREVIEW_BUILD` (and `preview.js?v=` in `index.html`) and compare against this doc set's §2.3 table and each doc's `Reflects build:` header. If they don't match, something changed without a doc update since the header was last written — stop and reconcile before proceeding (update the Decisions Log with what you find, per §3's "docs-only correction" row).
 2. **Spot-check structural drift.** Grep for the feature markers in `02-Technical-Spec.md` §5/§6 (e.g. `rgbChannels`, `isVerticalNav`, `cp-isi`, `scaleTextStyle`, `ResizeObserver`, `scanPackageKerningRisks`) against the actual file. If a marker's presence/absence doesn't match the matrix, the Tech Spec is stale — fix the matrix as part of your change, not as a separate cleanup later.
 3. **Only then** make the code change.
 4. **Before merging**, apply the §3 table for what you just did.
@@ -84,8 +97,8 @@ Run this **every time** before merging a change to `preview.js` / any `index.htm
 - No test coverage found in any of the three files (Tech Spec §8, item 4) — drift-checks in §4 above are manual because there's nothing automated to run instead.
 
 
-## Screenshot source maintenance addendum — 7.8.4
+## Historical screenshot source maintenance addendum — 7.8.4
 
-Current capture implementation: `preview/turbo-preview-7.8.4.html`, internal tag 7.8.4, embedded by `app/page.tsx`. The user confirmed `preview/turbo-preview-7.8.3.html` as the latest source for this patch. The original imported `preview/turbo-preview-7_7_1_3.html` remains preserved. The historical table above is not evidence of a reconstructed intervening release history.
+The 7.8.4 capture implementation was `preview/archive/turbo-preview-7.8.4.html`, embedded by `app/page.tsx` at that time. The original imported `preview/archive/turbo-preview-7_7_1_3.html` remains preserved. The historical table above is not evidence of a reconstructed intervening release history. The current source is listed in the release table above.
 
 Maintain `08-Screenshot-Capture-Tool.md` for requirements, UI flow, output schema, implementation boundaries, and capture limits; maintain `09-Screenshot-Capture-Analysis.md` for source evidence, technology assessment, and validation limitations; maintain `14-CSM-Review-PDF.md` for review-PDF coverage and CSM workflow. Capture changes must also update the corresponding PRD/spec/UI addenda and Decisions Log. Before switching the app import, verify the source tag, bridge token, visible engine label, and exported report version together.

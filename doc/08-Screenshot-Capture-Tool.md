@@ -4,7 +4,7 @@
 
 The screenshot tool turns a Turbo export package into individually reviewable PNGs for every available ad size, tab, and gallery slide, then delivers those PNGs in one ZIP. It can also create a landscape CSM review PDF from the same evidence. It removes the repetitive work of selecting a state, capturing it, naming the image, sorting it, and assembling basic review pages.
 
-The implemented release is `preview/turbo-preview-7.8.4.html`, also embedded by QA Studio through `app/page.tsx`. The user confirmed `preview/turbo-preview-7.8.3.html` as the latest source for this patch. The earlier supplied `turbo-preview-7_7_1_3.html` remains preserved unchanged in `preview/`. This document describes current screenshot functionality; historical specifications remain historical baselines.
+The implemented release is preserved as `preview/archive/turbo-preview-7.8.4.html`; QA Studio currently embeds the separately confirmed release selected by `preview/current-preview.ts`. The user confirmed `preview/archive/turbo-preview-7.8.3.html` as the latest source for this historical patch. The earlier supplied `turbo-preview-7_7_1_3.html` remains preserved unchanged in `preview/archive/`. This document describes screenshot functionality; historical specifications remain historical baselines.
 
 Two deliverable types must be distinguished. A **preview capture** records the reconstructed Turbo creative rendered by this HTML tool. A **production capture** would record the actual served ad in a controlled browser. The current release implements preview capture. It does not establish that the Photoshop document, reconstructed preview, and served ad have identical pixels.
 

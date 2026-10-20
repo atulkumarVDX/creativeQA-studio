@@ -1,11 +1,13 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-**Doc version:** 1.7.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline) · `turbo_preview_artifact_5.html` @ **superseded** · `index.html` + `preview.js` @ **v1.0.0** (Standalone line)
-**Last updated:** 2026-09-22
+> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+
+**Doc version:** 1.7.8
+**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-14
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -31,7 +33,7 @@ Creative QA / production coordinators reviewing an export package across:
 | **Form factor** | `index.html` + `preview.js`, opened via `file://` next to the unzipped export folder | Single self-contained `.html` file (works as a Claude artifact or any static host) |
 | **Input** | Pick `export.json`; PNGs/fonts/video must already sit alongside it on disk | Drop/pick a `.zip` of the whole package; unzipped and resolved to blob URLs entirely in-browser |
 | **Best for** | Local, filesystem-based QC workflows | Sharing a preview without asking someone to unzip anything locally; artifact/chat-embedded workflows |
-| **Current version** | v1.0.0 | v7.7.0 (current source: `turbo_preview_artifact_7_7_0.html`) |
+| **Current version** | v1.0.0 | v7.9.11 (current source: `preview/turbo-preview-7.9.11.html`) |
 
 Both exist because they serve different delivery contexts, not because one is meant to replace the other — but see `02-Technical-Spec.md` §7: they currently share **duplicated**, not shared, engine code, and have drifted in capability (§6 below).
 
@@ -46,6 +48,7 @@ Both exist because they serve different delivery contexts, not because one is me
 7. **Nothing is uploaded anywhere** — the Turbo Preview Artifact explicitly advertises this in its own drop-zone copy ("Processed locally in your browser. Nothing is uploaded," as of v7.6.0's drop-zone copy revision); this is a stated privacy/trust requirement, not an implementation detail, and must be preserved verbatim in intent through any future drop-zone redesign.
 8. **Authored blank paragraphs are preserved** — an explicit empty paragraph in PSD copy must retain one line of vertical space instead of collapsing in the HTML preview (D036).
 9. **Known text-fidelity limitations are disclosed, not hidden** (Artifact line) — Optical-kerning risks receive a dotted amber in-canvas marker and package-wide panel entry; genuine measurement failures receive a dashed red in-canvas marker and a panel entry for the rendered state. This baseline disclosure is always on. `?textQA=1` additionally runs the eager audit across every valid artboard × tab × slide and enables catalog-oriented diagnostics; it is not required to discover ordinary findings. See `02-Technical-Spec.md` §4.5 (D037, D042).
+10. **Mobile-expandable responsive flow is structural, not campaign-specific** (Artifact line) — in the 375×622 view, qualifying full-width video is resized proportionally and its rounded height delta is applied once to each direct sibling branch. Descendants preserve local spacing, while contained video and unrelated structures remain unchanged (D067/D068).
 
 ## 6. Feature parity gaps (current state, not aspirational)
 
@@ -55,6 +58,7 @@ The two products — and the several generations within the Artifact line — ar
 - Only the Artifact line (from v7.4.1 onward) supports **rotated/vertical sidebar nav** (needed for narrow-tall sizes like 160×600), **float-channel color descriptors** (needed to avoid invisible text — a real, previously-shipped bug, D005), the recovered production-compatible PSD text geometry path (D031), and production-derived SVG geometry for circular gallery progress and mute controls (D034).
 - **Artifact line only:** package-wide optical-kerning scanning plus visible text-synchronization-failure disclosure is surfaced in a dedicated review panel (D037/D042). Baseline markers and findings are always available; the full every-state audit remains an opt-in developer/QA mode. Not present in the Standalone line or `artifact_5`.
 - **Newly formalized in v7.7.0, Artifact line only:** focused `mobile-instream` Preview offers Fit (production-matched 0.5× presentation) and 1× controls. This is a scoped presentation exception; Compare mode remains true-size (D043).
+- **Artifact line only in v7.9.11:** focused mobile-expandable Preview models the 375×622 production host, responsive ISI, anchored controls and branch-level vertical reflow after qualifying full-width video (D067/D068).
 - **v7.6.0, Artifact line only:** the control panel and Compare-mode artboard layout were redesigned (D038) — chrome-only, no effect on rendering fidelity or the parity gaps above.
 - The Standalone tool has not received most fixes made in the Artifact line since it forked (D012, D014, D015, D022, and others), nor the v7.6.0 QC tooling.
 
@@ -70,7 +74,7 @@ The two products — and the several generations within the Artifact line — ar
 
 ## 8. Versioning
 
-See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line and the Artifact line are versioned **independently**; each ships its own `PREVIEW_BUILD` tag which must equal its semver. v7.7.0 is MINOR because the release formally includes the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
+See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line and the Artifact line are versioned **independently**; each ships its own `PREVIEW_BUILD` tag which must equal its semver. The current Artifact release is the 7.9.11 patch. v7.7.0 remains the historical MINOR release that formally introduced the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
 
 ## 9. Release invariants
 
@@ -91,3 +95,6 @@ The release adds tolerant/complete-asset policies, cancellation, affected-state 
 The screenshot flow must optionally create a 16:9 landscape review PDF in the same run as the structured PNG ZIP. Its section names, sequence, gray title bar, direct creative placement, and page density follow the supplied `USA-938-80400.pdf` reference: video, desktop in-frame, desktop expandable teaser and engaged endpoints, desktop instream, mobile instream, mobile in-frame, mobile expandable teaser and engaged endpoints, OTT, and full ISI. Sections are included only when the package provides corresponding evidence.
 
 Device, browser, player, and OTT frames are review-document approximations around captured package evidence. They must not be described as captured production chrome. The VPM hover transition remains unavailable because the preview has no transition state; teaser and engaged endpoints are presented separately. The complete requirement and capability matrix is in [14 — CSM Review PDF](14-CSM-Review-PDF.md).
+# Feedback/debug bundle addendum — 7.11.0-feedback
+
+QA users can open **Report feedback** from the app menu and create a local, reviewable debug bundle. A valid CCRV or Showcase URL is mandatory only for a visual mismatch, where a production comparison target is essential; it is optional but validated when supplied for other feedback types. A preselected category keeps submission quick; Description and reproduction steps are optional, and optional Actual/Expected fields appear only for visual mismatches. These text areas accept pasted screenshot evidence. The flow also captures active-preview evidence, current state metadata, the optional source package, and supporting attachments. No evidence is uploaded by this release. The complete contract is defined in `19-Feedback-Debug-Bundle.md`.

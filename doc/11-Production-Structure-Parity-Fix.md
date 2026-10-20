@@ -109,8 +109,8 @@ specific next compiled fixture needed. It can establish consumed source roles
 and object CSS across more components even if the production compiler is not
 available. Universal parity remains unverified.
 
-`preview/turbo-preview-7.8.0.html` remains the base, unchanged during this fix.
-`preview/turbo-preview-7.8.1.html` embeds the separately maintained
+`preview/archive/turbo-preview-7.8.0.html` remains the base, unchanged during this fix.
+`preview/archive/turbo-preview-7.8.1.html` embeds the separately maintained
 `scripts/structure/render-tree-fix.js`.
 
 This implements shared conversion changes for uploaded exports, with no
@@ -148,7 +148,7 @@ collection. Frame-enabled flags remain respected. Validation rules are unchanged
 To re-embed only this fix:
 
 ```sh
-node scripts/structure/embed-render-tree.mjs ../../preview/turbo-preview-7.8.1.html ./render-tree-fix.js
+node scripts/structure/embed-render-tree.mjs ../../preview/archive/turbo-preview-7.8.1.html ./render-tree-fix.js
 node --test tests/structure/*.test.mjs tests/screenshot/capture.test.mjs
 node scripts/structure/smoke-render-fix.mjs /path/to/export.json
 ```

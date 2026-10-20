@@ -51,7 +51,7 @@ test('large scan yields progress and cancellation prevents final result', async 
   assert.equal(calls, 1);
 });
 test('offline HTML embeds the current registry and engine exactly', () => {
-  const html = readFileSync('preview/turbo-preview-7.8.0.html', 'utf8');
+  const html = readFileSync('preview/archive/turbo-preview-7.8.0.html', 'utf8');
   const embedded = html.match(/const STRUCTURE_REGISTRY = (.*);/)[1];
   assert.deepEqual(JSON.parse(embedded), registry);
   assert.deepEqual(JSON.parse(html.match(/const STRUCTURE_CONTRACTS = (.*);/)[1]), contracts);

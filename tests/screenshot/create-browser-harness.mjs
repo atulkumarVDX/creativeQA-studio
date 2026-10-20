@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 // This test-only build reopens the produced ZIP, verifies its CRCs and PNG
 // dimensions, and displays machine-readable diagnostics in the DOM.
 // No instrumentation is added to the production preview.
-let html = readFileSync(new URL('../../preview/turbo-preview-7.8.4.html', import.meta.url), 'utf8');
+let html = readFileSync(new URL('../../preview/archive/turbo-preview-7.8.19.html', import.meta.url), 'utf8');
 const marker = '      captureDownload = { url: URL.createObjectURL(zipBlob)';
 if (!html.includes(marker)) throw new Error('Capture download marker changed; update the harness');
 html = html.replace('    const zip = new JSZip();', '    const zip = new JSZip(); let testStageProbes = [];');

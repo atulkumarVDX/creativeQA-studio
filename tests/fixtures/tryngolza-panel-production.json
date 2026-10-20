@@ -1,0 +1,29 @@
+{
+  "source": "https://showcase.vdx.tv/cc/n/0/#FgjxqA/10",
+  "observedAt": "2026-10-13",
+  "state": { "format": "Desktop Inframe", "artboard": "300x600", "tab": "Why Lower?", "slide": 2 },
+  "panel": {
+    "layerID": 243083,
+    "left": 43,
+    "topInGallery": 70,
+    "width": 217,
+    "height": 218,
+    "cornerRadii": [14, 14, 14, 14],
+    "productionBorderRadius": "14px"
+  },
+  "text": {
+    "layerID": 243085,
+    "left": 57,
+    "topInGallery": 162,
+    "exportBoundsWidth": 192,
+    "exportBoundsHeight": 109,
+    "productionSyncedWidth": 194.625,
+    "productionHostHeight": 109,
+    "fontSize": 13,
+    "lineHeightRatio": 1.2,
+    "paragraphTopOffset": -0.25,
+    "paragraphLeftOffset": 0,
+    "lineCount": 7
+  },
+  "limitation": "Production DOM and screenshot observed. Local browser pixel comparison was blocked by file URL policy."
+}

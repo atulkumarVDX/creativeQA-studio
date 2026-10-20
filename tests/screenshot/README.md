@@ -1,6 +1,6 @@
 # Screenshot regression checks
 
-Production source: `preview/turbo-preview-7.8.4.html`. Fixtures contain generated artwork, not client assets. Node tests use the repository's installed Babel parser; no new runtime capture dependency is required. Use the repository's supported Node version (22.13 or newer).
+Production source: `preview/archive/turbo-preview-7.8.19.html`. Fixtures contain generated artwork, not client assets. Node tests use the repository's installed Babel parser; no new runtime capture dependency is required. Use the repository's supported Node version (22.13 or newer).
 
 ```sh
 node --test tests/screenshot/capture.test.mjs

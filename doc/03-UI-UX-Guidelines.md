@@ -1,11 +1,13 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-**Doc version:** 1.7.0
-**Reflects build:** `turbo_preview_artifact_7_7_0.html` @ **v7.7.0** (historical baseline). `index.html`/`preview.js` (Standalone, v1.0.0) has a much plainer, unthemed UI — differences called out inline where relevant.
-**Last updated:** 2026-09-22
+> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+
+**Doc version:** 1.7.8
+**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-14
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.8.4.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
 
 ---
 
@@ -76,6 +78,7 @@ The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a su
 - **Content nav** (`.content-nav`): tab buttons (`#tabButtons`) and slide buttons (`#slideButtons`) remain segmented-button rows, now grouped together with a **next-tab arrow control** (`#nextTabBtn`) that cycles to the following tab without opening any menu — new in v7.6.0, hidden automatically when fewer than two tabs exist.
 - **Kerning/text-sync review** (`#kerningRow` / `#kerningDetailsBtn` / `#kerningPanel`): an always-available baseline disclosure, shown whenever the package has at least one Optical-kerning risk or the rendered state has a genuine measurement failure. The visible "Review text (N)" count includes both categories and opens a labeled region listing them. `?textQA=1` adds the separately labeled full every-state audit; it is not required for the baseline control, panel, or in-canvas markers (D042).
 - **Mobile-instream scale** (v7.7.0): focused Preview mode adds a Fit/1× segmented pair inside the `mobile-instream` card label. Fit is the default and shows the full-resolution 970×546 source through a production-matched 485×273 presentation viewport; 1× removes that presentation scale. The control never appears in Compare mode (D043).
+- **Mobile-expandable scale** (v7.9.10+): focused `428x622` Preview adds a Fit/1× segmented pair inside the card label. Fit is the default and presents the authored stage through the production 375×622 responsive host; 1× shows the original 428px source view. This control changes presentation geometry only—the selected tab/slide remains the same. In Fit, qualifying full-width-video sibling branches follow D068's single branch-level vertical delta.
 - **Segmented buttons** (view mode, tab/slide/theme, all-sizes): flat rectangular buttons, `--surface-raised` fill + shadow when active (previously flat `--accent` fill) — reused identically across every control row; keep this one component rather than inventing new button styles per control.
 
 ## 6. States that must always be handled explicitly
@@ -114,6 +117,7 @@ An explicit blank PSD paragraph must remain visible as exactly one authored line
 - At ≤900px, the content-nav (tab/slide controls) wraps to its own full-width row below the size/view-mode controls rather than staying inline.
 - Per-card `overflow-x: auto` (D020) is what actually prevents document-level horizontal bleed at these breakpoints — this is load-bearing, not cosmetic; don't remove it when touching mobile styles.
 - The mobile-instream Fit viewport is content-specific, not CSS-breakpoint-driven: it remains 485×273 at every browser width and relies on the card's existing per-card horizontal overflow behavior when necessary. The 1× option similarly remains explicit rather than changing automatically at a breakpoint.
+- In focused `428x622` mobile-expandable Preview, the card exposes a clipped 375×622 host: ISI fills the host and scrolls internally, left/center/right controls retain their intended anchors, contained video and its centered circular control share a center line, and tab/slide controls list only states available on the selected artboard. Compare mode may aggregate states across its included artboards.
 
 ## 9. What NOT to change without checking the Decisions Log first
 
@@ -141,3 +145,6 @@ The result shows explicit captured/incomplete/failed/not-captured counts, an exp
 The capture dialog includes one checked option, **Include CSM review PDF**, with a concise description of the reference-style sections. The summary panel changes to “PNG ZIP + landscape review PDF” when selected. The primary action reads **Create package**, reflecting both deliverables. The option, summary panel, hint, and buttons use the preview's existing surface, border, accent, typography, and light/dark theme tokens.
 
 After a successful run, **Download ZIP** remains the primary retained artifact and **Review PDF** provides direct access to the PDF. A PDF-only generation error is stated without hiding the valid PNG ZIP. Every PDF page uses a white background and compact gray section header, independent of the preview theme. The review begins with content rather than a generated cover so its flow matches the supplied CSM reference.
+# Feedback/debug bundle addendum — 7.11.0-feedback
+
+**Report feedback** belongs in the existing app menu beside **Generate report** and **Screenshots**. Its modal uses explicit required labels, inline production-URL classification, separate actual/expected fields, a visible evidence review, and one primary **Create feedback bundle** action. The action stays disabled until a valid CCRV or Showcase reference is present. The privacy message must state that the ZIP is prepared locally and nothing is uploaded.
