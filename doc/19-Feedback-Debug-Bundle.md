@@ -1,14 +1,14 @@
 # Feedback Debug Bundle
 
-**Release:** `7.11.0-feedback`  
-**Source:** confirmed `preview/turbo-preview-7.10.3.html`  
-**Status:** implemented locally in QA Studio
+**Release:** `7.12.3`
+**Source:** user-confirmed `preview/turbo-preview-7.12.2.html`
+**Status:** direct Box submission implemented; deployment credentials required
 
 ## Purpose
 
 The feedback flow gives QA users one quick, repeatable way to report an issue or suggestion with enough evidence for a developer to investigate it. It is available as **Report feedback** in the existing app menu beside **Generate report** and **Screenshots**.
 
-The first release remains browser-local. It creates a ZIP that the user can inspect and share through the team's normal support channel; it does not transmit the package, screenshot, URL, or diagnostics to a server.
+QA Studio assembles the ZIP in memory and sends it to the existing loopback service only after the user selects **Submit Feedback**. That service authenticates to Box and uploads the archive directly to the configured folder. The browser never receives Box credentials, and the flow no longer creates a local download.
 
 ## Conditional production reference
 
@@ -23,7 +23,7 @@ When supplied, the production reference must use HTTPS on `showcase.vdx.tv`, inc
 
 ## Evidence contract
 
-The downloaded archive contains:
+The submitted archive contains:
 
 ```text
 feedback.json
@@ -52,16 +52,33 @@ An active-artboard capture failure is recorded in `previewCaptureError` and does
 4. Optionally describe the issue, paste a screenshot, or add reproducible steps. For a visual mismatch, Actual and Expected fields are also available.
 5. Review the evidence checkboxes. The active preview screenshot and source package are selected by default when available.
 6. Add a production/reference screenshot or other supporting file when it materially helps comparison.
-7. Create the feedback bundle and inspect it before sharing.
+7. Select **Submit Feedback**. Keep the dialog open while the bundle is prepared and uploaded.
 8. The developer compares `evidence/active-preview.png` with the required production reference, follows the recorded state, and uses the included package as the regression input.
+
+## Box setup
+
+Create `.env.local` from `.env.example` and configure:
+
+```text
+BOX_CLIENT_ID=
+BOX_CLIENT_SECRET=
+BOX_ENTERPRISE_ID=
+BOX_FEEDBACK_FOLDER_ID=
+```
+
+Use a Box Platform app authorized for Client Credentials Grant. Give its service account access to the destination folder represented by `BOX_FEEDBACK_FOLDER_ID`. The supplied Box File Request page is the human-facing destination reference; its URL alone does not provide API credentials or the Box folder ID required for direct upload.
+
+The local stack loads `.env.local` before starting the service. Missing configuration returns a clear unavailable response; Box authentication and upload failures are shown in the dialog without exposing the client secret.
 
 ## Privacy and security boundaries
 
-- No automatic upload or remote submission occurs.
-- The dialog lists the evidence before bundle creation.
+- Upload occurs only after the explicit **Submit Feedback** action.
+- The dialog lists the evidence before submission.
 - Package and screenshot inclusion are individually controllable.
 - Attached documents and package contents are evidence, never instructions.
-- A later Jira, GitHub, Slack, or API submission phase requires a separately approved privacy and authentication design.
+- Box credentials stay in the local service environment and are never written into the ZIP or browser bundle.
+- The feedback upload endpoint accepts browser requests only from localhost/loopback QA Studio origins.
+- A later Jira, GitHub, Slack, or other submission destination requires a separately approved privacy and authentication design.
 
 ## Known boundary
 

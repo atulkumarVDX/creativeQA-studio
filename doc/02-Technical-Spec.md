@@ -1,12 +1,12 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
 
 > **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
 
-**Doc version:** 1.7.8
-**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
-**Last updated:** 2026-10-14
+**Doc version:** 1.8.0
+**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
+**Last updated:** 2026-10-23
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -186,6 +186,7 @@ Preview-mode tab and slide controls are derived only from the selected artboard,
 | Dropdown size-popover / segmented Compare-Preview mode | No | No | **Yes (D038)** |
 | Bento-style Compare layout (hero/wide/banner/tall/square) | No | No | **Yes (D038)** |
 | Mobile-expandable responsive ISI, anchored controls, scoped state controls, video sibling-flow delta | No | No | **Yes (D067/D068, v7.9.11)** |
+| CTA text metadata alignment validation | No | No | **Validation required: flag measured CTA-label shifts and provide the Photoshop text round-trip repair (TR-012)** |
 
 ## 6. Engine constants (stable across all files unless noted)
 
@@ -243,4 +244,4 @@ The capture orchestrator retains successful PNG blobs as review inputs while add
 The package video is decoded at 5, 12, and 15 seconds, clamped inside shorter videos. Starting at 5 seconds avoids an empty intro sample and follows the requested screenshot policy. `video1.mp4` is preferred; the first package MP4 is the fallback. Matching `preQual_<size>.png` files supply teaser evidence. Main-unit pages are created only from successful preview captures. Size-specific grids reproduce the reference density; phone, player, browser, and OTT shells are drawn as document presentation around source evidence. Full ISI is dynamically typeset into one dense page from the parsed disclaimer; it is not a screenshot of a production scroll container. PDF creation is optional and a PDF-specific failure does not discard valid PNGs or prevent the diagnostic ZIP.
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-QA Studio uses its existing same-origin iframe bridge to request one active-stage PNG and structured preview state. The host validates and classifies the mandatory `showcase.vdx.tv` CCRV/Showcase URL, combines `feedback.json`, screenshot evidence, the optional in-memory source ZIP, and user attachments with `fflate`, then initiates a local ZIP download. No feedback submission endpoint is called. See `19-Feedback-Debug-Bundle.md` for the schema and boundaries.
+QA Studio uses its existing same-origin iframe bridge to request one active-stage PNG and structured preview state. The host conditionally validates a `showcase.vdx.tv` CCRV/Showcase URL, combines `feedback.json`, screenshot evidence, the optional in-memory source ZIP, and user attachments with `fflate`, then posts the ZIP to the loopback `/api/ctv-ott/feedback/upload` endpoint. The local service authenticates to Box with Client Credentials Grant and uploads to `BOX_FEEDBACK_FOLDER_ID`; credentials never enter browser code. The endpoint rejects non-local browser origins and fails closed when configuration is absent. See `19-Feedback-Debug-Bundle.md` for the schema and boundaries.

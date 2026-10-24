@@ -264,7 +264,14 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
     if (Number.isFinite(layer.layerID)) byId.set(layer.layerID as number, layer);
   });
 
-  const artboardLayers = layers.filter(layer => layer.artboard && ARTBOARD_NAME.test(normalized(layer.name)));
+  const artboardSequence = new Map<number, number>(
+    (Array.isArray(data.document?.artboards) ? data.document.artboards : [])
+      .map((id: unknown, index: number) => [Number(id), index]),
+  );
+  const artboardLayers = layers
+    .filter(layer => layer.artboard && ARTBOARD_NAME.test(normalized(layer.name)))
+    .sort((a, b) => (artboardSequence.get(Number(a.layerID)) ?? Number.MAX_SAFE_INTEGER)
+      - (artboardSequence.get(Number(b.layerID)) ?? Number.MAX_SAFE_INTEGER));
   const master = layers.find(layer => normalized(layer.name).toLowerCase() === "master" && layer.artboard);
 
   function pathFor(layer: Layer) {

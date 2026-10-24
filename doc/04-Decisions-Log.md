@@ -1,10 +1,10 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
 
-**Doc version:** 1.7.8
-**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
-**Last updated:** 2026-10-14
+**Doc version:** 1.8.0
+**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
+**Last updated:** 2026-10-23
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
@@ -554,3 +554,58 @@ See `02-Technical-Spec.md` for the full feature/fix matrix per file.
 **Decision:** add **Report feedback** beside report and screenshot actions. Require a valid `showcase.vdx.tv` CCRV/Showcase reference only for Visual mismatch; keep it optional but validated when supplied for every other type. Preselect a feedback type from categories covering the app's common failure areas; keep Description and reproduction steps optional; show optional Actual and Expected fields only for Visual mismatch. Description, Actual, and Expected accept clipboard images directly, show removable in-field previews, and store them in separate context folders. Default to including the active-stage screenshot and source ZIP when available; allow additional attachments; disclose the evidence before export. Generate a local ZIP only and preserve the existing “nothing is uploaded” privacy contract. The user explicitly selected the release label `7.11.0-feedback`; this is a named feature build based on confirmed source 7.10.3.
 
 **Validation:** static regression coverage checks menu placement, URL gating, local bundle contents, privacy copy, build identity, and the current-preview pointer. TypeScript, automated tests, lint, production build, and browser interaction are the completion gates.
+
+## D071 — [Navigation] Keep reconstructed canvas tabs interactive (7.12.1)
+
+**Evidence:** the preview already reconstructs production-style navigation inside each artboard as `.vdx-menu-trigger`, `.vdx-menu-title` and `.vdx-menu-shape` elements, with `data-index` values and existing `activeTab`/`activeSlide` state controls. The first implementation delegated clicks from `stageWrap`, but the reconstructed menu itself was assigned `pointer-events: none`; only a child shape opted back into hit testing, which made canvas clicks unreliable through the structural wrappers.
+
+**Decision:** promote the reconstructed menu and tab triggers into the pointer hit-testing tree. Canvas clicks and Enter/Space activation resolve the tab index to the existing global tab name, reset the active slide, synchronize the external controls and rerender the selected artboards. Layout-audit mode retains priority over normal navigation clicks. The behavior is package-independent and does not key off campaign names, layer IDs or copy.
+
+**Validation:** regression tests verify the 7.12.1 pointer, build identity and delegated canvas interaction contract. The full project test suite and TypeScript check pass; production bundling remains dependent on the repository's supported Node/Vite runtime.
+
+**Versioning:** new patch build 7.12.1 from 7.12.0. Earlier builds remain preserved and the app selects the explicit 7.12.1 pointer.
+
+## D072 — [Navigation] Show pointer affordance on interactive canvas tabs (7.12.2)
+
+Evidence: 7.12.1 canvas tabs switched correctly, but reconstructed tab triggers had no cursor styling, so the interaction was not visually discoverable.
+
+Decision: set `cursor: pointer` on the delegated tab trigger and rendered title elements. The complete tab target communicates clickability while preserving the existing delegated state transition.
+
+Validation: focused regression coverage verifies the pointer styles, 7.12.2 pointer/build identity, and existing canvas-tab interaction contract.
+
+Versioning: new patch build 7.12.2 from 7.12.1; earlier builds remain preserved.
+
+## D073 — [Feedback] Submit debug bundles directly to Box (7.12.3)
+
+Evidence: downloading a feedback ZIP still required a manual handoff and did not meet the requested one-step reporting flow. A Box File Request page identifies the intended destination, while direct API submission requires separate application credentials and the destination folder ID.
+
+Decision: rename the primary action to **Submit Feedback**, create the same structured ZIP in memory, and post it through the existing same-origin proxy to the local service. The service uses Box Client Credentials Grant and uploads to the configured `BOX_FEEDBACK_FOLDER_ID`. Secrets remain server-side, configuration fails closed, and browser requests from non-loopback origins are rejected. The user-confirmed 7.12.2 preview is copied to 7.12.3 with only its build identity changed.
+
+Validation: unit coverage verifies credential handling, Box token and multipart upload requests, destination-folder targeting, secret-safe errors, conditional production-reference validation, button copy, and the local-origin guard. TypeScript, full tests, lint, production build, and live browser checks are release gates.
+
+Versioning: new patch build 7.12.3 from user-confirmed 7.12.2; earlier builds remain preserved.
+
+
+## D074 — [Map preview] Match production Leaflet and popup behavior (7.12.4)
+
+Evidence: the production showcase uses Leaflet with Mapbox Streets v11 raster tiles at z11, 512px tile images, 22×33 pin assets, and a popup pane above the marker pane. Its popup measures approximately 253×113px with an 8px radius, 12px Helvetica Neue text, and a 100px CTA image. The local adapter used Mapbox GL JS and different popup geometry. The production popup tip is hidden; the local preview keeps a visible tip as specifically requested, with the popup pane above every pin.
+
+Decision: globally replace the local map adapter with Leaflet/Mapbox.js and the same Streets v11 raster endpoint, match the measured popup wrapper/content sizing, typography and CTA scale, retain one open popup, and provide the production Mapbox logo. This applies to every valid location map; it does not use campaign or asset names to select behavior. The initial implementation incorrectly interpreted the tile URL's z11 as Leaflet map zoom 11; see the correction below.
+
+Follow-up repair: Mapbox.js 3.3.1 uses Leaflet's icon API, so passing a constructed marker DOM node to `L.divIcon` did not reliably render pins. Use `L.icon` with the package image URL and an HTML string only for the fallback pin. Bind popup content through the marker API and offset the popup so the requested bottom-left pointer aligns with the pin. `Run Turbo QA Studio.command` starts the stack on the normal local ports in a persistent Terminal session.
+
+Coordinate/zoom correction: the package feed contains the correct New York store coordinates. The ocean placement came from requesting the wrong geographic tiles: Leaflet's 256px world projection needs `tileSize: 512, zoomOffset: -1` for this endpoint. Restore the requested map zoom 12, which requests tile zoom 11; tile URL zoom and map zoom are different here. Keep the store coordinates unchanged. The visible popup tail now joins a square bottom-left corner with its entire base inside the wrapper, and its anchor is calculated from the actual pin height with zero additional Leaflet popup offset. This keeps it attached at different preview scales and above the pin pane.
+
+Validation: map configuration unit tests, current-preview identity checks, TypeScript, full test/lint/build gates, and representative packages including the Vivarin map package. Coordinate repair checked against the actual Mapbox.js 3.3.1 bundled Leaflet 1.4.0 projection and tile URL methods at map zooms 2, 8, 12 and 19, and popup positioning at preview scales 0.5, 1 and 1.5. Vivarin reads three stores across five map components; navigation and IONIS samples return no map configuration. A geographic regression test covers New York, the equator and Sydney. In-app browser access returned no tabs, and separate headless browsers could not start, so visual verification remains pending.
+
+Versioning: new patch build 7.12.4 from current 7.12.3; earlier builds remain preserved.
+
+## D075 — [Gallery] Add manual arrow navigation and slide transitions (7.12.5)
+
+Evidence: gallery slide visibility is already reconstructed from the selected tab's `slideN` layers, while arrow artwork remains static. The VDX runtime bundle provides generic gallery behavior, but its campaign configuration is not present in PSD layer exports.
+
+Decision: for galleries with at least two authored slides, make recognized left/right, previous/next, back/forward arrow groups clickable with transparent keyboard-accessible hit areas. Arrow activation updates the existing global slide state, wraps at either end, and animates the incoming artboard layers in the travel direction. Respect reduced-motion preferences. Do not add autoplay or circular progress interaction.
+
+Validation: all 150 project tests, TypeScript, lint and the production build pass; lint reports 12 warnings in unrelated files. Gallery arrow hierarchy and bounds were checked in four sample exports: Navigation Prototype Demo, La Roche, Ipsen and Natrelle. Live click behavior still needs a loaded creative in the preview.
+
+Transition follow-up: retain the current 7.12.5 build and align its manual slide motion with production's short horizontal ease-out transition. The preview uses a 500ms `ease-out` animation and keeps the transition scoped to incoming/outgoing slide collection items; autoplay and circular progress remain unchanged.

@@ -1,8 +1,8 @@
 # Preview Build Inventory
 
-**Current QA Studio release:** `preview/turbo-preview-7.11.16.html` (CTV/OTT local FFmpeg renderer in `scripts/ctv-ott-renderer.mjs`)
+**Current QA Studio release:** `preview/turbo-preview-7.12.5.html` (CTV/OTT and Box feedback service in `scripts/ctv-ott-renderer.mjs`)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-10-18
+**Inventory date:** 2026-10-23
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
@@ -16,7 +16,9 @@ QA Studio imports only the source named by `preview/current-preview.ts`. The cur
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.11.16.html` | 609,426 | 7.11.16 | `preview/` | Current pointer, badge and renderer health build. CTV collapsed QR glass is blurred before expansion. |
+| `turbo-preview-7.12.5.html` | 617,939 | 7.12.5 | `preview/` | Current pointer and badge. Adds manual previous/next gallery arrow controls and directional slide-in transitions; no autoplay or circular progress interaction. |
+| `turbo-preview-7.12.4.html` | 611,740 | 7.12.4 | `preview/` | Current pointer, badge and local-service health build. Production-aligned Leaflet/Mapbox location-map rendering is provided by the QA Studio host. |
+| `turbo-preview-7.12.3.html` | 611,740 | 7.12.3 | `preview/` | Retained prior build. Direct Box feedback submission is provided by the QA Studio host and service. |
 | `turbo-preview-7.11.2.html` through `turbo-preview-7.11.15.html` | Varies | Matching filename/build | `preview/` | Retained patch history, not app imports. The companion renderer changed across patches; do not infer behavior from HTML hashes alone. |
 
 ## Historical inventory snapshot (originally recorded through 7.11.2)
@@ -103,6 +105,21 @@ The post-change JavaScript contains one `preview.js loaded:` renderer marker. It
 4. Retain previous builds. Archive or delete only after the specific cleanup is approved; update direct historical readers and this inventory if locations change.
 5. Verify pointer version, HTML `PREVIEW_BUILD`, QA Studio badge, renderer health build, tests, production build, and bundle size. Update the [consolidated CTV/OTT spec](CTV-OTT-Consolidated-Spec.md) when rendering behavior changes.
 
-## 7.12.0
+## 7.12.2
 
-Current QA Studio pointer and companion renderer use 7.12.0. First-view candidate filtering and budget review live in the host QA engine. Renderer behavior inherits 7.11.16. Prior builds retained pending user review.
+The 7.12.2 preview keeps reconstructed canvas tabs interactive and exposes the pointer cursor on the full tab target. Renderer behavior otherwise inherits 7.12.1. It is the user-confirmed source for 7.12.3.
+
+## 7.12.3
+
+Current QA Studio pointer and companion local service use 7.12.3. The embedded preview differs from 7.12.2 only by `PREVIEW_BUILD`. The host action now reads **Submit Feedback** and sends the in-memory debug ZIP to the local service, which performs authenticated upload to the configured Box folder. Prior builds are retained pending user review.
+
+
+## 7.12.4
+
+Current QA Studio pointer and companion local service use 7.12.4. The embedded preview inherits 7.12.3; the host map adapter uses Mapbox.js 3.3.1 (Leaflet), Mapbox Streets v11 512px raster tiles with `zoomOffset: -1` at map zoom 12 (tile URL zoom 11), production-sized popup geometry and popup-pane stacking above markers. The requested visible popup pointer attaches flush to the bottom-left corner and aligns above the pin using its rendered height. Previous builds are retained.
+
+## 7.12.5
+
+Adds manual gallery navigation through authored left/right or previous/next arrow groups within the selected tab gallery. Arrow activation changes the selected slide across included artboards, wraps at either end, and animates the incoming slide with a brief directional offset. The transition respects reduced-motion preferences. Autoplay and circular progress behavior remain outside this change. The 7.12.4 build is retained as the rollback point.
+
+The current build's transition follow-up uses a 500ms ease-out motion to match the production gallery's short horizontal slide feel. The change remains in 7.12.5 as requested; no new build number was created.

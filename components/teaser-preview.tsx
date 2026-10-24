@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, LoaderCircle, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { mobileInstreamMotion } from "@/lib/teaser-layout";
+import { orderByMainUnitArtboards } from "@/lib/teaser-order";
 
 export type TeaserMedia = {
   video: string | null;
@@ -10,6 +11,7 @@ export type TeaserMedia = {
   poster: string | null;
   instreamPoster: string | null;
   generatedFrame: string | null;
+  generatedVideoTarget: TeaserGeometry | null;
   logo: string | null;
   peelLogo: string | null;
   peel: string | null;
@@ -52,6 +54,8 @@ const SIZES: TeaserSize[] = [
   { id: "mobile-adhesion", label: "320×50", product: "Mobile adhesion", width: 320, height: 50, mainUnit: "428x622", kind: "adhesion" },
   { id: "mobile-instream", label: "970×546", product: "Mobile instream", width: 970, height: 546, mainUnit: "mobile-instream", kind: "instream" },
 ];
+
+const MOBILE_INSTREAM_DISPLAY_SCALE = 0.5;
 
 function TeaserWarning({ title, children }: { title: string; children: React.ReactNode }) {
   return <div className="teaser-warning finding-row warning" role="status">
@@ -110,7 +114,17 @@ function TeaserCard({ size, media, layout, fit, muted, showBranding, showPrequal
     let frame = 0;
     const update = () => {
       const motion = mobileInstreamMotion(node.currentTime, node.duration);
-      node.style.transform = `scale(${motion.scale})`;
+      const target = media.generatedVideoTarget;
+      if (target) {
+        const scaleX = 1 + (target.width / size.width - 1) * motion.reveal;
+        const scaleY = 1 + (target.height / size.height - 1) * motion.reveal;
+        const translateX = target.left * motion.reveal;
+        const translateY = target.top * motion.reveal;
+        node.style.transformOrigin = "left top";
+        node.style.transform = `matrix(${scaleX}, 0, 0, ${scaleY}, ${translateX}, ${translateY})`;
+      } else {
+        node.style.transform = `scale(${motion.scale})`;
+      }
       node.dataset.peekPhase = motion.phase;
       frame = window.requestAnimationFrame(update);
     };
@@ -118,13 +132,12 @@ function TeaserCard({ size, media, layout, fit, muted, showBranding, showPrequal
     return () => {
       window.cancelAnimationFrame(frame);
       node.style.removeProperty("transform");
+      node.style.removeProperty("transform-origin");
       delete node.dataset.peekPhase;
     };
-  }, [generatedInstream, video]);
+  }, [generatedInstream, media.generatedVideoTarget, size.height, size.width, video]);
 
-  return <article className={`teaser-card teaser-card-${size.id}`}>
-    <div className="teaser-card-heading"><strong>{size.label}</strong><span>{size.product}</span></div>
-    <div className={`teaser-stage teaser-fit-${effectiveFit}${size.kind === "instream" ? " teaser-instream" : ""}`}
+  const stage = <div className={`teaser-stage teaser-fit-${effectiveFit}${size.kind === "instream" ? " teaser-instream" : ""}`}
       style={{ width: size.width, aspectRatio: `${size.width} / ${size.height}` }}>
       {layout?.isi && layout.disclaimerSrcDoc && <iframe
         className="teaser-isi-frame"
@@ -150,7 +163,14 @@ function TeaserCard({ size, media, layout, fit, muted, showBranding, showPrequal
           <div className="teaser-peel-footer"><span className={showBranding ? "" : "teaser-peel-message"}>{showBranding ? "VDX.TV" : size.kind === "adhesion" || size.kind === "instream" ? "TAP TO EXPLORE" : "ROLL OVER TO EXPLORE"}</span><button type="button" disabled={!video} aria-label={video ? muted ? `Unmute ${size.label} teaser` : `Mute ${size.label} teaser` : `${size.label} teaser sound unavailable`} onClick={event => { event.stopPropagation(); onMute(); }}>{muted ? <VolumeX /> : <Volume2 />}</button></div>
         </div>
       </div>
-    </div>
+    </div>;
+
+  return <article className={`teaser-card teaser-card-${size.id}`}>
+    <div className="teaser-card-heading"><strong>{size.label}</strong><span>{size.product}</span></div>
+    {size.kind === "instream" ? <div
+      className="teaser-stage-viewport-mobile-instream"
+      style={{ width: size.width * MOBILE_INSTREAM_DISPLAY_SCALE, height: size.height * MOBILE_INSTREAM_DISPLAY_SCALE }}
+    >{stage}</div> : stage}
     <p className="teaser-card-destination">Opens {size.mainUnit} main unit</p>
   </article>;
 }
@@ -170,8 +190,7 @@ export function TeaserPreview({ artboards, media, layouts, onOpen, generationSta
     const timer = window.setInterval(() => setShowBranding(value => !value), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const available = new Set(artboards.map(name => name.toLowerCase()));
-  const sizes = SIZES.filter(size => available.has(size.mainUnit.toLowerCase()));
+  const sizes = orderByMainUnitArtboards(artboards, SIZES);
   const hasPrequal = Object.values(layouts).some(layout => layout.prequal || layout.prequalWithIsi);
 
   return <div className="teaser-page">
@@ -183,7 +202,7 @@ export function TeaserPreview({ artboards, media, layouts, onOpen, generationSta
     {generationStatus === "rendering" && <div className="teaser-generation-status" role="status"><LoaderCircle className="spin" /><div><strong>Generating mobile instream teaser</strong><span>Rendering the exported mobile canvas and building the 3-second peek-a-boo sequence…</span></div></div>}
     {generationStatus === "ready" && !media.instreamVideo && <div className="teaser-generation-status ready" role="status"><Sparkles /><div><strong>Generated from export.json</strong><span>The preview uses video1.mp4 and the rendered mobile-instream canvas with a 1s shrink, 1s reveal, and 1s expansion.</span></div></div>}
     {sizes.some(size => size.kind === "instream") && !media.instreamVideo && generationStatus === "error" && <TeaserWarning title="Mobile instream generation unavailable">The package needs a mobile-instream artboard and video1.mp4, or authored teaserVideo.mp4 and teaserVideo.jpg assets.</TeaserWarning>}
-    <div className="teaser-gallery">{sizes.map(size => <TeaserCard key={size.id} size={size} media={media} layout={layouts[size.label.replace("×", "x")] || null} fit={fit} muted={unmuted !== size.id} showBranding={showBranding} showPrequal={showPrequal} onMute={() => setUnmuted(current => current === size.id ? null : size.id)} onOpen={() => onOpen(size.mainUnit)} />)}</div>
+    <div className="teaser-gallery">{sizes.map(size => <TeaserCard key={size.id} size={size} media={media} layout={size.kind === "instream" ? null : layouts[size.label.replace("×", "x")] || null} fit={fit} muted={unmuted !== size.id} showBranding={showBranding} showPrequal={showPrequal} onMute={() => setUnmuted(current => current === size.id ? null : size.id)} onOpen={() => onOpen(size.mainUnit)} />)}</div>
     {!sizes.length && <TeaserWarning title="No teaser sizes found">This package has no supported teaser sizes.</TeaserWarning>}
   </div>;
 }

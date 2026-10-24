@@ -1,10 +1,10 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
 
-**Doc version:** 1.7.8
-**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
-**Last updated:** 2026-10-14
+**Doc version:** 1.8.0
+**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
+**Last updated:** 2026-10-23
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -97,4 +97,4 @@ The screenshot flow must optionally create a 16:9 landscape review PDF in the sa
 Device, browser, player, and OTT frames are review-document approximations around captured package evidence. They must not be described as captured production chrome. The VPM hover transition remains unavailable because the preview has no transition state; teaser and engaged endpoints are presented separately. The complete requirement and capability matrix is in [14 — CSM Review PDF](14-CSM-Review-PDF.md).
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-QA users can open **Report feedback** from the app menu and create a local, reviewable debug bundle. A valid CCRV or Showcase URL is mandatory only for a visual mismatch, where a production comparison target is essential; it is optional but validated when supplied for other feedback types. A preselected category keeps submission quick; Description and reproduction steps are optional, and optional Actual/Expected fields appear only for visual mismatches. These text areas accept pasted screenshot evidence. The flow also captures active-preview evidence, current state metadata, the optional source package, and supporting attachments. No evidence is uploaded by this release. The complete contract is defined in `19-Feedback-Debug-Bundle.md`.
+QA users can open **Report feedback** from the app menu and submit a structured debug bundle directly to the configured Box folder. A valid CCRV or Showcase URL is mandatory only for a visual mismatch, where a production comparison target is essential; it is optional but validated when supplied for other feedback types. Description and reproduction steps remain optional, and Actual/Expected fields appear only for visual mismatches. The ZIP is assembled in memory and uploaded only after the explicit **Submit Feedback** action. The complete contract is defined in `19-Feedback-Debug-Bundle.md`.

@@ -1,5 +1,22 @@
 # Project Working Instructions
 
+## File access and user privacy
+
+- Use only the project folder and file paths the user has explicitly provided
+  or that are already inside the active project workspace.
+- If a required sample, package, source file, or external folder path has not
+  been provided, ask the user for the exact path or file before accessing it.
+- Do not open Finder, another system file browser, or a system app to locate
+  files. Do not browse unrelated folders or expose directory contents while
+  selecting a file.
+- Prefer direct workspace or terminal access to an explicitly provided path.
+- Opening a browser file picker or uploading a local file requires the user's
+  explicit authorization for that specific file and destination. A localhost
+  browser tab does not by itself authorize access to other local files.
+- Do not infer permission to inspect files merely because they are likely to
+  be useful for testing. Stop and ask when the required path or file is not
+  already in scope.
+
 ## Source selection
 
 - Before inspecting or changing the preview tool, automatically check the

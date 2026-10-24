@@ -7,15 +7,19 @@ import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { uploadFeedbackToBox } from "./box-feedback-upload.mjs";
 
 const BUILD_DIR = dirname(fileURLToPath(import.meta.url));
-const HTML_FILE = join(BUILD_DIR, "../preview/turbo-preview-7.12.0.html");
-const HOST = "127.0.0.1";
+const HTML_FILE = join(BUILD_DIR, "../preview/turbo-preview-7.12.4.html");
+// On the host this remains loopback-only. Container deployments set this to
+// 0.0.0.0 inside the container and publish the container port on host loopback.
+const HOST = process.env.TURBO_PREVIEW_HOST || "127.0.0.1";
 const PORT = Number(process.env.TURBO_PREVIEW_PORT || 4177);
 // Production sample packages can exceed 500 MB because of embedded PSD/video
 // payloads. Keep a bounded local-render guard while allowing the supplied
 // Ipsen package through.
 const MAX_PACKAGE_BYTES = 1 * 1024 * 1024 * 1024;
+const MAX_FEEDBACK_BYTES = 1 * 1024 * 1024 * 1024;
 const FPS = "30000/1001";
 const MAX_DURATION = 270;
 
@@ -835,6 +839,57 @@ async function receivePackage(request, target) {
   await writeFile(target, Buffer.concat(chunks));
 }
 
+async function receiveFeedbackBundle(request) {
+  let received = 0;
+  const chunks = [];
+  for await (const chunk of request) {
+    received += chunk.length;
+    if (received > MAX_FEEDBACK_BYTES) throw new Error("Feedback bundle exceeds the 1 GB upload limit.");
+    chunks.push(chunk);
+  }
+  if (!received) throw new Error("The feedback bundle was empty.");
+  return Buffer.concat(chunks);
+}
+
+function feedbackFilename(request) {
+  const raw = Array.isArray(request.headers["x-feedback-filename"])
+    ? request.headers["x-feedback-filename"][0]
+    : request.headers["x-feedback-filename"];
+  let decoded = "turbo-feedback.zip";
+  try { decoded = decodeURIComponent(String(raw || decoded)); } catch {}
+  const safe = basename(decoded).replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 180);
+  return /\.zip$/i.test(safe) ? safe : `${safe || "turbo-feedback"}.zip`;
+}
+
+function isTrustedFeedbackOrigin(request) {
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    const localOrigin = ["127.0.0.1", "localhost", "::1"].includes(parsed.hostname)
+      && ["http:", "https:"].includes(parsed.protocol);
+    const configuredOrigin = String(process.env.TURBO_APP_ORIGIN || "").replace(/\/$/, "");
+    return localOrigin || (configuredOrigin && parsed.origin === configuredOrigin);
+  } catch {
+    return false;
+  }
+}
+
+async function handleFeedbackUpload(request, response) {
+  if (!isTrustedFeedbackOrigin(request)) {
+    return jsonResponse(response, 403, { error: "Feedback submissions are accepted only from the local QA Studio app." });
+  }
+  try {
+    const bytes = await receiveFeedbackBundle(request);
+    const uploaded = await uploadFeedbackToBox({ bytes, filename: feedbackFilename(request) });
+    jsonResponse(response, 201, { ok: true, ...uploaded });
+  } catch (error) {
+    const message = error?.message || String(error);
+    const status = /not configured/i.test(message) ? 503 : /exceeds|empty/i.test(message) ? 400 : 502;
+    jsonResponse(response, status, { error: message });
+  }
+}
+
 async function handleRender(request, response, url) {
   const format = String(url.searchParams.get("format") || "ctv").toLowerCase();
   if (!new Set(["ctv", "ott"]).has(format)) return jsonResponse(response, 400, { error: "Format must be ctv or ott." });
@@ -870,20 +925,21 @@ async function startServer() {
       response.writeHead(204, {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,X-Package-Name"
+        "Access-Control-Allow-Headers": "Content-Type,X-Package-Name,X-Feedback-Filename"
       });
       return response.end();
     }
-    if (request.method === "GET" && url.pathname === "/health") return jsonResponse(response, 200, { ok: true, build: "7.12.0", renderer: "ffmpeg" });
+    if (request.method === "GET" && url.pathname === "/health") return jsonResponse(response, 200, { ok: true, build: "7.12.4", renderer: "ffmpeg", boxFeedbackConfigured: Boolean(process.env.BOX_CLIENT_ID && process.env.BOX_CLIENT_SECRET && process.env.BOX_ENTERPRISE_ID && process.env.BOX_FEEDBACK_FOLDER_ID) });
     if (request.method === "POST" && url.pathname === "/render") return handleRender(request, response, url);
-    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/turbo-preview-7.12.0.html")) {
+    if (request.method === "POST" && url.pathname === "/feedback/upload") return handleFeedbackUpload(request, response);
+    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/turbo-preview-7.12.4.html")) {
       response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
       return createReadStream(HTML_FILE).pipe(response);
     }
     jsonResponse(response, 404, { error: "Not found" });
   });
   server.listen(PORT, HOST, () => {
-    console.log(`Turbo Preview 7.12.0: http://${HOST}:${PORT}/`);
+    console.log(`Turbo Preview 7.12.4: http://${HOST}:${PORT}/`);
     console.log("Press Ctrl+C to stop the local renderer.");
   });
 }

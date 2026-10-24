@@ -1,6 +1,6 @@
 # Turbo QA Studio
 
-Turbo QA Studio validates and reviews VDX Turbo export packages. The QA dashboard and current Turbo Preview 7.11.16 run in one interface. Main-unit QA remains browser-based; CTV/OTT video previews use a separate local FFmpeg renderer.
+Turbo QA Studio validates and reviews VDX Turbo export packages. The QA dashboard and current Turbo Preview 7.12.3 run in one interface. Main-unit QA remains browser-based; CTV/OTT video previews and Box feedback submission use a separate local service.
 
 ## What is included
 
@@ -12,10 +12,10 @@ Turbo QA Studio validates and reviews VDX Turbo export packages. The QA dashboar
 - the full interactive Turbo Preview renderer
 - 2× screenshot capture, a structured PNG ZIP, and an optional CSM review PDF
 - downloadable JSON QA reports
-- local feedback bundles with a required CCRV/Showcase reference, active-preview evidence, and optional source package
+- direct Box feedback submission with contextual CCRV/Showcase validation, active-preview evidence, and an optional source package
 - CTV/OTT teaser video previews generated from package assets by the local FFmpeg service
 
-Main-unit ZIP inspection runs in the browser. CTV/OTT previews send the selected package to the local renderer through a same-origin proxy; there is no remote upload service or database. See the [consolidated CTV/OTT specification](doc/CTV-OTT-Consolidated-Spec.md) for asset provenance, motion, effects, limits and deployment requirements.
+Main-unit ZIP inspection runs in the browser. CTV/OTT previews send the selected package to the local renderer through a same-origin proxy. Feedback ZIPs are prepared in memory and sent by that local service to the configured Box folder only after the user chooses **Submit Feedback**. See [Feedback Debug Bundle](doc/19-Feedback-Debug-Bundle.md) for setup and privacy boundaries.
 
 ## Local development
 
@@ -25,6 +25,8 @@ Requirements: Node.js 22.13 or newer; FFmpeg/ffprobe on `PATH` for CTV/OTT previ
 npm ci
 npm run dev
 ```
+
+For direct feedback submission, copy `.env.example` to `.env.local` and provide the Box Client Credentials Grant values and destination folder ID. Never commit `.env.local` or place the client secret in browser code.
 
 Open the local URL shown in the terminal, then select a Turbo ZIP package.
 
@@ -76,7 +78,7 @@ retain previous hashed assets during release transitions for existing tabs.
 
 The build uses relative asset paths, so the static files work at a domain root or inside a subdirectory. CTV/OTT API calls use `/api/ctv-ott` at the domain root and must be routed there even if the static files live under a subdirectory.
 
-For a single Linux server that serves static files and renders CTV/OTT without requiring software on each viewer's computer, use the [static-server deployment guide](deploy/README.md). It packages the current 7.11.16 build, keeps the FFmpeg renderer on server loopback, and routes the browser's same-origin API through authenticated HTTPS.
+For a single Linux server that serves static files and renders CTV/OTT without requiring software on each viewer's computer, use the [static-server deployment guide](deploy/README.md). It packages the current 7.12.3 build, keeps the local service on server loopback, and routes the browser's same-origin API through authenticated HTTPS.
 
 ## Validation
 

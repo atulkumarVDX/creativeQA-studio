@@ -32,6 +32,16 @@ function analyze(rawLayers) {
   return analyzePackage({ rawLayers }, [], "fixture.psd.zip");
 }
 
+test("reports artboards in the same document order used by Main Unit preview", () => {
+  const rawLayers = [
+    group(30, "300x600", -1, true),
+    group(10, "970x546", -1, true),
+    group(20, "300x250", -1, true),
+  ];
+  const summary = analyzePackage({ rawLayers, document: { artboards: [20, 30, 10] } }, [], "fixture.psd.zip");
+  assert.deepEqual(summary.artboards, ["300x250", "300x600", "970x546"]);
+});
+
 test("requests a production review for Mobile Instream paragraph labels without claiming disappearance", () => {
   const summary = analyze([
     group(1, "master", -1, true),

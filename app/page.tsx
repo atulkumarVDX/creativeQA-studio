@@ -23,11 +23,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 import { deriveTeaserGeometry } from "@/lib/teaser-layout";
+import { buildMapPreviewConfig } from "@/lib/map-preview";
 
 type BridgeAsset = { durationSeconds?: number; name: string; compressedSize: number; uncompressedSize: number };
 type Theme = "dark" | "light";
-type TeaserBytes = Record<Exclude<keyof TeaserMedia, "generatedFrame">, Uint8Array | null>;
+type TeaserBytes = Record<Exclude<keyof TeaserMedia, "generatedFrame" | "generatedVideoTarget">, Uint8Array | null>;
 type PackageFile = readonly [string, Uint8Array];
+const MAPBOX_ACCESS_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "" : "";
 type ExportLayer = { name?: unknown; bounds?: { width?: number | { _value?: number }; height?: number | { _value?: number } } };
 type CtvOttFormat = "ctv" | "ott";
 type CtvOttVideos = Partial<Record<CtvOttFormat, string>>;
@@ -127,8 +129,233 @@ const bridgeScript = (String.raw`
 (() => {
   document.documentElement.dataset.tqaBridge = "ready";
   const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+  let mapConfig = null;
+  let leafletLoadPromise = null;
+  const mapPaints = new Map();
+  const mapInstances = new WeakMap();
+  function loadLeaflet() {
+    if (window.L && window.L.mapbox) return Promise.resolve(window.L);
+    if (leafletLoadPromise) return leafletLoadPromise;
+    leafletLoadPromise = new Promise((resolve, reject) => {
+      if (!document.querySelector('link[data-tqa-leaflet-css]')) {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css';
+        css.dataset.tqaLeafletCss = 'true';
+        document.head.appendChild(css);
+      }
+      if (!document.querySelector('style[data-tqa-mapbox-popup]')) {
+        const popupStyle = document.createElement('style');
+        popupStyle.dataset.tqaMapboxPopup = 'true';
+        popupStyle.textContent = '.leaflet-container { font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
+          '.leaflet-pane.leaflet-popup-pane { z-index:800 !important; } .leaflet-pane.leaflet-marker-pane { z-index:600 !important; }' +
+          '.leaflet-popup { margin-bottom:0; } .leaflet-popup-content-wrapper { position:relative; overflow:visible !important; border-radius:8px 8px 8px 0; background:#fff; padding:1px; box-shadow:none; }' +
+          '.leaflet-popup-content { box-sizing:border-box; width:251px !important; margin:0; padding:10px 10px 15px; color:#252525; font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
+          '.leaflet-popup-tip-container { display:none; } .leaflet-popup-content-wrapper::after { content:""; position:absolute; z-index:2; left:0; bottom:-10px; width:0; height:0; border-top:10px solid #fff; border-right:20px solid transparent; pointer-events:none; }' +
+          '.leaflet-popup-close-button { z-index:3; width:20px !important; height:20px !important; padding:0 !important; color:#33415b !important; font:18px/20px Arial,sans-serif !important; }' +
+          '.leaflet-popup-content a, .leaflet-marker-icon { cursor:pointer; } .tqa-leaflet-marker { background:transparent; border:0; }' +
+          '.tqa-map-fallback-pin { display:block; width:18px; height:18px; border-radius:50% 50% 50% 0; background:#d8323b; border:2px solid #fff; box-shadow:0 1px 4px #0006; transform:translateY(-2px) rotate(-45deg); }';
+        document.head.appendChild(popupStyle);
+      }
+      const script = document.createElement('script');
+      script.src = 'https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js';
+      script.async = true;
+      script.onload = () => window.L && window.L.mapbox ? resolve(window.L) : reject(new Error('Leaflet Mapbox did not initialize.'));
+      script.onerror = () => reject(new Error('Leaflet Mapbox could not be loaded. Check your internet connection.'));
+      document.head.appendChild(script);
+    });
+    return leafletLoadPromise;
+  }
+  function showMapFallback(container, message) {
+    container.replaceChildren();
+    container.style.display = 'grid';
+    container.style.placeItems = 'center';
+    container.style.background = '#eef1f4';
+    container.style.color = '#364152';
+    container.style.padding = '12px';
+    container.style.boxSizing = 'border-box';
+    container.style.font = '12px/1.4 Arial, sans-serif';
+    container.style.textAlign = 'center';
+    container.textContent = message;
+  }
+  function showMapStateImage(container, source) {
+    if (!source) return null;
+    const image = document.createElement('img');
+    image.src = source;
+    image.alt = '';
+    image.dataset.tqaMapState = 'true';
+    image.style.cssText = 'position:absolute;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;object-fit:contain;pointer-events:none';
+    container.appendChild(image);
+    return image;
+  }
+  function clearMapOverlays(stage) {
+    if (!stage) return;
+    stage.querySelectorAll('[data-tqa-map-layer]').forEach(node => {
+      const map = mapInstances.get(node);
+      if (map) map.remove();
+      node.remove();
+    });
+  }
+  function addStorePopup(store, component) {
+    const content = document.createElement('div');
+    content.style.cssText = 'box-sizing:border-box;width:231px;min-height:86px;padding:0;color:#252525;text-align:center;font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif';
+    const title = document.createElement('strong');
+    title.textContent = store.label || 'Store';
+    title.style.cssText = 'display:block;margin:0;font-size:12px;font-weight:400';
+    content.appendChild(title);
+    const address = document.createElement('div');
+    address.textContent = [store.address, [store.city, store.state, store.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    address.style.cssText = 'color:#252525;font-size:12px;line-height:20px';
+    content.appendChild(address);
+    if (store.phone) {
+      const phone = document.createElement('div');
+      phone.textContent = store.phone;
+      content.appendChild(phone);
+    }
+    try {
+      const cta = new URL(store.cta || '');
+      if (cta.protocol === 'https:') {
+        const link = document.createElement('a');
+        link.href = cta.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.cssText = 'display:inline-block;margin-top:5px;line-height:0;cursor:pointer';
+        const buttonImage = mapConfig.buttonImages?.[String(component.rootLayerId)];
+        if (buttonImage) {
+          const image = document.createElement('img');
+          image.src = buttonImage; image.alt = 'Learn more'; image.style.cssText = 'display:block;width:100px;height:auto';
+          link.appendChild(image);
+        } else {
+          link.textContent = 'LEARN MORE';
+          link.style.cssText += ';padding:6px 17px;background:#f2cf37;color:#191919;font-size:11px;font-weight:700';
+        }
+        content.appendChild(link);
+      }
+    } catch { /* Ignore malformed campaign links. */ }
+    return content;
+  }
+  function renderMapOverlays(entry, activeTab, activeSlide) {
+    if (!mapConfig || !entry?.stageEl || !entry?.byId || !entry?.childrenOf) return;
+    const stage = entry.stageEl;
+    if (!stage.isConnected) return;
+    clearMapOverlays(stage);
+    for (const component of mapConfig.components || []) {
+      const root = entry.byId.get(component.rootLayerId);
+      const target = entry.byId.get(component.defaultLayerId);
+      const frameTarget = component.frameLayerId == null ? null : entry.byId.get(component.frameLayerId);
+      if (!root || !target) continue;
+      const defaultElement = stage.querySelector('[data-structure-layer-id="' + component.defaultLayerId + '"]');
+      if (!defaultElement) continue;
+      const frameElement = component.frameLayerId == null ? null : stage.querySelector('[data-structure-layer-id="' + component.frameLayerId + '"]');
+      const geometryElement = frameElement || defaultElement;
+      const geometryTarget = frameTarget || target;
+      const parent = defaultElement.parentElement;
+      if (!parent) continue;
+      const mapElement = document.createElement('div');
+      mapElement.dataset.tqaMapLayer = String(component.rootLayerId);
+      mapElement.setAttribute('aria-label', 'Interactive store map');
+      mapElement.style.position = 'absolute';
+      for (const property of ['left', 'top', 'right', 'bottom', 'width', 'height', 'transform', 'transformOrigin', 'clipPath', 'borderRadius']) {
+        if (geometryElement.style[property]) mapElement.style[property] = geometryElement.style[property];
+      }
+      mapElement.style.zIndex = defaultElement.style.zIndex || String(target.itemIndex || 0);
+      mapElement.style.pointerEvents = 'auto';
+      mapElement.style.overflow = 'visible';
+      parent.appendChild(mapElement);
+      defaultElement.style.display = 'none';
+      if (frameElement) frameElement.style.display = 'none';
+      for (const layerId of [component.pinLayerId, component.loadingLayerId, component.noDataLayerId, component.popupLayerId, component.buttonLayerId, component.logoLayerId, component.dataMarkerLayerId]) {
+        if (layerId == null) continue;
+        const layerElement = stage.querySelector('[data-structure-layer-id="' + layerId + '"]');
+        if (layerElement) layerElement.style.display = 'none';
+      }
+      if (!mapConfig.accessToken) {
+        showMapFallback(mapElement, 'Map preview needs a Mapbox public token. Add VITE_MAPBOX_ACCESS_TOKEN to your local .env.local file.');
+        showMapStateImage(mapElement, mapConfig.defaultImages?.[String(component.rootLayerId)]);
+        continue;
+      }
+      const loadingImageSource = mapConfig.loadingImages?.[String(component.rootLayerId)];
+      loadLeaflet().then(L => {
+        if (!mapElement.isConnected) return;
+        L.mapbox.accessToken = mapConfig.accessToken;
+        const points = (mapConfig.stores || []).filter(store => Number.isFinite(store.lat) && Number.isFinite(store.long));
+        if (!points.length) {
+          showMapStateImage(mapElement, mapConfig.noDataImages?.[String(component.rootLayerId)] || mapConfig.defaultImages?.[String(component.rootLayerId)]);
+          return;
+        }
+        const first = points[0];
+        const map = L.map(mapElement, {
+          zoomControl: mapConfig.settings?.zoomControl === true,
+          attributionControl: mapConfig.settings?.attributionControl === true,
+          minZoom: mapConfig.settings?.minZoom ?? 2, maxZoom: mapConfig.settings?.maxZoom ?? 19,
+          tap: mapConfig.settings?.twoFingersEnabled !== false,
+        }).setView([first.lat, first.long], mapConfig.settings?.zoomLevel ?? 12);
+        // Leaflet projects a 256px world; 512px tiles need one lower URL zoom
+        // so their geographic bounds match the markers (map zoom 12 => tile z11).
+        const tileLayer = L.tileLayer(mapConfig.tileUrl, { tileSize: 512, zoomOffset: -1, maxZoom: mapConfig.settings?.maxZoom ?? 19, attribution: '© Mapbox © OpenStreetMap' });
+        let tilesLoaded = false;
+        tileLayer.once('load', () => {
+          tilesLoaded = true;
+          if (loadingImage?.isConnected) loadingImage.remove();
+        });
+        tileLayer.addTo(map);
+        const logoControl = L.control({ position: 'bottomleft' });
+        logoControl.onAdd = () => {
+          const logo = L.DomUtil.create('div', 'mapbox-logo leaflet-control mapbox-logo-true');
+          logo.setAttribute('aria-label', 'Mapbox');
+          return logo;
+        };
+        logoControl.addTo(map);
+        const loadingImage = showMapStateImage(mapElement, loadingImageSource);
+        mapInstances.set(mapElement, map);
+        map.whenReady(() => {
+          points.forEach((store, index) => {
+            const pinImage = mapConfig.pinImages?.[String(component.pinLayerId)];
+            const iconWidth = Math.max(14, 22 * (entry.scale || 1));
+            const iconHeight = Math.max(20, 33 * (entry.scale || 1));
+            const iconOptions = { iconSize: [iconWidth, iconHeight], iconAnchor: [iconWidth / 2, iconHeight - 2], popupAnchor: [Math.round((mapConfig.settings?.popupWidth ?? 253) / 2), 2 - iconHeight - 10], className: 'tqa-leaflet-marker' };
+            const icon = pinImage
+              ? L.icon({ ...iconOptions, iconUrl: pinImage })
+              : L.divIcon({ ...iconOptions, html: '<span class="tqa-map-fallback-pin"></span>' });
+            const storeMarker = L.marker([store.lat, store.long], { icon }).addTo(map);
+            storeMarker.bindPopup(addStorePopup(store, component), { maxWidth: mapConfig.settings?.popupWidth ?? 253, offset: [0, 0], closeButton: mapConfig.settings?.showCloseBtn !== false, autoClose: true, closeOnClick: false });
+            if (index === 0 && mapConfig.settings?.openPopByDefault !== false) storeMarker.openPopup();
+          });
+          map.invalidateSize();
+        });
+        tileLayer.on('tileerror', () => {
+          window.setTimeout(() => {
+            if (!tilesLoaded && mapElement.isConnected && !mapElement.querySelector('.leaflet-tile-loaded')) {
+              showMapFallback(mapElement, 'Mapbox could not load this map. Check the token and its localhost URL restrictions.');
+            }
+          }, 1500);
+        });
+      }).catch(error => { if (mapElement.isConnected) showMapFallback(mapElement, error?.message || 'Leaflet Mapbox could not be loaded.'); });
+    }
+  }
+  const previewApi = window.CSM_PREVIEW;
+  if (previewApi && typeof previewApi.paintArtboard === 'function') {
+    const paintArtboard = previewApi.paintArtboard;
+    previewApi.paintArtboard = function(entry, activeTab, activeSlide) {
+      clearMapOverlays(entry?.stageEl);
+      const result = paintArtboard.call(this, entry, activeTab, activeSlide);
+      mapPaints.set(entry.stageEl, { entry, activeTab, activeSlide });
+      mapPaints.forEach((paint, stage) => { if (!stage.isConnected) mapPaints.delete(stage); });
+      requestAnimationFrame(() => renderMapOverlays(entry, activeTab, activeSlide));
+      return result;
+    };
+  }
   window.addEventListener("message", async (event) => {
     if (!event.data || event.data.token !== "__TQA_BRIDGE_TOKEN__") return;
+    if (event.data.type === "tqa:map-config") {
+      mapConfig = event.data.config || null;
+      if (mapConfig) {
+        loadLeaflet().then(() => mapPaints.forEach(paint => renderMapOverlays(paint.entry, paint.activeTab, paint.activeSlide))).catch(() => {
+          mapPaints.forEach(paint => renderMapOverlays(paint.entry, paint.activeTab, paint.activeSlide));
+        });
+      }
+      return;
+    }
     if (event.data.type === "tqa:ping") {
       window.parent.postMessage({ type: "tqa:preview-ready", token: "__TQA_BRIDGE_TOKEN__" }, "*");
       return;
@@ -169,11 +396,33 @@ const bridgeScript = (String.raw`
         const card = Array.from(document.querySelectorAll(".cp-artboard-card")).find(node => node.querySelector(".cp-artboard-label")?.textContent.trim().toLowerCase().startsWith("mobile-instream"));
         const stage = card?.querySelector(".cp-stage");
         if (!stage || !window.htmlToImage) throw new Error("The mobile-instream canvas could not be rendered.");
-        const source = await window.htmlToImage.toCanvas(stage, { pixelRatio: 1, skipAutoScale: true, width: stage.offsetWidth, height: stage.offsetHeight });
+        // Main Unit presents this authored 970x546 stage at 50% through a CSS
+        // transform. Capturing that transform would bake the half-size preview
+        // into the generated frame, then Teasers would scale it a second time.
+        // Capture the authored stage at full size and let Teasers own the only
+        // presentation-scale transform.
+        const previousTransform = stage.style.transform;
+        stage.style.transform = "none";
+        await nextFrame();
+        const stageRect = stage.getBoundingClientRect();
+        const videoLayer = Array.from(stage.querySelectorAll(".cp-video")).find(node => node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
+        const videoRect = videoLayer?.getBoundingClientRect();
+        const videoTarget = videoRect ? {
+          left: videoRect.left - stageRect.left,
+          top: videoRect.top - stageRect.top,
+          width: videoRect.width,
+          height: videoRect.height,
+        } : null;
+        let source;
+        try {
+          source = await window.htmlToImage.toCanvas(stage, { pixelRatio: 1, skipAutoScale: true, width: stage.offsetWidth, height: stage.offsetHeight });
+        } finally {
+          stage.style.transform = previousTransform;
+        }
         const output = document.createElement("canvas");
         output.width = 970; output.height = 546;
         output.getContext("2d").drawImage(source, 0, 0, output.width, output.height);
-        window.parent.postMessage({ type: "tqa:mobile-instream-frame", token: "__TQA_BRIDGE_TOKEN__", requestId, dataUrl: output.toDataURL("image/jpeg", .86) }, "*");
+        window.parent.postMessage({ type: "tqa:mobile-instream-frame", token: "__TQA_BRIDGE_TOKEN__", requestId, dataUrl: output.toDataURL("image/jpeg", .86), videoTarget }, "*");
       } catch (error) {
         window.parent.postMessage({ type: "tqa:mobile-instream-frame-error", token: "__TQA_BRIDGE_TOKEN__", requestId, message: error && error.message ? error.message : String(error) }, "*");
       } finally {
@@ -328,7 +577,10 @@ async function readPackage(file: File) {
     peelLogo: pick(/^peelLogo(?:-\d+)?\.png$/i),
     peel: pick(/^peel-\d+\.png$/i),
   };
-  return { exportData, assets, teaserBytes, packageFiles: files as PackageFile[] };
+  const mapPreviewConfig = import.meta.env.DEV
+    ? buildMapPreviewConfig(exportData.rawLayers, files as PackageFile[], MAPBOX_ACCESS_TOKEN)
+    : null;
+  return { exportData, assets, teaserBytes, packageFiles: files as PackageFile[], mapPreviewConfig };
 }
 
 function teaserDisclaimerDocument(raw: string, size: string, files: PackageFile[], assetUrls: string[]) {
@@ -417,6 +669,7 @@ function createTeaserMedia(bytes: TeaserBytes): TeaserMedia {
     poster: url(bytes.poster, "image/jpeg"),
     instreamPoster: url(bytes.instreamPoster, "image/jpeg"),
     generatedFrame: null,
+    generatedVideoTarget: null,
     logo: url(bytes.logo, "image/png"),
     peelLogo: url(bytes.peelLogo, "image/png"),
     peel: url(bytes.peel, "image/png"),
@@ -482,6 +735,7 @@ export default function Home() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingFileRef = useRef<File | null>(null);
+  const mapPreviewConfigRef = useRef<ReturnType<typeof buildMapPreviewConfig>>(null);
   const summaryRef = useRef<PackageSummary | null>(null);
   const captureBusyRef = useRef(false);
   const [theme, setTheme] = useState<Theme>(savedTheme);
@@ -496,7 +750,8 @@ export default function Home() {
   const teaserLayoutUrlsRef = useRef<string[]>([]);
   const generationRequestRef = useRef("");
   const generationNeededRef = useRef(false);
-  const pendingGeneratedFrameRef = useRef<{ requestId: string; dataUrl: string } | null>(null);
+  const targetRefreshRequestRef = useRef("");
+  const pendingGeneratedFrameRef = useRef<{ requestId: string; dataUrl: string; videoTarget: TeaserMedia["generatedVideoTarget"] } | null>(null);
   const [teaserGenerationStatus, setTeaserGenerationStatus] = useState<"idle" | "rendering" | "ready" | "error">("idle");
   const [ctvOttFormats, setCtvOttFormats] = useState<CtvOttFormat[]>([]);
   const [ctvOttVideos, setCtvOttVideos] = useState<CtvOttVideos>({});
@@ -526,6 +781,7 @@ export default function Home() {
   const [feedbackInlineImages, setFeedbackInlineImages] = useState<FeedbackInlineImage[]>([]);
   const feedbackInlineImagesRef = useRef<FeedbackInlineImage[]>([]);
   const [feedbackError, setFeedbackError] = useState("");
+  const [feedbackSuccess, setFeedbackSuccess] = useState("");
   const [feedbackPreparing, setFeedbackPreparing] = useState(false);
   const srcDoc = useMemo(() => buildPreviewDocument(), []);
   const productionReference = useMemo(() => parseProductionReference(feedbackReferenceUrl), [feedbackReferenceUrl]);
@@ -533,13 +789,13 @@ export default function Home() {
   const requiresProductionReference = feedbackType === "visual-mismatch";
   const hasProductionReferenceInput = feedbackReferenceUrl.trim().length > 0;
   const productionReferenceInvalid = hasProductionReferenceInput && !productionReference;
-  const canCreateFeedbackBundle = !feedbackPreparing && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
+  const canCreateFeedbackBundle = !feedbackPreparing && !feedbackSuccess && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
 
   useEffect(() => { summaryRef.current = summary; }, [summary]);
   useEffect(() => { feedbackInlineImagesRef.current = feedbackInlineImages; }, [feedbackInlineImages]);
 
   useEffect(() => () => {
-    if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (url?.startsWith("blob:")) URL.revokeObjectURL(url); });
+    if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (typeof url === "string" && url.startsWith("blob:")) URL.revokeObjectURL(url); });
     teaserLayoutUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     ctvOttObjectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     feedbackInlineImagesRef.current.forEach(image => URL.revokeObjectURL(image.previewUrl));
@@ -647,11 +903,14 @@ export default function Home() {
       if (event.data.type === "tqa:mobile-instream-frame") {
         const requestId = String(event.data.requestId || "");
         if (requestId !== generationRequestRef.current || typeof event.data.dataUrl !== "string") return;
-        pendingGeneratedFrameRef.current = { requestId, dataUrl: event.data.dataUrl };
+        const videoTarget = event.data.videoTarget && ["left", "top", "width", "height"].every(key => Number.isFinite(event.data.videoTarget[key]))
+          ? event.data.videoTarget as TeaserMedia["generatedVideoTarget"]
+          : null;
+        pendingGeneratedFrameRef.current = { requestId, dataUrl: event.data.dataUrl, videoTarget };
         if (generationNeededRef.current) {
           setTeaserMedia(current => {
             if (!current) return current;
-            const next = { ...current, generatedFrame: event.data.dataUrl };
+            const next = { ...current, generatedFrame: event.data.dataUrl, generatedVideoTarget: videoTarget };
             teaserMediaRef.current = next;
             return next;
           });
@@ -665,6 +924,11 @@ export default function Home() {
       }
       if (event.data?.type === "tqa:preview-ready") {
         setPreviewTheme(iframeRef.current, themeRef.current);
+        iframeRef.current?.contentWindow?.postMessage({
+          type: "tqa:map-config",
+          token: BRIDGE_TOKEN,
+          config: mapPreviewConfigRef.current,
+        }, "*");
         if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
       } else if (event.data?.type === "tqa:preview-error") {
         setError(event.data.message || "The package could not be opened in Preview.");
@@ -675,6 +939,13 @@ export default function Home() {
     return () => window.removeEventListener("message", listener);
   }, []);
 
+  useEffect(() => {
+    const requestId = generationRequestRef.current;
+    if (!sourcePackage || !generationNeededRef.current || !teaserMedia?.generatedFrame || teaserMedia.generatedVideoTarget || targetRefreshRequestRef.current === requestId) return;
+    targetRefreshRequestRef.current = requestId;
+    iframeRef.current?.contentWindow?.postMessage({ type: "tqa:capture-mobile-instream", token: BRIDGE_TOKEN, requestId }, "*");
+  }, [sourcePackage, teaserMedia?.generatedFrame, teaserMedia?.generatedVideoTarget]);
+
   const openPackage = async (file?: File) => {
     if (!file) return;
     if (captureBusyRef.current || iframeRef.current?.contentDocument?.documentElement.dataset.captureBusy === "true") {
@@ -683,9 +954,11 @@ export default function Home() {
     }
     if (!/\.zip$/i.test(file.name)) { setError("Choose a ZIP export package."); setStatus("error"); return; }
     pendingFileRef.current = file;
+    mapPreviewConfigRef.current = null;
     setSourcePackage(file);
     generationRequestRef.current = `${file.name}:${file.size}:${file.lastModified}`;
     generationNeededRef.current = false;
+    targetRefreshRequestRef.current = "";
     pendingGeneratedFrameRef.current = null;
     clearCtvOttVideos();
     setCtvOttFormats([]);
@@ -696,15 +969,24 @@ export default function Home() {
     void loadPreviewFile(iframeRef.current, file);
     try {
       const packageData = await readPackage(file);
+      mapPreviewConfigRef.current = packageData.mapPreviewConfig;
+      iframeRef.current?.contentWindow?.postMessage({
+        type: "tqa:map-config",
+        token: BRIDGE_TOKEN,
+        config: packageData.mapPreviewConfig,
+      }, "*");
       const analyzed = analyzePackage(packageData.exportData, packageData.assets, file.name);
       const detectedCtvOttFormats = detectCtvOttFormats(packageData.exportData);
-      if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (url?.startsWith("blob:")) URL.revokeObjectURL(url); });
+      if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (typeof url === "string" && url.startsWith("blob:")) URL.revokeObjectURL(url); });
       teaserLayoutUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
       const nextMedia = createTeaserMedia(packageData.teaserBytes);
       const needsGeneration = analyzed.artboards.some(name => name.toLowerCase() === "mobile-instream") && !packageData.teaserBytes.instreamVideo;
       generationNeededRef.current = Boolean(needsGeneration && packageData.teaserBytes.video);
-      const pendingFrame = pendingGeneratedFrameRef.current as { requestId: string; dataUrl: string } | null;
-      if (generationNeededRef.current && pendingFrame?.requestId === generationRequestRef.current) nextMedia.generatedFrame = pendingFrame.dataUrl;
+      const pendingFrame = pendingGeneratedFrameRef.current as { requestId: string; dataUrl: string; videoTarget: TeaserMedia["generatedVideoTarget"] } | null;
+      if (generationNeededRef.current && pendingFrame?.requestId === generationRequestRef.current) {
+        nextMedia.generatedFrame = pendingFrame.dataUrl;
+        nextMedia.generatedVideoTarget = pendingFrame.videoTarget;
+      }
       const nextLayouts = createTeaserPackageLayouts(packageData.exportData, packageData.packageFiles);
       teaserMediaRef.current = nextMedia;
       teaserLayoutUrlsRef.current = nextLayouts.urls;
@@ -791,6 +1073,7 @@ export default function Home() {
 
   const openFeedback = () => {
     setFeedbackError("");
+    setFeedbackSuccess("");
     setFeedbackOpen(true);
   };
 
@@ -820,7 +1103,7 @@ export default function Home() {
     });
   };
 
-  const exportFeedbackBundle = async () => {
+  const submitFeedback = async () => {
     const referenceInput = feedbackReferenceUrl.trim();
     const reference = referenceInput ? parseProductionReference(referenceInput) : null;
     if (referenceInput && !reference) {
@@ -833,6 +1116,7 @@ export default function Home() {
     }
     setFeedbackPreparing(true);
     setFeedbackError("");
+    setFeedbackSuccess("");
     try {
       const capture = feedbackIncludeScreenshot && summary
         ? await captureFeedbackPreview(iframeRef.current).catch(cause => ({ error: cause instanceof Error ? cause.message : String(cause) }))
@@ -903,22 +1187,17 @@ export default function Home() {
       }
       const archive = zipSync(files, { level: 6 });
       const archiveBuffer = archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength) as ArrayBuffer;
-      const url = URL.createObjectURL(new Blob([archiveBuffer], { type: "application/zip" }));
-      const link = document.createElement("a");
       const stamp = generatedAt.replace(/[:.]/g, "-");
       const creative = safeFilePart(summary?.creativeName || "turbo", "turbo").toLowerCase();
-      link.href = url;
-      link.download = `${creative}-feedback-${stamp}.zip`;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      setFeedbackOpen(false);
-      setFeedbackSummary("");
-      setFeedbackActual("");
-      setFeedbackExpected("");
-      setFeedbackSteps("");
-      setFeedbackAttachments([]);
-      feedbackInlineImages.forEach(image => URL.revokeObjectURL(image.previewUrl));
-      setFeedbackInlineImages([]);
+      const filename = `${creative}-feedback-${stamp}.zip`;
+      const response = await fetch("/api/ctv-ott/feedback/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/zip", "X-Feedback-Filename": encodeURIComponent(filename) },
+        body: archiveBuffer,
+      });
+      const result = await response.json().catch(() => null) as { error?: string; name?: string } | null;
+      if (!response.ok) throw new Error(result?.error || `Box submission failed (${response.status}).`);
+      setFeedbackSuccess(`Submitted ${result?.name || filename} to Box.`);
     } catch (cause) {
       setFeedbackError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -1033,7 +1312,7 @@ export default function Home() {
           <DialogHeader>
             <span className="eyebrow">LOCAL DEBUG BUNDLE</span>
             <DialogTitle>Report feedback</DialogTitle>
-            <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. Nothing is uploaded; a ZIP is prepared locally for you to review and share.</DialogDescription>
+            <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. A ZIP is prepared locally in memory and uploaded to the configured Box folder only when you submit.</DialogDescription>
           </DialogHeader>
 
           <div className="feedback-form">
@@ -1068,7 +1347,7 @@ export default function Home() {
             <label className="feedback-field"><span>Steps to reproduce (optional)</span><textarea value={feedbackSteps} onChange={event => setFeedbackSteps(event.target.value)} placeholder={'1. Open the package\n2. Select the size and state\n3. Observe the issue'} /></label>
 
             <section className="feedback-evidence" aria-labelledby="feedback-evidence-title">
-              <div className="feedback-evidence-heading"><div><strong id="feedback-evidence-title">Evidence included</strong><span>Review everything before creating the bundle.</span></div><ShieldCheck /></div>
+              <div className="feedback-evidence-heading"><div><strong id="feedback-evidence-title">Evidence included</strong><span>Review everything before submitting feedback.</span></div><ShieldCheck /></div>
               <label className="feedback-check"><input type="checkbox" checked={feedbackIncludeScreenshot} disabled={!summary} onChange={event => setFeedbackIncludeScreenshot(event.target.checked)} /><span><b>Active preview screenshot</b><small>{summary ? "Captures the current artboard and records its tab, slide, view, scale, and theme." : "Open a package to include a rendered artboard."}</small></span></label>
               <label className="feedback-check"><input type="checkbox" checked={feedbackIncludePackage} disabled={!sourcePackage} onChange={event => setFeedbackIncludePackage(event.target.checked)} /><span><b>Source package</b><small>{sourcePackage ? `${sourcePackage.name} · ${formatBytes(sourcePackage.size)}` : "No package is currently open."}</small></span></label>
               <label className="feedback-attachment"><Paperclip /><span><b>Add supporting files</b><small>Reference screenshots, logs, PDFs, or corrected assets</small></span><input type="file" multiple onChange={event => setFeedbackAttachments(Array.from(event.target.files || []))} /></label>
@@ -1076,11 +1355,12 @@ export default function Home() {
             </section>
 
             {feedbackError && <div className="feedback-error" role="alert"><CircleAlert /> {feedbackError}</div>}
+            {feedbackSuccess && <div className="feedback-success" role="status"><CheckCircle2 /> {feedbackSuccess}</div>}
           </div>
 
           <DialogFooter className="feedback-footer">
-            <Button variant="outline" disabled={feedbackPreparing} onClick={() => setFeedbackOpen(false)}>Cancel</Button>
-            <Button disabled={!canCreateFeedbackBundle} onClick={() => void exportFeedbackBundle()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Preparing bundle…</> : <><Download /> Create feedback bundle</>}</Button>
+            <Button variant="outline" disabled={feedbackPreparing} onClick={() => setFeedbackOpen(false)}>{feedbackSuccess ? "Close" : "Cancel"}</Button>
+            <Button disabled={!canCreateFeedbackBundle} onClick={() => void submitFeedback()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Submitting feedback…</> : <><Upload /> Submit Feedback</>}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

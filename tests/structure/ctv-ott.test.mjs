@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const preview = readFileSync("preview/turbo-preview-7.12.0.html", "utf8");
+const preview = readFileSync("preview/turbo-preview-7.12.5.html", "utf8");
 const app = readFileSync("app/page.tsx", "utf8");
 const renderer = readFileSync("scripts/ctv-ott-renderer.mjs", "utf8");
 const stack = readFileSync("scripts/preview-stack.mjs", "utf8");
@@ -39,10 +39,11 @@ test("the browser reaches the renderer through the same-origin app proxy", () =>
   assert.match(viteConfig, /rewrite: \(requestPath: string\) => requestPath\.replace/);
   assert.match(viteConfig, /server: \{/);
   assert.match(viteConfig, /preview: \{ proxy: ctvOttProxy \}/);
+  assert.match(viteConfig, /process\.env\.TURBO_PREVIEW_PORT \|\| 4177/);
 });
 
 test("FFmpeg renderer stays on the approved production preview profile", () => {
-  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview\/turbo-preview-7\.12\.0\.html"\)/);
+  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview\/turbo-preview-7\.12\.4\.html"\)/);
   assert.match(renderer, /role === "disclaimer"/);
   assert.match(renderer, /duration - 8/);
   assert.match(renderer, /duration - 7\.8/);
@@ -53,7 +54,7 @@ test("FFmpeg renderer stays on the approved production preview profile", () => {
   assert.match(renderer, /-b:v", "15M/);
   assert.match(renderer, /-ar", "48000/);
   assert.match(renderer, /-ac", "2/);
-  assert.match(renderer, /build: "7\.12\.0"/);
+  assert.match(renderer, /build: "7\.12\.4"/);
   assert.match(renderer, /const qrBackingRect = \(qr, panel, shape\) =>/);
   assert.match(renderer, /\[qrBackingSource\]crop=/);
   assert.match(renderer, /\[expandedQrGroup\]/);

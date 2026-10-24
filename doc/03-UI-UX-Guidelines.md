@@ -1,10 +1,10 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-> **Current release: 7.12.0** — `preview/turbo-preview-7.12.0.html`. Adds host-level first-view candidate filtering and budget review; renderer behavior is inherited from 7.11.16. See [First-view validation](20-First-View-Validation.md). Historical baseline descriptions below are retained.
+> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
 
-**Doc version:** 1.7.8
-**Reflects build:** `preview/turbo-preview-7.12.0.html` @ **v7.12.0** (current); historical baselines are described below.
-**Last updated:** 2026-10-14
+**Doc version:** 1.8.0
+**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
+**Last updated:** 2026-10-23
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -147,4 +147,4 @@ The capture dialog includes one checked option, **Include CSM review PDF**, with
 After a successful run, **Download ZIP** remains the primary retained artifact and **Review PDF** provides direct access to the PDF. A PDF-only generation error is stated without hiding the valid PNG ZIP. Every PDF page uses a white background and compact gray section header, independent of the preview theme. The review begins with content rather than a generated cover so its flow matches the supplied CSM reference.
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-**Report feedback** belongs in the existing app menu beside **Generate report** and **Screenshots**. Its modal uses explicit required labels, inline production-URL classification, separate actual/expected fields, a visible evidence review, and one primary **Create feedback bundle** action. The action stays disabled until a valid CCRV or Showcase reference is present. The privacy message must state that the ZIP is prepared locally and nothing is uploaded.
+**Report feedback** belongs in the existing app menu beside **Generate report** and **Screenshots**. The modal keeps the common path short: category first, optional multiline Description with pasted-image support, optional reproduction steps, and a visible evidence review. Actual/Expected fields appear only for Visual mismatch; a valid CCRV or Showcase reference is required only when the selected category needs a production comparison. The primary action is **Submit Feedback**. Its progress and success states must be explicit, and the privacy message must state that the ZIP is prepared in memory and uploaded to the configured Box folder only on submit.

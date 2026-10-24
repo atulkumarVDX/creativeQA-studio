@@ -4,7 +4,8 @@ import test from "node:test";
 
 const page = readFileSync("app/page.tsx", "utf8");
 const previewPointer = readFileSync("preview/current-preview.ts", "utf8");
-const preview = readFileSync("preview/turbo-preview-7.12.0.html", "utf8");
+const preview = readFileSync("preview/turbo-preview-7.12.5.html", "utf8");
+const renderer = readFileSync("scripts/ctv-ott-renderer.mjs", "utf8");
 
 test("feedback is available from the existing app menu", () => {
   assert.match(page, /<DropdownMenuItem onSelect=\{openFeedback\}><MessageSquareWarning \/> Report feedback<\/DropdownMenuItem>/);
@@ -22,13 +23,21 @@ test("feedback requires a production reference only for visual mismatches", () =
   assert.match(page, /productionReference: reference/);
 });
 
-test("feedback bundle contains structured evidence without uploading it", () => {
+test("feedback bundle contains structured evidence and submits through the local Box service", () => {
   assert.match(page, /files\["feedback\.json"\]/);
   assert.match(page, /files\["evidence\/active-preview\.png"\]/);
   assert.match(page, /files\[`package\/\$\{safeFilePart\(packageFile\.name/);
   assert.match(page, /zipSync\(files/);
-  assert.match(page, /Nothing is uploaded; a ZIP is prepared locally/);
-  assert.doesNotMatch(page, /fetch\([^\n]+feedback/i);
+  assert.match(page, /fetch\("\/api\/ctv-ott\/feedback\/upload"/);
+  assert.match(page, /<Upload \/> Submit Feedback/);
+  assert.match(renderer, /url\.pathname === "\/feedback\/upload"/);
+  assert.match(renderer, /uploadFeedbackToBox/);
+});
+
+test("the Box upload endpoint accepts feedback only from the local app", () => {
+  assert.match(renderer, /function isTrustedFeedbackOrigin/);
+  assert.match(renderer, /\["127\.0\.0\.1", "localhost", "::1"\]/);
+  assert.match(renderer, /status[^\n]*403|jsonResponse\(response, 403/);
 });
 
 test("feedback categories cover common QA Studio issue areas", () => {
@@ -58,7 +67,7 @@ test("description and comparison fields accept pasted image evidence", () => {
 });
 
 test("the merged current build retains the feedback-enabled host integration", () => {
-  assert.match(previewPointer, /turbo-preview-7\.12\.0\.html/);
-  assert.match(preview, /const PREVIEW_BUILD = "7\.12\.0"/);
+  assert.match(previewPointer, /turbo-preview-7\.12\.5\.html/);
+  assert.match(preview, /const PREVIEW_BUILD = "7\.12\.5"/);
   assert.match(preview, /window\.CSM_PREVIEW_BUILD = PREVIEW_BUILD/);
 });

@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 // renderer, avoiding browser-dependent cross-origin localhost restrictions.
 const ctvOttProxy = {
   "/api/ctv-ott": {
-    target: "http://127.0.0.1:4177",
+    target: `http://127.0.0.1:${process.env.TURBO_PREVIEW_PORT || 4177}`,
     changeOrigin: true,
     rewrite: (requestPath: string) => requestPath.replace(/^\/api\/ctv-ott/, ""),
   },

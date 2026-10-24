@@ -1,36 +1,73 @@
-# Static-server deployment — Turbo QA Studio 7.11.16
+# Linux deployment package
 
-This release uses **one Linux server**. Nginx serves the built `dist/` files and forwards only `/api/ctv-ott/health` and `/api/ctv-ott/render` to the FFmpeg renderer on `127.0.0.1:4177`. Visitors use a browser; they do not install Node or FFmpeg. Static-only hosting without this API cannot generate CTV/OTT previews.
+The release archive is built for the current preview version in `preview/current-preview.ts`. It includes the static `dist/` site, the matching CTV/OTT renderer and preview HTML, the renderer's Box helper, Nginx examples, and a Docker Compose deployment for the renderer. The Docker container needs no Node.js, FFmpeg, ffprobe, or unzip installation on the VM host; those runtime tools are inside the image.
 
-## Build and contents
-
-Use Node.js **22.13 or newer** in the source workspace:
+Build the release from the source workspace with Node.js **22.13 or newer**:
 
 ```sh
+npm run build
 node deploy/build-static-server.mjs
 ```
 
-This produces `outputs/turbo-qa-studio-7.11.16-static-server.tar.gz`. It contains `dist/`, the pinned 7.11.16 renderer, the renderer's matching preview HTML, this guide, and example Nginx/systemd configuration. It does **not** change the app version or runtime source. Do not upload the source workspace, `node_modules`, sample packages, or old preview builds to the public web root.
+The archive is written to `outputs/turbo-qa-studio-<current-version>-static-server.tar.gz`. The builder reads the version from `preview/current-preview.ts`, verifies that the renderer and preview HTML match it, and includes both modules imported by the renderer. Do not upload the source workspace, `node_modules`, sample packages, or historical preview files to a public web root.
 
-## Server prerequisites
+## Docker renderer on a separate VM
 
-- Linux server with Nginx, Node.js 22.13+, FFmpeg, ffprobe and `/usr/bin/unzip` installed.
-- A DNS name and valid TLS certificate. Keep TCP 4177 closed to the network; the renderer binds to loopback.
-- A dedicated, unprivileged `turboqa` service account and sufficient temporary disk space for a ZIP, extraction, intermediate frames and output video. The renderer removes its temporary files after the response completes.
-- `htpasswd` (often supplied by `apache2-utils`) if using the example's Basic authentication.
-- Authentication at Nginx or the company access gateway. The example protects the **whole site**, including the render API, with an htpasswd file; do not publish an unauthenticated renderer. Use HTTPS before entering credentials.
+This deployment suits the setup where the static app remains on its existing host and the VM provides only the rendering API. It requires Docker Engine and the Compose plugin on the VM. The app's HTTPS host or its approved gateway must route `/api/ctv-ott/health`, `/api/ctv-ott/render`, and `/api/ctv-ott/feedback/upload` to the VM. The renderer itself listens inside the container, while Compose publishes it only on host loopback at `127.0.0.1:4177`. Do not expose port 4177 directly to the network.
 
-## Install
+1. Copy the release archive to the VM and extract it to a versioned directory, for example:
 
-1. Upload the release archive to the server and extract its `turbo-qa-studio-7.11.16/` directory under `/srv/turbo-qa-studio/releases/`. Set ownership to `turboqa` and point `/srv/turbo-qa-studio/current` at that directory. The only Nginx web root is `/srv/turbo-qa-studio/current/dist`; the renderer script and preview source HTML must **not** be served directly.
-2. Copy `turbo-qa-renderer.service` to `/etc/systemd/system/`. If Node is not `/usr/bin/node`, change `ExecStart` to its absolute Node 22 path. Run `sudo systemctl daemon-reload`, `sudo systemctl enable --now turbo-qa-renderer`, then check `curl http://127.0.0.1:4177/health` **on the server**; it must report build `7.11.16`.
-3. Put `nginx/turbo-qa-limits.conf` in `/etc/nginx/conf.d/` (HTTP context). Put `nginx/turbo-qa-site.conf` in `/etc/nginx/sites-available/`, replace `__DOMAIN__`, `__CERT_FILE__`, and `__KEY_FILE__`, and enable the site. Run `sudo htpasswd -c /etc/nginx/turbo-qa.htpasswd YOUR_USERNAME` to create the password file, or replace `auth_basic` with an approved company authentication gateway. Run `sudo nginx -t` before reloading Nginx.
-4. Open `https://__DOMAIN__/`, upload a supported export ZIP, and render both CTV and OTT. Verify `https://__DOMAIN__/api/ctv-ott/health` returns 7.11.16 **only after authentication**. The video response should come from the same domain; the browser must not contact `localhost` or `127.0.0.1`.
+   ```sh
+   sudo mkdir -p /srv/turbo-qa-studio/releases
+   sudo tar -xzf turbo-qa-studio-<current-version>-static-server.tar.gz -C /srv/turbo-qa-studio/releases
+   cd /srv/turbo-qa-studio/releases/turbo-qa-studio-<current-version>
+   ```
 
-The Nginx render route permits up to a 1 GiB package, allows **two concurrent renders** so mixed CTV+OTT packages can complete, and uses a 20-minute upstream timeout. Additional simultaneous renders receive HTTP 429. This is a conservative guard because the 7.11.16 renderer buffers each full package in memory. Size CPU/RAM/disk for two simultaneous packages and FFmpeg processes, and load-test before widening concurrency. Nginx may also buffer uploads to its client-body temporary directory; provision that disk accordingly.
+2. Build and start the renderer using the engineer-approved Docker access:
 
-## Verification and limits
+   ```sh
+   sudo install -m 600 /dev/null .env
+   sudoedit .env
+   ```
 
-Run `npm run typecheck`, `npm test`, and `npm run build` in the source workspace before release. The 7.11.16 renderer supports 1920×1080 CTV/OTT artboards, a 1 GiB request cap and source videos up to 270 seconds. It uses package creative assets and the FFmpeg motion pipeline documented in `doc/CTV-OTT-Consolidated-Spec.md` in the source workspace.
+   Add the app's exact HTTPS origin, and add Box credentials only if feedback upload should be enabled:
 
-This configuration assumes QA Studio is served from the **domain root** because the app calls `/api/ctv-ott/...` from the root. If the site must live under a subpath, that API path still needs to be routed at the domain root. This is a deployment example, not a claim that the current renderer is hardened for an untrusted public internet audience; put it behind managed authentication and review resource controls before broad access.
+   ```dotenv
+   TURBO_APP_ORIGIN=https://creative.exponential.com
+   BOX_CLIENT_ID=
+   BOX_CLIENT_SECRET=
+   BOX_ENTERPRISE_ID=
+   BOX_FEEDBACK_FOLDER_ID=
+   ```
+
+   Then build and start the container:
+
+   ```sh
+   sudo docker compose -f deploy/docker/compose.yaml up -d --build
+   sudo docker compose -f deploy/docker/compose.yaml ps
+   ```
+
+   The image uses Node.js 22, FFmpeg/ffprobe, and unzip on Debian. The renderer runs as the unprivileged `node` user. Keep `.env` readable only by the administrator and do not commit secrets to the release directory.
+
+3. Verify on the VM:
+
+   ```sh
+   curl --fail http://127.0.0.1:4177/health
+   sudo docker logs --tail=100 turbo-qa-renderer
+   ```
+
+   The health response must report the same current version as the release directory. Test CTV and OTT renders through the authenticated HTTPS app endpoint after the gateway route is configured.
+
+4. For a later release, build and extract the new version into a new directory, then run `sudo docker compose -f deploy/docker/compose.yaml up -d --build` from that directory. Keep the prior release directory for rollback; use its Compose file to rebuild/restart that version if needed.
+
+The renderer accepts packages up to 1 GiB and source videos up to 270 seconds. The Nginx example allows two concurrent renders and uses a 20-minute upstream timeout. The renderer buffers each package in memory, so retain bounded concurrency and load-test before increasing it. Ensure the VM has sufficient free disk for Docker images, temporary render files, and proxy request buffering. The application cleans temporary render files after completion or failure; include an operational check for leftovers after interrupted processes.
+
+## Nginx example
+
+`nginx/turbo-qa-site.conf` is an example for a VM that also serves the static site. If the static site remains on another host, do not copy that site's `root`/`try_files` setup to the renderer VM. Instead, configure the existing HTTPS host or company gateway to proxy the three API routes above to the VM's private HTTPS endpoint. Preserve authentication, the 1 GiB request limit, bounded render concurrency, and the 20-minute render timeout. Protect the health endpoint behind the same approved access control.
+
+The existing Nginx examples keep TCP 4177 private, require HTTPS, and show Basic authentication as a placeholder; replace it with the company-approved authentication gateway. The app calls `/api/ctv-ott/...` at the domain root, so that route must work on the app's domain even when static files are served from a subdirectory.
+
+## Non-Docker alternative
+
+For a server where Node.js 22.13+, FFmpeg, ffprobe, and unzip are installed directly on the host, the archive also includes `turbo-qa-renderer.service` and the example Nginx files. Create a dedicated unprivileged `turboqa` account, point `/srv/turbo-qa-studio/current` at the selected release directory, then install and enable the systemd service as described in the service file and Nginx examples.

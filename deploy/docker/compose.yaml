@@ -1,0 +1,23 @@
+services:
+  ctv-ott-renderer:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/renderer.Dockerfile
+    image: turbo-qa-studio-renderer:${TURBO_QA_VERSION:-current}
+    container_name: turbo-qa-renderer
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4177:4177"
+    environment:
+      NODE_ENV: production
+      TURBO_PREVIEW_HOST: 0.0.0.0
+      TURBO_PREVIEW_PORT: "4177"
+      TURBO_APP_ORIGIN: ${TURBO_APP_ORIGIN:-}
+      BOX_CLIENT_ID: ${BOX_CLIENT_ID:-}
+      BOX_CLIENT_SECRET: ${BOX_CLIENT_SECRET:-}
+      BOX_ENTERPRISE_ID: ${BOX_ENTERPRISE_ID:-}
+      BOX_FEEDBACK_FOLDER_ID: ${BOX_FEEDBACK_FOLDER_ID:-}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

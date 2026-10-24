@@ -1129,7 +1129,62 @@ No Photoshop or copy repair is required. Preserve the source layers and correct 
 
 The preview should not raise a designer-facing text defect for this renderer-created collision or for the temporary blank band introduced by preserving all y-positions. Regression coverage must assert that a qualifying full-width video's rounded height delta is applied once to its direct sibling branch, descendants keep their local spacing, and contained video or unrelated structures do not move. It must also retain responsive ISI, left/center/right circular controls, and state-control scoping coverage. Live 375×622 measurements in 7.9.11 closed the seam to `-0.156px` in Tryngolza, Ipsen and TRYPTYR; Alprolix correctly retained its authored approximately `16.8px` internal spacing because it lacks the qualifying sibling relationship.
 
-## 17. New-case template
+## 17. Case TR-012 — Stale text metadata shifts a CTA label horizontally
+
+**Status:** Observed and source-repaired; detection proposed. No renderer patch is claimed.
+
+**Affected builds:** Preview output before the source text round-trip repair.
+
+**Evidence package:** `pharma_otc_template8_v1.psd.zip` (XDEMVY, Production_v2).
+
+**Affected state:** `970x546`, `tab2`, `slide1`, CTA label `Take the DB Quiz` (layer `214498`). A related instance, layer `214562`, retains stored text scaling metadata (`xx/yy ≈ 0.835`) while equivalent copies do not.
+
+### Symptom
+
+The CTA button remains in the correct position, but its live label appears shifted to the right inside the button. The same drift can appear in more than one artboard when the affected text setup is reused.
+
+### Confirmed evidence
+
+The package contains repeated `Take the DB Quiz` text layers. One instance retains a non-identity text transform (`xx = 0.835015`, `yy = 0.835015`); comparable instances have no text transform. The user corrected the source by converting the text to paragraph text and then back to point text, after which the label aligned correctly. This is a repeatable source-repair signal, but the export descriptor alone does not prove a visible defect on every package.
+
+### Root cause
+
+Photoshop retained stale text sizing/position metadata on the live label. The export and browser renderer can interpret that stored information differently from Photoshop, so the button frame and label use slightly different horizontal geometry. This is a PSD text-metadata/export interaction, not a copy error and not a responsive viewport problem.
+
+### Detection proposal
+
+Raise a designer-facing **error** only when both conditions are met:
+
+1. The live text is inside a CTA/button group and contains non-identity text scaling or equivalent stale text-geometry metadata.
+2. Rendered glyph bounds are measurably offset from the CTA frame center or expected authored alignment beyond the approved tolerance.
+
+If only the metadata signal is present, report a lower-priority review warning rather than an error. Compare repeated copies of the same label where available; a matching untransformed copy is useful corroborating evidence. Exclude intentional transforms, rotated labels, image-based lettering, non-CTA text, and labels whose rendered bounds are aligned.
+
+### Designer-facing message
+
+> **This button label may shift in the published ad.**
+>
+> The text layer contains saved Photoshop sizing information that can be read differently after export.
+
+### Exact Photoshop repair
+
+1. Select the affected button label with the Type tool.
+2. Convert it to **Paragraph Text**.
+3. Convert it back to **Point Text**.
+4. Keep the existing words, font, size, color, and styling.
+5. Re-export the ZIP and check the button again.
+
+Do not retype the copy, add manual spaces, or move the button to compensate.
+
+### Tool behavior
+
+Show the error in Findings with the ad size, tab, slide, CTA name, text layer name, and a short preview of the affected label. Show the repair steps directly on the finding card. Do not automatically rewrite the PSD.
+
+### Validation point and fixture
+
+For every supported artboard/state containing a live CTA label, validation must record the CTA frame bounds, label glyph bounds, text mode, and text transform. A passing case has the label within the approved horizontal alignment tolerance. A failing fixture must reproduce the pre-repair transformed label; its corrected companion must be the same source after the paragraph-text → point-text round trip, with unchanged copy and styling and no alignment error. Include both cases in regression validation so metadata-only signals do not become false errors.
+
+## 18. New-case template
 
 Copy this section for each future case.
 
@@ -1181,7 +1236,7 @@ automatic action is possible.
 
 Record the before/after packages or minimal fixture needed for regression tests.
 
-## 18. Text QA capture workflow
+## 19. Text QA capture workflow
 
 Baseline Optical-kerning and genuine rendered-state measurement failures are
 discoverable without a query parameter. To capture a comprehensive diagnostic

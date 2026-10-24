@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+const localEnv = resolve(".env.local");
+if (existsSync(localEnv) && typeof process.loadEnvFile === "function") process.loadEnvFile(localEnv);
 
 const appArgs = process.argv.slice(2);
 const renderer = spawn(process.execPath, ["scripts/ctv-ott-renderer.mjs"], { stdio: "inherit" });

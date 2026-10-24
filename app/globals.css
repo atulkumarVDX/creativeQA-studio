@@ -156,6 +156,8 @@ button { cursor: pointer; }
 .feedback-attachment-list span { padding: 4px 7px; border: 1px solid #34424d; border-radius: 4px; color: #aebac4; font: 10px/1.3 var(--font-mono); }
 .feedback-error { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border: 1px solid #6c3131; border-radius: 5px; color: #ffb5b5; background: #271314; font-size: 12px; line-height: 1.4; }
 .feedback-error svg { width: 17px; flex: 0 0 auto; }
+.feedback-success { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border: 1px solid #285c4d; border-radius: 5px; color: #a9f5de; background: #10251f; font-size: 12px; line-height: 1.4; }
+.feedback-success svg { width: 17px; flex: 0 0 auto; }
 .feedback-footer { padding-top: 2px; }
 .feedback-footer button svg { width: 16px; }
 
@@ -332,13 +334,14 @@ html[data-theme="light"] .toolbar > select:focus-visible { outline-color: #087e6
 .teaser-generation-status > div { display: grid; gap: 3px; }
 .teaser-generation-status strong { font-size: 13px; }
 .teaser-generation-status span { color: var(--muted-foreground); font-size: 12px; }
-.teaser-gallery { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 22px 18px; max-width: 1180px; }
+.teaser-gallery { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 22px; width: 100%; }
 .teaser-card { width: fit-content; max-width: 100%; min-width: 0; }
-.teaser-card-desktop-expandable, .teaser-card-desktop-inframe, .teaser-card-728x90, .teaser-card-mobile-adhesion, .teaser-card-mobile-instream { flex-basis: 100%; }
 .teaser-card-heading { display: flex; align-items: center; gap: 9px; min-height: 26px; margin-bottom: 6px; color: var(--foreground); font-size: 13px; }
 .teaser-card-heading strong { font-weight: 700; }
 .teaser-card-heading span { color: var(--muted-foreground); }
 .teaser-stage { position: relative; max-width: 100%; overflow: hidden; border: 1px solid rgba(255,255,255,.55); background: #000; cursor: pointer; isolation: isolate; }
+.teaser-stage-viewport-mobile-instream { position: relative; max-width: 100%; overflow: hidden; }
+.teaser-stage-viewport-mobile-instream > .teaser-stage { position: absolute; inset: 0 auto auto 0; max-width: none; transform: scale(.5); transform-origin: left top; }
 .teaser-stage:focus-within { outline: 3px solid var(--primary); outline-offset: 3px; }
 .teaser-stage video { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .teaser-creative { position: absolute; z-index: 1; overflow: hidden; background: #000; }

@@ -154,6 +154,9 @@ test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=
  assert.match(readFileSync('app/page.tsx','utf8'),/onClick=\{\(\) => openMainUnit\("970x546"\)\}/);
  assert.match(readFileSync('app/page.tsx','utf8'),/const selectedSize = Array\.from\(document\.querySelectorAll\("#sizePicker \.chip"\)\)/);
  assert.match(readFileSync('app/page.tsx','utf8'),/Teaser generation temporarily selects mobile-instream/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/const previousTransform = stage\.style\.transform;[\s\S]*?stage\.style\.transform = "none";[\s\S]*?stage\.style\.transform = previousTransform;/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/const videoLayer = Array\.from\(stage\.querySelectorAll\("\.cp-video"\)\)[\s\S]*?videoTarget/);
+ assert.match(readFileSync('components/teaser-preview.tsx','utf8'),/matrix\(\$\{scaleX\}, 0, 0, \$\{scaleY\}, \$\{translateX\}, \$\{translateY\}\)/);
  assert.match(readFileSync('app/page.tsx','utf8'),/tqa:focus-finding/);
  assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openQaFinding\(finding\)/);
  assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openStructureFinding\(finding\)[\s\S]*?compareEnabled = false;[\s\S]*?activeSlide = slide \|\| null;/);
