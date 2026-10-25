@@ -1200,6 +1200,19 @@ window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
     "hotspotgallery",
     "staticproductgallery"
   ];
+  // Arrow navigation is deliberately a component contract, not a generic
+  // name match. These are the component families whose authored state is a
+  // direct slideN sequence and therefore can safely use the shared preview
+  // arrow behavior. Components with different state models (for example
+  // view360, categoryGallery, dotterGallery, or videoComponent) must not be
+  // attached to the global activeSlide until their production state mapping
+  // is verified.
+  const GALLERY_ARROW_COMPONENTS = new Set([
+    "rmgallery",
+    "colorpickergallery",
+    "hotspotgallery",
+    "staticproductgallery"
+  ]);
   // Artboards the exporter also produces that CSM/this previewer ignore —
   // CTV/OTT variants and the master (shared-config) artboard.
   const IGNORED_ARTBOARD_PATTERN = /^(master|ctv|ott|ctvott)/i;
@@ -1370,6 +1383,11 @@ window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
   function isGallery(name) {
     const n = (name || "").toLowerCase();
     return GALLERY_FAMILY_SUBSTRINGS.some(sub => n.includes(sub));
+  }
+
+  function galleryArrowComponentFamily(name) {
+    const normalized = (name || "").trim().replace(/[0-9]+$/, "").toLowerCase();
+    return GALLERY_ARROW_COMPONENTS.has(normalized) ? normalized : null;
   }
 
   function unitValue(v) {
@@ -1675,7 +1693,7 @@ window.CSM_PREVIEW_BUILD = PREVIEW_BUILD;
    * Parses export.json into a per-artboard model:
    * {
    *   name, width, height, rootLayerId,
-   *   tabs: { tab1: { layerId, gallery: { slides: {slide1:{layerId}, ...}, slideOrder:[...] } | null } },
+   *   tabs: { tab1: { layerId, gallery: { layerId, componentName, componentFamily, slides: {slide1:{layerId}, ...}, slideOrder:[...] } | null } },
    *   tabOrder: [...]
    * }
    * Also returns a flat lookup used by the renderer to walk every
@@ -2145,7 +2163,13 @@ function createStructuralMount(entry) {
               slides[key] = { layerId: layer.layerID };
               slideOrder.push(key);
             }
-            gallery = { layerId: galleryLayer.layerID, slides, slideOrder };
+            gallery = {
+              layerId: galleryLayer.layerID,
+              componentName: galleryLayer.name,
+              componentFamily: galleryArrowComponentFamily(galleryLayer.name),
+              slides,
+              slideOrder
+            };
           }
 
           model.tabs[tabName] = { layerId: tabLayer.layerID, gallery };
@@ -6807,7 +6831,7 @@ function structureCoveragePresentation(result) {
 
   function galleryArrowTargets(entry) {
     const gallery = entry.model.tabs[activeTab]?.gallery;
-    if (!gallery || !entry.stageEl) return [];
+    if (!gallery || !gallery.componentFamily || !entry.stageEl) return [];
     const source = entry.structureIndex.sourceById;
     return Array.from(entry.stageEl.querySelectorAll("[data-structure-layer-id]")).flatMap(element => {
       const layer = source.get(Number(element.dataset.structureLayerId));
@@ -6830,31 +6854,39 @@ function structureCoveragePresentation(result) {
     });
   }
 
+  function bindGalleryArrow(entry, element, direction, componentFamily) {
+    element.classList.add("cp-gallery-arrow-control");
+    element.dataset.galleryArrowDirection = direction > 0 ? "next" : "previous";
+    element.dataset.galleryArrowComponent = componentFamily;
+    element.setAttribute("role", "button");
+    element.tabIndex = 0;
+    element.setAttribute("aria-label", direction > 0 ? "Next gallery slide" : "Previous gallery slide");
+    element.setAttribute("aria-keyshortcuts", "Enter Space");
+    [element, ...element.querySelectorAll("*")].forEach(node => {
+      node.style.pointerEvents = "auto";
+      node.style.cursor = "pointer";
+    });
+    element.addEventListener("click", event => {
+      event.stopPropagation();
+      moveGallerySlide(direction, entry);
+    });
+    element.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      event.stopPropagation();
+      moveGallerySlide(direction, entry);
+      // Rerendering replaces the control; keep keyboard navigation usable.
+      galleryArrowTargets(entry).find(target => target.direction === direction)?.element.focus({ preventScroll: true });
+    });
+  }
+
   function addGalleryArrowHitAreas(entry) {
-    if (gallerySlideKeys().length < 2) return;
+    const gallery = entry.model.tabs[activeTab]?.gallery;
+    if (!gallery || gallerySlideKeys().length < 2) return;
     galleryArrowTargets(entry).forEach(({ element, direction }) => {
       // Use the rendered arrow's actual structural coordinate space. A stage
       // overlay would escape nested frames and responsive positioning rules.
-      element.classList.add("cp-gallery-arrow-control");
-      element.setAttribute("role", "button");
-      element.tabIndex = 0;
-      element.setAttribute("aria-label", direction > 0 ? "Next gallery slide" : "Previous gallery slide");
-      [element, ...element.querySelectorAll("*")].forEach(node => {
-        node.style.pointerEvents = "auto";
-        node.style.cursor = "pointer";
-      });
-      element.addEventListener("click", event => {
-        event.stopPropagation();
-        moveGallerySlide(direction, entry);
-      });
-      element.addEventListener("keydown", event => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        event.stopPropagation();
-        moveGallerySlide(direction, entry);
-        // Rerendering replaces the control; keep keyboard navigation usable.
-        galleryArrowTargets(entry).find(target => target.direction === direction)?.element.focus({ preventScroll: true });
-      });
+      bindGalleryArrow(entry, element, direction, gallery.componentFamily);
     });
   }
 

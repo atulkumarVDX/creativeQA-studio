@@ -96,6 +96,18 @@ The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a su
 
 Gallery dots, arrows, and progress controls inherit their visibility from the selected PSD layer tree. A visible `circularBar` uses the PSD's authored green frame plus a source-bounds white SVG indicator, centered production SVG play glyph, and static muted-state SVG when a `muteIcon` is authored; a hidden `dots`, `arrows`, `progressBar`, or parent `slideProgress` must leave no preview-only substitute behind.
 
+### Gallery arrow interaction contract (7.12.5)
+
+The preview applies one shared arrow contract to the supported direct-slide gallery families: `rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`. The contract is component-local: an arrow can navigate only the `slideN` states owned by its nearest supported gallery, never the outer gallery or a slide/nested component.
+
+- Recognize authored left/right, previous/next, back/forward, and equivalent arrow names.
+- Give each valid arrow the same pointer affordance, focus ring, `role="button"`, accessible direction label, and Enter/Space activation.
+- Wrap from the first state to the last and from the last state to the first, using the owning gallery's slide list.
+- Keep the gallery frame and persistent controls fixed; animate only the incoming/outgoing slide collection items with the current 500ms horizontal `ease-out` transition. Respect `prefers-reduced-motion`.
+- Ignore dot-prefixed export exclusions, arrows inside a slide, and arrows owned by nested components. Do not infer interaction from the word `arrow` alone.
+
+Other arrow-bearing component families (`view360`, `imageGallery`, `categoryGallery`, `dotterGallery`, `productGallery`, and `videoComponent`) use different state models or require production verification. Their controls remain authored/static until a component-specific state mapping is confirmed; they must never be attached to the global gallery slide state as a shortcut.
+
 An explicit blank PSD paragraph must remain visible as exactly one authored line-height. Do not simulate it with a global paragraph margin: that would alter normal paragraph spacing and production text geometry (D036).
 
 **Design principle:** every one of these is deliberately *visible and labeled* in-canvas where applicable, and text findings are cross-referenced in the review panel; never leave a silent gap or console-only warning. If you add a new failure mode, follow this pattern — don't introduce a new visual language for "missing."

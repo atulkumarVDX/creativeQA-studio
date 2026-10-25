@@ -609,3 +609,11 @@ Decision: for galleries with at least two authored slides, make recognized left/
 Validation: all 150 project tests, TypeScript, lint and the production build pass; lint reports 12 warnings in unrelated files. Gallery arrow hierarchy and bounds were checked in four sample exports: Navigation Prototype Demo, La Roche, Ipsen and Natrelle. Live click behavior still needs a loaded creative in the preview.
 
 Transition follow-up: retain the current 7.12.5 build and align its manual slide motion with production's short horizontal ease-out transition. The preview uses a 500ms `ease-out` animation and keeps the transition scoped to incoming/outgoing slide collection items; autoplay and circular progress remain unchanged.
+
+## D076 — [Gallery] Standardize the supported arrow contract across slide-gallery components (7.12.5)
+
+The original 7.12.5 implementation described arrow behavior generically as "gallery" behavior, although the renderer's state model is only verified for direct `slideN` galleries. Applying the global `activeSlide` state to a component with a different state model could navigate the wrong owner or hide unrelated content.
+
+**Decision:** make the arrow contract explicit and shared for `rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`. Each valid arrow is resolved against its owning component, receives identical pointer/keyboard/ARIA behavior, wraps within that component's ordered slide list, and uses the same 500ms horizontal `ease-out` transition with reduced-motion support. Dot-prefixed layers, slide-owned arrows, and nested-component arrows are excluded. Components such as `view360`, `imageGallery`, `categoryGallery`, `dotterGallery`, `productGallery`, and `videoComponent` remain static until their distinct production state mapping is verified; they must not be attached to the global gallery state by name alone.
+
+This is a current-build contract clarification and consistency guard in 7.12.5; it does not create a new build number or add autoplay/circular-progress behavior.

@@ -47,7 +47,7 @@ Two independent distribution lines currently exist (see §2), which is itself th
     {
       model: {
         name, width, height, originTop, originLeft, rootLayerId,
-        tabs: { tab1: { layerId, gallery: { layerId, slides: {slide1:{layerId}, ...}, slideOrder:[...] } | null }, ... },
+        tabs: { tab1: { layerId, gallery: { layerId, componentName, componentFamily, slides: {slide1:{layerId}, ...}, slideOrder:[...] } | null }, ... },
         tabOrder: [...],
         tabButtonsPlaceholder: { top, left, width, height, itemIndex } | null,
         navigationBottomBorder: { top, left, width, height, itemIndex } | null,
@@ -197,6 +197,7 @@ TAB_BUTTON_VISIBLE_TOP   = 5
 SLIDE_LAYER_REGEX        = /^slide(\d+)/i
 TAB_COMPONENT_PREFIX     = "tabcomponent"
 GALLERY_FAMILY_SUBSTRINGS = [rmgallery, colorpickergallery, hotspotgallery, staticproductgallery]
+GALLERY_ARROW_COMPONENTS = {rmgallery, colorpickergallery, hotspotgallery, staticproductgallery}
 IGNORED_ARTBOARD_PATTERN = /^(master|ctv|ott|ctvott)/i
 NO_EXPORT_PREFIX         = "."
 NEVER_RASTERIZED_NAME_PATTERNS = [tabbuttons, navigation_bottom_border,

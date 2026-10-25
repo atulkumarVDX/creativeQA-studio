@@ -8,10 +8,17 @@ const html = readFileSync('preview/turbo-preview-7.12.5.html', 'utf8');
 // This catches the missing slideKey / isGallery / exclusion constant failures
 // that static string assertions missed.
 const helpers = html.slice(html.indexOf('  function gallerySlideKeys()'), html.indexOf('  function renderStage('));
-function setup(layers = []) {
+function setup(layers = [], componentName = 'rmGallery') {
   const elements = layers.filter(l => l.rendered).map(l => ({ dataset: { structureLayerId: String(l.layerID) } }));
+  const normalizedFamily = componentName.replace(/\d+$/, '').toLowerCase();
+  const componentFamily = new Set(['rmgallery', 'colorpickergallery', 'hotspotgallery', 'staticproductgallery']).has(normalizedFamily)
+    ? normalizedFamily
+    : null;
   const entry = {
-    model: { tabs: { tab2: { gallery: { layerId: 1, slideOrder: ['slide1', 'slide2', 'slide3'], slides: {} } } } },
+    model: { tabs: { tab2: { gallery: {
+      layerId: 1, componentName, componentFamily,
+      slideOrder: ['slide1', 'slide2', 'slide3'], slides: {}
+    } } } },
     structureIndex: { sourceById: new Map(layers.map(l => [l.layerID, l])) },
     stageEl: { querySelectorAll: () => elements },
   };
@@ -32,6 +39,24 @@ test('gallery arrows bind raster and group controls through the public renderer 
     layer(5, 'frame', 4, true), layer(6, 'right', 1, true),
   ]);
   assert.deepEqual(Array.from(context.galleryArrowTargets(entry), x => x.direction), [-1, 1]);
+});
+
+test('every supported slide-gallery family uses the same arrow target contract', () => {
+  for (const componentName of ['rmGallery', 'colorPickerGallery', 'hotspotGallery', 'staticProductGallery']) {
+    const { context, entry } = setup([
+      layer(1, componentName, 0), layer(2, 'arrows', 1),
+      layer(3, 'left', 2, true), layer(4, 'right', 2, true),
+    ], componentName);
+    assert.deepEqual(Array.from(context.galleryArrowTargets(entry), x => x.direction), [-1, 1]);
+  }
+});
+
+test('different state-model components do not borrow global gallery slide state', () => {
+  const { context, entry } = setup([
+    layer(1, 'view360', 0), layer(2, 'arrows', 1),
+    layer(3, 'left', 2, true), layer(4, 'right', 2, true),
+  ], 'view360');
+  assert.equal(context.galleryArrowTargets(entry).length, 0);
 });
 
 test('excluded, slide-owned and nested gallery arrows cannot navigate the outer gallery', () => {

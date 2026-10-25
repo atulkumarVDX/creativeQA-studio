@@ -123,3 +123,5 @@ Current QA Studio pointer and companion local service use 7.12.4. The embedded p
 Adds manual gallery navigation through authored left/right or previous/next arrow groups within the selected tab gallery. Arrow activation changes the selected slide across included artboards, wraps at either end, and animates the incoming slide with a brief directional offset. The transition respects reduced-motion preferences. Autoplay and circular progress behavior remain outside this change. The 7.12.4 build is retained as the rollback point.
 
 The current build's transition follow-up uses a 500ms ease-out motion to match the production gallery's short horizontal slide feel. The change remains in 7.12.5 as requested; no new build number was created.
+
+The arrow contract is shared across the supported direct-slide gallery families (`rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`). Other arrow-bearing component families remain static until their component-specific state models are verified; they are not routed through the global gallery slide state.

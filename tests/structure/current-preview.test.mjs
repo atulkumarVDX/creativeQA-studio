@@ -30,6 +30,9 @@ test("gallery arrows wrap slide state and animate manual transitions only", () =
   assert.match(current, /aria-label", direction > 0 \? "Next gallery slide" : "Previous gallery slide"/);
   assert.match(current, /function animateGallerySlide\(entry, direction, outgoing\)/);
   assert.match(current, /prefers-reduced-motion: reduce/);
+  assert.match(current, /function bindGalleryArrow\(entry, element, direction, componentFamily\)/);
+  assert.match(current, /aria-keyshortcuts", "Enter Space"/);
+  assert.match(current, /gallery\.componentFamily/);
 });
 
 test("gallery arrow traversal defines export exclusions in its own script scope", () => {
