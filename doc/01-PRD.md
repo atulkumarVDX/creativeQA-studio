@@ -1,10 +1,10 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.13.0** — `preview/turbo-preview-7.13.0.html`. Adds a QA-only outbound click test for recognized text CTAs; clicking opens the default VDX destination in a new tab. The package and `export.json` are not modified.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.1
+**Reflects build:** `preview/turbo-preview-7.13.0.html` @ **v7.13.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-25
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -49,6 +49,7 @@ Both exist because they serve different delivery contexts, not because one is me
 8. **Authored blank paragraphs are preserved** — an explicit empty paragraph in PSD copy must retain one line of vertical space instead of collapsing in the HTML preview (D036).
 9. **Known text-fidelity limitations are disclosed, not hidden** (Artifact line) — Optical-kerning risks receive a dotted amber in-canvas marker and package-wide panel entry; genuine measurement failures receive a dashed red in-canvas marker and a panel entry for the rendered state. This baseline disclosure is always on. `?textQA=1` additionally runs the eager audit across every valid artboard × tab × slide and enables catalog-oriented diagnostics; it is not required to discover ordinary findings. See `02-Technical-Spec.md` §4.5 (D037, D042).
 10. **Mobile-expandable responsive flow is structural, not campaign-specific** (Artifact line) — in the 375×622 view, qualifying full-width video is resized proportionally and its rounded height delta is applied once to each direct sibling branch. Descendants preserve local spacing, while contained video and unrelated structures remain unchanged (D067/D068).
+11. **Outbound CTA interaction is a QA check, not tracking** (Artifact line, v7.13.0) — recognized text CTAs open `https://www.vdx.tv/` in a new tab so reviewers can confirm outbound interaction. Internal navigation and gallery controls keep their own behavior. The destination is a default preview target; it is not read from or written to the package, and no pixel or click-tracking event is sent (D077).
 
 ## 6. Feature parity gaps (current state, not aspirational)
 
@@ -70,6 +71,7 @@ The two products — and the several generations within the Artifact line — ar
 - Not a replacement for a served-ad comparison: the recovered production text-geometry algorithm (D031) and static circular-control geometry (D032–D034) narrow the gap, but final visual approval still requires the target browser, package fonts, and a production reference together.
 - Not a design/editing tool — read-only preview of an already-exported package.
 - No accounts, no server-side storage, no analytics observed in any of the three files.
+- No production click URL or tracking configuration is generated. The v7.13.0 click-out is only a QA interaction test using a fixed default destination.
 - The kerning/text-sync review surface is a **detection and disclosure aid**, not a fix — it does not and cannot make browser-rendered text match Photoshop's Optical-kerning shaping; it exists so a reviewer knows where to expect a discrepancy, not to eliminate it.
 
 ## 8. Versioning

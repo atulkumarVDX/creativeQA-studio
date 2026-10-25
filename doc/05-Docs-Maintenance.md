@@ -1,14 +1,14 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.13.0** — `preview/turbo-preview-7.13.0.html`. Adds a QA-only outbound click test for recognized text CTAs; clicking opens the default VDX destination in a new tab. The package and `export.json` are not modified.
 
-> **Current release note:** QA Studio now points to 7.12.5 for the embedded preview and companion local service. The 7.9.x tables below are historical reconstruction records, not today's release pointer. For active CTV/OTT design and technical rules, maintain [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md) and the [build inventory](18-Preview-Build-Inventory.md) together.
+> **Current release note:** QA Studio now points to 7.13.0 for the embedded preview. The outbound click test is handled in the browser and does not change the companion local service. The 7.9.x tables below are historical reconstruction records, not today's release pointer. For active CTV/OTT design and technical rules, maintain [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md) and the [build inventory](18-Preview-Build-Inventory.md) together.
 
 > **7.11.0-feedback note:** the user explicitly selected this named feature-build label and confirmed 7.10.3 as its source. QA Studio's host-level feedback bundle contract is documented in `19-Feedback-Debug-Bundle.md`; the embedded renderer is otherwise unchanged from that confirmed source.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.1
+**Reflects build:** `preview/turbo-preview-7.13.0.html` @ **v7.13.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-25
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe the current release.
@@ -48,7 +48,8 @@ When one release bundles more than one change type, use the highest required inc
 
 | File | Line | Version | Notes |
 |---|---|---|---|
-| `preview/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Current patch: production-parity branch-level vertical reflow after responsive full-width video. Applies one rounded video-height delta to qualifying direct sibling branches while preserving descendant spacing and unrelated structures (D068/TR-011). |
+| `preview/turbo-preview-7.13.0.html` | Turbo Preview Artifact | **7.13.0** | Current minor: QA-only click/Enter behavior for recognized text CTAs opens the default VDX destination in a new tab; no package mutation or tracking (D077). |
+| `preview/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Historical patch: production-parity branch-level vertical reflow after responsive full-width video. Applies one rounded video-height delta to qualifying direct sibling branches while preserving descendant spacing and unrelated structures (D068/TR-011). |
 | `preview/archive/turbo-preview-7.9.10.html` | Turbo Preview Artifact | **7.9.10** | Previous patch: global 375×622 correction for responsive ISI, anchored video/circular controls, selected-artboard state controls, and production 3.13.8-0 text-candidate parity. Its preserve-all-y vertical clause is superseded by D068. |
 | `preview/archive/turbo-preview-7.9.9.html` | Turbo Preview Artifact | **7.9.9** | Current patch: ordinary shape collection uses the existing authored-corner-radius helper. Live Tryngolza production confirms a 14px rounded rectangle where the preview incorrectly painted a circle. Text rendering is identical to restored 7.9.8. |
 | `index.html` + `preview.js` | Standalone | **1.0.0** | First formally tracked version (baseline) |

@@ -1,10 +1,10 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.13.0** — `preview/turbo-preview-7.13.0.html`. Adds a QA-only outbound click test for recognized text CTAs; clicking opens the default VDX destination in a new tab. The package and `export.json` are not modified.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.1
+**Reflects build:** `preview/turbo-preview-7.13.0.html` @ **v7.13.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-25
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -80,6 +80,10 @@ The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a su
 - **Mobile-instream scale** (v7.7.0): focused Preview mode adds a Fit/1× segmented pair inside the `mobile-instream` card label. Fit is the default and shows the full-resolution 970×546 source through a production-matched 485×273 presentation viewport; 1× removes that presentation scale. The control never appears in Compare mode (D043).
 - **Mobile-expandable scale** (v7.9.10+): focused `428x622` Preview adds a Fit/1× segmented pair inside the card label. Fit is the default and presents the authored stage through the production 375×622 responsive host; 1× shows the original 428px source view. This control changes presentation geometry only—the selected tab/slide remains the same. In Fit, qualifying full-width-video sibling branches follow D068's single branch-level vertical delta.
 - **Segmented buttons** (view mode, tab/slide/theme, all-sizes): flat rectangular buttons, `--surface-raised` fill + shadow when active (previously flat `--accent` fill) — reused identically across every control row; keep this one component rather than inventing new button styles per control.
+
+### QA outbound CTA click test (7.13.0)
+
+Recognized text CTAs show a pointer affordance and a tooltip that identifies `https://www.vdx.tv/` as the **QA click-out destination**. Clicking or pressing Enter opens that destination in a new tab. Keep layout-audit mode's crosshair/selection behavior intact. Internal canvas tabs, gallery arrows, and map image buttons are not outbound text CTAs and retain their existing behavior. Do not present this action as a production URL or tracking test.
 
 ## 6. States that must always be handled explicitly
 

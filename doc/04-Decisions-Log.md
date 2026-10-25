@@ -1,10 +1,10 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.13.0** — `preview/turbo-preview-7.13.0.html`. Adds a QA-only outbound click test for recognized text CTAs; clicking opens the default VDX destination in a new tab. The package and `export.json` are not modified.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.1
+**Reflects build:** `preview/turbo-preview-7.13.0.html` @ **v7.13.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-25
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
@@ -617,3 +617,11 @@ The original 7.12.5 implementation described arrow behavior generically as "gall
 **Decision:** make the arrow contract explicit and shared for `rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`. Each valid arrow is resolved against its owning component, receives identical pointer/keyboard/ARIA behavior, wraps within that component's ordered slide list, and uses the same 500ms horizontal `ease-out` transition with reduced-motion support. Dot-prefixed layers, slide-owned arrows, and nested-component arrows are excluded. Components such as `view360`, `imageGallery`, `categoryGallery`, `dotterGallery`, `productGallery`, and `videoComponent` remain static until their distinct production state mapping is verified; they must not be attached to the global gallery state by name alone.
 
 This is a current-build contract clarification and consistency guard in 7.12.5; it does not create a new build number or add autoplay/circular-progress behavior.
+
+## D077 — [CTA] Add a QA-only default outbound click test (7.13.0)
+
+**Evidence:** the inspected package export has no embedded click-through or tracking details. The renderer already identifies text CTA groups as `.cp-cta`; map buttons are Smart Objects and canvas tabs/gallery arrows have separate interaction handling. A QA reviewer still needs a way to confirm that a CTA responds to a user click.
+
+**Decision:** make rendered `.cp-cta` targets keyboard-focusable and open `https://www.vdx.tv/` in a new tab on click or Enter. Identify the target as a QA default in the tooltip. Keep this behavior preview-only: do not write a URL or tracker ID into `export.json`, modify package files, claim a production destination, or send tracking events. Preserve layout-audit selection and all internal interactions.
+
+**Versioning:** this is a backward-compatible user-visible capability, so create minor build 7.13.0 from 7.12.5 and promote the explicit `current-preview.ts` pointer. Keep 7.12.5 unchanged as history.

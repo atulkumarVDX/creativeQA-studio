@@ -1,12 +1,12 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.13.0** — `preview/turbo-preview-7.13.0.html`. Adds a QA-only outbound click test for recognized text CTAs; clicking opens the default VDX destination in a new tab. The package and `export.json` are not modified.
 
 > **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.1
+**Reflects build:** `preview/turbo-preview-7.13.0.html` @ **v7.13.0** (current); historical baselines are described below.
+**Last updated:** 2026-10-25
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -150,6 +150,10 @@ The ISI frame is a responsive exception: it fills the 375px host at x=0 and its 
 
 Preview-mode tab and slide controls are derived only from the selected artboard, preventing controls for unavailable states. Compare mode deliberately aggregates the included artboards. Text synchronization matches the supplied production `vdx-container-turbo.js` 3.13.8-0 candidate basis: paragraph padding-left plus text-indent, with the most-negative text-indent retained; padding-right is not included in candidate width scoring.
 
+### 4.9 QA-only outbound CTA click test (Artifact line, v7.13.0 — D077)
+
+After each artboard render, the host marks renderer-recognized text CTA groups (`.cp-cta`) as keyboard-focusable links. A delegated stage handler opens the fixed `https://www.vdx.tv/` destination in a new tab on click or Enter. This is a default interaction target for preview QA, not an inferred campaign URL. It does not change `export.json`, package files, production actions, or tracking configuration. Reconstructed canvas tabs, gallery arrows, map Smart Object buttons, and layout-audit selection retain their existing behavior.
+
 ## 5. Feature / fix matrix across the three files
 
 | Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/turbo-preview-7.9.11.html` (v7.9.11, current source) |
@@ -187,6 +191,7 @@ Preview-mode tab and slide controls are derived only from the selected artboard,
 | Bento-style Compare layout (hero/wide/banner/tall/square) | No | No | **Yes (D038)** |
 | Mobile-expandable responsive ISI, anchored controls, scoped state controls, video sibling-flow delta | No | No | **Yes (D067/D068, v7.9.11)** |
 | CTA text metadata alignment validation | No | No | **Validation required: flag measured CTA-label shifts and provide the Photoshop text round-trip repair (TR-012)** |
+| QA-only outbound click test for text CTA groups | No | No | **Yes — opens `https://www.vdx.tv/` in a new tab; no package mutation or tracking event (D077, v7.13.0)** |
 
 ## 6. Engine constants (stable across all files unless noted)
 

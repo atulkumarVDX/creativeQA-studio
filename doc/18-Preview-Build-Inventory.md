@@ -1,8 +1,8 @@
 # Preview Build Inventory
 
-**Current QA Studio release:** `preview/turbo-preview-7.12.5.html` (CTV/OTT and Box feedback service in `scripts/ctv-ott-renderer.mjs`)
+**Current QA Studio release:** `preview/turbo-preview-7.13.0.html` (CTV/OTT and Box feedback service in `scripts/ctv-ott-renderer.mjs`)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-10-23
+**Inventory date:** 2026-10-25
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
@@ -16,8 +16,9 @@ QA Studio imports only the source named by `preview/current-preview.ts`. The cur
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.12.5.html` | 617,939 | 7.12.5 | `preview/` | Current pointer and badge. Adds manual previous/next gallery arrow controls and directional slide-in transitions; no autoplay or circular progress interaction. |
-| `turbo-preview-7.12.4.html` | 611,740 | 7.12.4 | `preview/` | Current pointer, badge and local-service health build. Production-aligned Leaflet/Mapbox location-map rendering is provided by the QA Studio host. |
+| `turbo-preview-7.13.0.html` | 622,111 | 7.13.0 | `preview/` | Current pointer and badge. Adds QA-only text CTA click/Enter testing to `https://www.vdx.tv/`; does not write click-through or tracking data to the package. |
+| `turbo-preview-7.12.5.html` | 617,939 | 7.12.5 | `preview/` | Retained prior build. Adds manual previous/next gallery arrow controls and directional slide-in transitions; no autoplay or circular progress interaction. |
+| `turbo-preview-7.12.4.html` | 611,740 | 7.12.4 | `preview/` | Retained prior build and local-service health baseline. Production-aligned Leaflet/Mapbox location-map rendering is provided by the QA Studio host. |
 | `turbo-preview-7.12.3.html` | 611,740 | 7.12.3 | `preview/` | Retained prior build. Direct Box feedback submission is provided by the QA Studio host and service. |
 | `turbo-preview-7.11.2.html` through `turbo-preview-7.11.15.html` | Varies | Matching filename/build | `preview/` | Retained patch history, not app imports. The companion renderer changed across patches; do not infer behavior from HTML hashes alone. |
 
