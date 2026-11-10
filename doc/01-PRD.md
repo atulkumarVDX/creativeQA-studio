@@ -1,13 +1,13 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
+> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
 
-**Doc version:** 1.8.7
-**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
-**Last updated:** 2026-11-03
+**Doc version:** 1.8.8
+**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
+**Last updated:** 2026-11-10
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
-**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
 
 ---
 
@@ -35,7 +35,7 @@ Creative QA / production coordinators reviewing an export package across:
 | **Form factor** | `index.html` + `preview.js`, opened via `file://` next to the unzipped export folder | Single self-contained `.html` file (works as a Claude artifact or any static host) |
 | **Input** | Pick `export.json`; PNGs/fonts/video must already sit alongside it on disk | Drop/pick a `.zip` of the whole package; unzipped and resolved to blob URLs entirely in-browser |
 | **Best for** | Local, filesystem-based QC workflows | Sharing a preview without asking someone to unzip anything locally; artifact/chat-embedded workflows |
-| **Current version** | v1.0.0 | v7.9.11 (current source: `preview/turbo-preview-7.9.11.html`) |
+| **Current version** | v1.0.0 | v7.15.5 (current source: `preview/turbo-preview-7.15.5.html`) |
 
 Both exist because they serve different delivery contexts, not because one is meant to replace the other — but see `02-Technical-Spec.md` §7: they currently share **duplicated**, not shared, engine code, and have drifted in capability (§6 below).
 

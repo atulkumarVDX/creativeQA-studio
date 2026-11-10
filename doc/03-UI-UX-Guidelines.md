@@ -1,13 +1,13 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
+> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
 
-**Doc version:** 1.8.7
-**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
-**Last updated:** 2026-11-03
+**Doc version:** 1.8.8
+**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
+**Last updated:** 2026-11-10
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
 
 ---
 

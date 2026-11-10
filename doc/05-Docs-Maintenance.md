@@ -1,17 +1,17 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
+> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
 
-> **Current release note:** QA Studio now points to 7.15.3, created from user-confirmed 7.15.2. Creative destinations lead the Overview, while package-review metrics sit together in a Review summary panel. `video_ctvott.mp4` is exempt from the 2.5 MB size rule but remains subject to duration validation. The technical completion label remains intentionally hidden; Findings and package data continue to indicate results. CTAs uses the Desktop Expandable reference size so repeated groups across ad sizes do not inflate the designer-facing count. Compare remains the default Main Unit view and muted; Single view is the focused, audio-capable alternative. The 7.9.x tables below are historical reconstruction records, not today's release pointer. For active CTV/OTT design and technical rules, maintain [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md) and the [build inventory](18-Preview-Build-Inventory.md) together.
+> **Current release note:** QA Studio now points to 7.15.5. It adds creative-wide video and ZIP limits with AdEx escalation guidance. Creative destinations lead the Overview, package-review metrics are grouped in a Review summary panel, and `video_ctvott.mp4` remains exempt from the 2.5 MB size rule while still receiving duration validation. The technical completion label remains intentionally hidden. CTAs use the Desktop Expandable reference size; Compare is the default Main Unit view and muted, while Single view is the focused, audio-capable alternative. Historical builds are now stored under `preview/archive/`.
 
 > **7.11.0-feedback note:** the user explicitly selected this named feature-build label and confirmed 7.10.3 as its source. QA Studio's host-level feedback bundle contract is documented in `19-Feedback-Debug-Bundle.md`; the embedded renderer is otherwise unchanged from that confirmed source.
 
-**Doc version:** 1.8.7
-**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
-**Last updated:** 2026-11-03
+**Doc version:** 1.8.8
+**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
+**Last updated:** 2026-11-10
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
 
-**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe the current release.
+**Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe that historical release.
 
 ---
 
@@ -48,16 +48,13 @@ When one release bundles more than one change type, use the highest required inc
 
 | File | Line | Version | Notes |
 |---|---|---|---|
-| `preview/turbo-preview-7.15.3.html` | Turbo Preview Artifact | **7.15.3** | Current patch: promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
-| `preview/turbo-preview-7.15.2.html` | Turbo Preview Artifact | **7.15.2** | Retained patch: hides the technical analysis-complete label while retaining all package checks and findings (D100). |
-| `preview/turbo-preview-7.15.1.html` | Turbo Preview Artifact | **7.15.1** | Retained patch: CTAs are counted across Desktop Expandable tabs and slides only, excluding repeated groups in other ad sizes (D099). |
-| `preview/turbo-preview-7.15.0.html` | Turbo Preview Artifact | **7.15.0** | Retained MINOR release: Compare is the Main Unit default, focused mode is called Single view, and Overview metrics route clearly into package review (D098). |
-| `preview/turbo-preview-7.13.4.html` | Turbo Preview Artifact | **7.13.4** | Current patch: categoryGallery home, category, and nested slide navigation follows the authored state hierarchy and controls (D081). |
-| `preview/turbo-preview-7.13.3.html` | Turbo Preview Artifact | **7.13.3** | Retained predecessor: derives gallery dot radius from exported shape bounds and corner radii, including the active 50% circle geometry (D080); retains the QA-only CTA click test. |
-| `preview/turbo-preview-7.13.2.html` | Turbo Preview Artifact | **7.13.2** | Retained predecessor. Uses export-driven active/normal shapes and sizes, but did not interpret the PSD CSS 50% circle geometry (D079). |
-| `preview/turbo-preview-7.13.1.html` | Turbo Preview Artifact | **7.13.1** | Retained predecessor. Added a CSS circle override for gallery indicators (D078); superseded by export-driven geometry in 7.13.2. |
-| `preview/turbo-preview-7.13.0.html` | Turbo Preview Artifact | **7.13.0** | Retained minor: QA-only click/Enter behavior for recognized text CTAs opens the default VDX destination in a new tab; no package mutation or tracking (D077). |
-| `preview/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Historical patch: production-parity branch-level vertical reflow after responsive full-width video. Applies one rounded video-height delta to qualifying direct sibling branches while preserving descendant spacing and unrelated structures (D068/TR-011). |
+| `preview/turbo-preview-7.15.5.html` | Turbo Preview Artifact | **7.15.5** | Current release: creative-wide video/package limits and AdEx escalation guidance. |
+| `preview/turbo-preview-7.15.4.html` | Turbo Preview Artifact | **7.15.4** | Recent retained patch: Teaser cards follow Main Unit artboard order in a responsive bento layout. |
+| `preview/turbo-preview-7.15.3.html` | Turbo Preview Artifact | **7.15.3** | Recent retained patch: promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
+| `preview/archive/turbo-preview-7.15.2.html` | Turbo Preview Artifact | **7.15.2** | Historical patch: hides the technical analysis-complete label while retaining package checks and findings (D100). |
+| `preview/archive/turbo-preview-7.13.4.html` | Turbo Preview Artifact | **7.13.4** | Historical patch: categoryGallery home, category, and nested slide navigation follows the authored state hierarchy and controls (D081). |
+| `preview/archive/turbo-preview-7.13.0.html` | Turbo Preview Artifact | **7.13.0** | Historical minor: QA-only click/Enter behavior for recognized text CTAs opens the default VDX destination in a new tab; no package mutation or tracking (D077). |
+| `preview/archive/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Historical patch: production-parity branch-level vertical reflow after responsive full-width video. |
 | `preview/archive/turbo-preview-7.9.10.html` | Turbo Preview Artifact | **7.9.10** | Previous patch: global 375×622 correction for responsive ISI, anchored video/circular controls, selected-artboard state controls, and production 3.13.8-0 text-candidate parity. Its preserve-all-y vertical clause is superseded by D068. |
 | `preview/archive/turbo-preview-7.9.9.html` | Turbo Preview Artifact | **7.9.9** | Current patch: ordinary shape collection uses the existing authored-corner-radius helper. Live Tryngolza production confirms a 14px rounded rectangle where the preview incorrectly painted a circle. Text rendering is identical to restored 7.9.8. |
 | `index.html` + `preview.js` | Standalone | **1.0.0** | First formally tracked version (baseline) |

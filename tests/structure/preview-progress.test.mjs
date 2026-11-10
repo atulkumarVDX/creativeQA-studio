@@ -58,18 +58,18 @@ test('completion may dispose its clock synchronously during a slide change', () 
   clock.start(); f.step(3000); assert.equal(finished, 1); assert.equal(f.jobs.size, 0);
 });
 test('current standalone embeds the tested clock and preserves 7.13.8', () => {
-  const html = readFileSync('preview/turbo-preview-7.13.9.html', 'utf8');
+  const html = readFileSync('preview/archive/turbo-preview-7.13.9.html', 'utf8');
   assert(html.includes(readFileSync('lib/preview-progress.js', 'utf8').replace('export function', 'function')));
   assert.match(html, /indicator.left \+ \(indicator.width - renderable.width\) \/ 2/);
   assert.match(html, /indicator.top \+ \(indicator.height - renderable.height\) \/ 2/);
   assert.match(html, /entry !== leader/);
   assert.match(html, /gallery.hotspotMode \|\| selectedCategory === "home"/);
-  assert.equal(createHash('sha256').update(readFileSync('preview/turbo-preview-7.13.8.html')).digest('hex'), 'caa3ce1d6f8832b51cb2f5923584cfb3eeecf1b9470cacdc08a72db74b48a977');
+  assert.equal(createHash('sha256').update(readFileSync('preview/archive/turbo-preview-7.13.8.html')).digest('hex'), 'caa3ce1d6f8832b51cb2f5923584cfb3eeecf1b9470cacdc08a72db74b48a977');
 });
 
 test('runtime centering uses ring bounds across circles and non-square indicators', async () => {
   const vm = await import('node:vm');
-  const html = readFileSync('preview/turbo-preview-7.13.9.html', 'utf8');
+  const html = readFileSync('preview/archive/turbo-preview-7.13.9.html', 'utf8');
   const context = vm.createContext({ window: {}, console: { log() {} } });
   vm.runInContext(html.match(/<script>\s*(const PREVIEW_BUILD[\s\S]*?)<\/script>/)[1], context);
   const api = context.window.CSM_PREVIEW;

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { uploadFeedbackToBox } from "./box-feedback-upload.mjs";
 
 const BUILD_DIR = dirname(fileURLToPath(import.meta.url));
-const HTML_FILE = join(BUILD_DIR, "../preview/turbo-preview-7.12.4.html");
+const HTML_FILE = join(BUILD_DIR, "../preview/archive/turbo-preview-7.12.4.html");
 // On the host this remains loopback-only. Container deployments set this to
 // 0.0.0.0 inside the container and publish the container port on host loopback.
 const HOST = process.env.TURBO_PREVIEW_HOST || "127.0.0.1";

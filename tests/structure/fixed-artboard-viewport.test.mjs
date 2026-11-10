@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const preview = readFileSync("preview/turbo-preview-7.9.11.html", "utf8");
+const preview = readFileSync("preview/archive/turbo-preview-7.9.11.html", "utf8");
 
 test("preview keeps artboards at authored scale and scrolls narrow viewports", () => {
   const computeScale = preview.match(/function computeScale\([^)]*\) \{([\s\S]*?)\n  \}/);

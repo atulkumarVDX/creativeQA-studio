@@ -1,7 +1,7 @@
 # 06 — Text Render Issue Catalog — Turbo Export Preview
 
 **Catalog version:** 0.9.2
-**Reference build:** `preview/turbo-preview-7.9.11.html` @ **v7.9.11**
+**Reference build:** `preview/archive/turbo-preview-7.9.11.html` @ **v7.9.11**
 **Last updated:** 2026-10-14
 **Status:** Working evidence catalog — individual cases state whether detection is shipped
 
