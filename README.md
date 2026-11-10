@@ -28,6 +28,8 @@ npm run dev
 
 For direct feedback submission, copy `.env.example` to `.env.local` and provide the Box Client Credentials Grant values and destination folder ID. Never commit `.env.local` or place the client secret in browser code.
 
+For the creative-team pilot, add `NOTION_API_TOKEN` and `NOTION_PILOT_DATABASE_ID` to `.env.local`. The app submits a session summary to that database only when a tester chooses **Finish testing session**. Package contents and screenshots are not included. For a deployed app, set `TURBO_APP_ORIGIN` to the app's exact HTTPS origin and route `/api/ctv-ott/notion/pilot-session` to the companion renderer service.
+
 Open the local URL shown in the terminal, then select a Turbo ZIP package.
 
 ## Production build

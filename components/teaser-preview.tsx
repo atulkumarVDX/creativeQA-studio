@@ -192,6 +192,11 @@ export function TeaserPreview({ artboards, media, layouts, onOpen, generationSta
   }, []);
   const sizes = orderByMainUnitArtboards(artboards, SIZES);
   const hasPrequal = Object.values(layouts).some(layout => layout.prequal || layout.prequalWithIsi);
+  const ordered = new Map(sizes.map(size => [size.id, size]));
+  const renderCards = (ids: string[]) => ids.flatMap(id => {
+    const size = ordered.get(id);
+    return size ? [<TeaserCard key={size.id} size={size} media={media} layout={size.kind === "instream" ? null : layouts[size.label.replace("×", "x")] || null} fit={fit} muted={unmuted !== size.id} showBranding={showBranding} showPrequal={showPrequal} onMute={() => setUnmuted(current => current === size.id ? null : size.id)} onOpen={() => onOpen(size.mainUnit)} />] : [];
+  });
 
   return <div className="teaser-page">
     <div className="teaser-page-header">
@@ -202,7 +207,12 @@ export function TeaserPreview({ artboards, media, layouts, onOpen, generationSta
     {generationStatus === "rendering" && <div className="teaser-generation-status" role="status"><LoaderCircle className="spin" /><div><strong>Generating mobile instream teaser</strong><span>Rendering the exported mobile canvas and building the 3-second peek-a-boo sequence…</span></div></div>}
     {generationStatus === "ready" && !media.instreamVideo && <div className="teaser-generation-status ready" role="status"><Sparkles /><div><strong>Generated from export.json</strong><span>The preview uses video1.mp4 and the rendered mobile-instream canvas with a 1s shrink, 1s reveal, and 1s expansion.</span></div></div>}
     {sizes.some(size => size.kind === "instream") && !media.instreamVideo && generationStatus === "error" && <TeaserWarning title="Mobile instream generation unavailable">The package needs a mobile-instream artboard and video1.mp4, or authored teaserVideo.mp4 and teaserVideo.jpg assets.</TeaserWarning>}
-    <div className="teaser-gallery">{sizes.map(size => <TeaserCard key={size.id} size={size} media={media} layout={size.kind === "instream" ? null : layouts[size.label.replace("×", "x")] || null} fit={fit} muted={unmuted !== size.id} showBranding={showBranding} showPrequal={showPrequal} onMute={() => setUnmuted(current => current === size.id ? null : size.id)} onOpen={() => onOpen(size.mainUnit)} />)}</div>
+    <div className="teaser-gallery">
+      {renderCards(["desktop-expandable"])}
+      <div className="teaser-row teaser-row-banner">{renderCards(["728x90", "mobile-adhesion"])}</div>
+      {renderCards(["desktop-inframe"])}
+      <div className="teaser-row teaser-row-lower">{renderCards(["160x600", "300x600", "300x250", "mobile-instream"])}</div>
+    </div>
     {!sizes.length && <TeaserWarning title="No teaser sizes found">This package has no supported teaser sizes.</TeaserWarning>}
   </div>;
 }

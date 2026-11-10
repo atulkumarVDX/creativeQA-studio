@@ -48,7 +48,7 @@ test("FFmpeg renderer stays on the approved production preview profile", () => {
   assert.match(renderer, /duration - 8/);
   assert.match(renderer, /duration - 7\.8/);
   assert.match(renderer, /duration - 4/);
-  assert.match(renderer, /const MAX_PACKAGE_BYTES = 1 \* 1024 \* 1024 \* 1024/);
+  assert.match(renderer, /const MAX_PACKAGE_BYTES = 600 \* 1024 \* 1024/);
   assert.match(renderer, /const MAX_DURATION = 270/);
   assert.match(renderer, /model\.width !== 1920 \|\| model\.height !== 1080/);
   assert.match(renderer, /-b:v", "15M/);

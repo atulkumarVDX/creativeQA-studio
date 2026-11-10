@@ -19,3 +19,11 @@ The explanatory validation panel is removed. First view filters the inventory by
 ## Video severity and table order correction
 
 Primary video size over 2.5 MB or duration over 30 seconds is a warning. Duration strictly over 4:30 (270 seconds) is an error. Browser metadata supplies duration; unavailable metadata is a warning rather than an assumed pass. Non-video errors are unchanged. Table order: Asset, Type, Size, Validation, Status, References.
+
+## 7.15.5 — creative package limits (2026-11-03)
+
+All packaged video files combined must be at most 500 MB, using uncompressed file sizes and counting each archive path once. Includes primary, secondary/playlist, teaser and CTV/OTT videos, regardless of first-view membership. ZIP upload size must be at most 600 MB (actual ZIP bytes, not sum of extracted files). MB follows the existing binary-unit convention (1024² bytes). Equality is allowed.
+
+Every packaged video is checked against 270 seconds. Longer videos produce an error with guidance to escalate to the AdEx team; this is guidance only and sends no message. The existing 2.5 MB/30-second long-form warnings remain. The host rejects oversized ZIPs before preview loading/unzipping; combined-video errors appear in Findings and on video asset rows. The renderer enforces the 600 MB upload guard, aggregate 500 MB video budget, and checks all packaged video durations before rendering. Its separate feedback-bundle upload limit remains unchanged.
+
+7.15.5 verification: 66 targeted tests passed; TypeScript and Vite production build passed using Node 22.22.2. Three real archives (Ipsen, Cosentyx HCP, SPIRIVA) analyzed successfully. Broader suite: 235/236 passed before adding two renderer-limit checks; remaining failure compares the historical 7.8.0 embedded registry against today's updated registry and is unrelated to this release. No historical archive was modified.

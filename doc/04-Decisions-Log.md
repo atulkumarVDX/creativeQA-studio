@@ -1,10 +1,10 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.7
+**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
+**Last updated:** 2026-11-03
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; current capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
@@ -617,3 +617,253 @@ The original 7.12.5 implementation described arrow behavior generically as "gall
 **Decision:** make the arrow contract explicit and shared for `rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`. Each valid arrow is resolved against its owning component, receives identical pointer/keyboard/ARIA behavior, wraps within that component's ordered slide list, and uses the same 500ms horizontal `ease-out` transition with reduced-motion support. Dot-prefixed layers, slide-owned arrows, and nested-component arrows are excluded. Components such as `view360`, `imageGallery`, `categoryGallery`, `dotterGallery`, `productGallery`, and `videoComponent` remain static until their distinct production state mapping is verified; they must not be attached to the global gallery state by name alone.
 
 This is a current-build contract clarification and consistency guard in 7.12.5; it does not create a new build number or add autoplay/circular-progress behavior.
+
+## D077 — [CTA] Add a QA-only default outbound click test (7.13.0)
+
+**Evidence:** the inspected package export has no embedded click-through or tracking details. The renderer identifies text CTA groups as `.cp-cta`; map buttons are Smart Objects and canvas tabs/gallery arrows have separate interaction handling. A QA reviewer still needs a way to confirm that a CTA responds to a user click.
+
+**Decision:** make rendered `.cp-cta` targets keyboard-focusable and open `https://www.vdx.tv/` in a new tab on click or Enter. Identify the target as a QA default in the tooltip. Keep this behavior preview-only: do not write a URL or tracker ID into `export.json`, modify package files, claim a production destination, or send tracking events. Preserve layout-audit selection and all internal interactions.
+
+**Versioning:** this is a backward-compatible user-visible capability, so create minor build 7.13.0 from the current 7.12.6 source and promote the explicit `current-preview.ts` pointer. Keep prior builds unchanged as history.
+
+
+## D078 — [Gallery] Render active and normal dots as circles (7.13.1)
+
+**Evidence:** the supplied comparison-slider template exports square active and normal dot layers with rounded-rectangle corners, while the preview interaction presents them as gallery indicators. The user reported that the active indicator still appeared as a rounded rectangle.
+
+**Decision:** clip generated active and normal gallery indicators to circles while preserving their exported dimensions, fills, and slide selection behavior. Keep dot rendering scoped to visible authored `dots` controls; do not create substitutes when that control is hidden.
+
+**Versioning:** make this a patch release from 7.13.0 and update the explicit preview pointer.
+
+
+## D079 — [Gallery] Source dot geometry from export.json (7.13.2)
+
+**Evidence:** the supplied `cg_template6_v1.psd.zip` exports `active` as a 16×16 rounded rectangle with 6 px radii and `normal` as a 12×12 ellipse. The 7.13.1 CSS circle override fabricated a shape that did not match the exported active layer.
+
+**Decision:** clone the active and normal rendered layers as templates for generated slide indicators, preserving each layer's exported shape, dimensions, fill, and export-derived slide order. Remove hard-coded circle styling and size fallbacks. If the active state must be a true circle, author it as an ellipse in Photoshop and re-export; the preview must not invent that geometry.
+
+**Versioning:** create patch build 7.13.2 from 7.13.1 and update the explicit current-preview pointer.
+
+
+## D080 — [Gallery] Derive circular dot radius from exported geometry (7.13.3)
+
+**Evidence:** the supplied PSD CSS specifies `.active` as 12×12 with `border-radius: 50%` and a 2 px border, producing a 16×16 outer circle. Its export records a 12×12 key-origin shape box, uniform 6 px radii, and a 16×16 outer path box. The previous renderer applied the 6 px inner radius directly to the 16×16 outer box, making the active dot look too square.
+
+**Decision:** when export data shows a square source path, equal corner radii at half the path side, and a square outer path, derive the CSS percentage radius from those values. Otherwise keep the exported numeric radii. This matches the PSD geometry without hard-coding a package-specific style.
+
+**Versioning:** create patch build 7.13.3 from 7.13.2 and update the explicit preview pointer.
+
+
+## D081 — [CategoryGallery] Implement nested category and slide navigation (7.13.4)
+
+**Evidence:** the supplied `auto_template11_v1.psd.zip` has a `categoryGallery1` in Tab 2. Each instance contains a `home` group with `categoryN` cards, direct `categoryN` groups with nested `slideN` groups, a persistent `navBar` with Home/Prev/Next controls, and separate slide arrows. The prior renderer only recognized direct `slideN` children, so it neither collected nested slide states nor provided category transitions.
+
+**Decision:** keep category navigation distinct from generic gallery slides. Open the default first category because the exported `home` layer is saved hidden; category cards open their matching category, the nav-bar Home control returns to the category list, and nav-bar Prev/Next changes categories. The gallery's separate arrows and any dots change slides only within the selected category. Preserve export visibility for unrelated layers and scope every transition to its owning categoryGallery instance.
+
+**Validation:** nested-state unit tests confirm category/slide visibility selection. The supplied package parses as 8 artboards with category-gallery state on all 8 Tab 2 instances. Parser regression checks also pass for Cosentyx HCP (6 artboards), Ipsen (8), and Vivarian Map (5); none is reclassified as a category gallery.
+
+**Versioning:** create patch build 7.13.4 from 7.13.3 and update the explicit preview pointer. The user selected a patch release and confirmed the two-level navigation model.
+
+## D082 — [CategoryGallery] Start at the authored home cover (7.13.5)
+
+**Evidence:** the production description defines a home category-tile grid as the entry point. The live DE unit exposes a CategoryGallery within Tab 2. The supplied PSD export includes a `home` group saved hidden, and 7.13.4 consequently defaulted to the first category, bypassing the documented cover.
+
+**Decision:** when a CategoryGallery has a `home` group, render it as the initial state regardless of saved visibility. Keep category and nested-slide navigation scoped to the gallery. If no home group is authored, retain the first category fallback. Do not infer autoplay/progress timing: the supplied ZIP has no Turbo designer configuration, so those behaviors need the actual config source before they can be matched accurately.
+
+**Follow-up:** normalize the shared controller state to the same resolved category the painter renders before drawing and binding controls. This prevents an implicit home fallback from leaving the state unset, which caused clicks to select slide controls while continuing to render the home tiles. Regression coverage asserts that home-card layers are absent in category slides.
+
+**Versioning:** create patch build 7.13.5 from 7.13.4 and update the current preview pointer.
+
+## D083 — slideProgress uses explicit group visibility (7.13.6)
+
+**User-confirmed:** create 7.13.6 from 7.13.5. Render `slideProgress` and its direct `progressBar` / `circularBar` groups only when their saved group visibility is explicitly true, overriding the dot marker in this hierarchy. Missing visibility does not opt a control in. Both enabled styles render; no arbitrary preference is imposed. Ordinary dot exclusions, ancestor visibility, selected tabs/slides and other controls retain their existing behavior. The prior renderer already respected explicit false values; its permissive missing-value default did not enforce this opt-in contract. The reported package has not been supplied for this task, so its exact failure mechanism remains unconfirmed.
+
+Update the current preview pointer and regression tests. Preserve 7.13.5 unchanged.
+
+**Validation:** 36 focused checks passed, including all enabled/disabled/missing visibility combinations, dot overrides, hidden parents, category navigation, release identity, feedback integration, and COSENTYX DTC/SPIRIVA/Ipsen sample manifests. All four inline scripts compile; TypeScript passes. Full suite before the final added missing-visibility check: 176 passed, 1 failed. The failure is the pre-existing archived 7.8.0 registry parity assertion (Hotspot registry wording differs from current rules). Production bundling was attempted but blocked by Node 20.11.0; installed Vite requires Node 20.19+ or 22.12+. Browser visual validation of the reported creative was not performed because that package was not supplied for this task.
+
+## D084 — Circular controls preserve authored stroke and icon bounds (7.13.6 follow-up)
+
+**Scope:** user requests a reusable component correction and supplies the sample/creative directory. Continue in the already selected 7.13.6 build. This refines D033/D034: production glyph paths remain, while authored export geometry takes priority over fixed 1px/30% presentation assumptions. No creative names, layer IDs, package names or client-specific dimensions control the implementation.
+
+**Evidence:** 19 sample archives contain circularBar groups. Most specify a 2px indicator stroke; Natrelle includes both 1px and 2px variants. Sanofi exports a playIcon boundsNoEffects of 14×18 while its effect-padded bounds are 28×32. Natrelle uses 11×15 versus 25×29. The old renderer scaled a glyph to 30% of the effect-padded wrapper, producing an undersized icon, and replaced the authored stroke with 1px. The currently loaded creative's circular group ID was not found in these archives; its live DOM was separately verified after the update.
+
+**Decision:** use exported stroke width, enabled state, colour/opacity, path bounds and alignment; paint the ring as an ellipse so rectangular path bounds are preserved. Use valid boundsNoEffects as each known circular glyph's full-size wrapper. Respect enabled solid-fill overlays and layer opacity. Keep the previous production fallback only for missing descriptor/bounds data. Do not claim arbitrary Smart Object artwork or all Photoshop effects are reproduced exactly. Visibility remains governed by D083.
+
+**Validation:** 24 circular-control checks pass, including three committed source-derived regression fixtures and checks against all 19 sample archives. Full suite: 182 passed, 1 failed (the same existing archived 7.8.0 registry wording mismatch). TypeScript passes. Live 970×546 tab3 DOM now has a 40×40 indicator with 2px stroke and inside radii 19, plus a full-size 14×18 play wrapper; browser screenshot inspected. Production bundling remains blocked by the previously established Node 20.11.0/Vite incompatibility.
+
+
+## D085 — Suspend Main Unit media outside its active view (7.13.6 follow-up)
+
+**User-confirmed:** update 7.13.6 in place. Pause video when leaving Main Unit; resume on return rather than leaving it paused.
+
+**Cause:** the host only switches the iframe CSS class when changing sections, so its media continues playing in the hidden analysis frame.
+
+**Decision:** add a package-independent host playback controller. Track only media suspended by navigation/document visibility; resume connected, unfinished elements without seeking or changing audio settings. Guard delayed autoplay and initialize after iframe loads. Keep manually paused media paused and handle browser play rejection. Release identity remains 7.13.6; the embedded HTML renderer is unchanged.
+
+**Validation:** five playback regressions pass; TypeScript and production build pass (Node 22.22.2). Sample-derived media lifecycle simulations pass for IONIS Tryngolza, Cosentyx DTC and Cosentyx HCP (two media assets each); these use simulated media elements, not browser decoding. Full suite: 187 pass, one pre-existing failure in archived 7.8.0 registry parity (Hotspot wording). Live browser playback was not verified.
+
+**D085 regression follow-up:** user reported video no longer played. A new regression reproduces an inactive controller stranded by module reload: the module-local WeakMap loses the paused-media state, while its document listener stays active. Store the controller on the document using a stable Symbol; resume synchronously in section navigation and retry rejected play requests on preview gestures. Revise the bridge source to recreate frames retaining the original listener. Six playback tests and TypeScript pass. Browser checks using real Tryngolza/Cosentyx DTC/Cosentyx HCP video assets confirm audible pause/resume; the Tryngolza check also reloads the controller module while suspended. Manually paused media stays paused. These checks use an isolated test page with the actual controller, not full imported ad-unit packages. Temporary media/test pages are removed after testing.
+
+**D085 browser-tab follow-up:** user reported the video disappearing after a browser-tab switch. Removed the extra browser-document visibility coupling, restricting playback suspension to workspace section navigation. Also changed the Main Unit nav button to activate the section directly; its former size-selection action rebuilt the stage on every return. Explicit size selection from Teasers remains available. Live inspection initially found no video node and tab1 controls alongside tab3 content, so the exact disappearance mechanism is not proven to be the playback controller (which never removes nodes). The loaded package changed during inspection. After correction, the loaded VONJO creative retained the same video source/node through Findings and resumed at 14.645s from its suspended 14.397s, with tab1 retained. No package upload or replacement was performed by the assistant. Browser-tab visibility changes no longer trigger host playback actions.
+
+**D085 full-creative verification:** reconnected browser inspection after resetting its stale session. The loaded VONJO 970x546/tab1 video is present (501x282, readyState 4) and visibly playing. Creative tab2 -> tab1 and Findings -> Main Unit retain working video. Opened a second visible in-app browser tab and closed it to return: the same video source remains, playback advances, and the screenshot shows the video in its authored left-side frame. The in-app browser reports document.hidden=false even while its other tab is shown; OS backgrounding/true hidden-document behavior was not simulated. No additional renderer changes were made: the prior removal of visibility coupling and forced size reselection remains the current fix.
+
+## D086 — Preserve video surfaces and stop outgoing media (7.13.6 follow-up)
+
+**Evidence:** user still reports sound without a visible video. Before navigating, live DOM inspection showed VONJO video paused=false, readyState=4, time=42.122s and a 501x282 rectangle, while the screenshot showed its region blank. The next inspection found the user page had reloaded to no package. This is a picture/compositing failure, not proof of a successful play-state fix. Earlier successful screenshots did not establish resolution of the intermittent failure.
+
+**Code findings and correction:** `.analysis-frame` previously collapsed the retained iframe to 1x1; isolated-video tests did not include this host behavior. Give visible and hidden frames identical fixed viewport geometry, including responsive offsets, and hide with visibility:hidden. Keep each video on its own translateZ(0) composited surface. Independently, both stage clearing and artboard repaint removed media without pausing it; pause video/audio in those outgoing trees before removal to prevent orphan sound. No creative-specific conditions, altered source bounds, seeks, or asset replacement.
+
+**Validation:** eight lifecycle regressions pass, TypeScript passes, production build passes under Node 22.22.2. Full suite: 190 pass, one existing archived registry wording mismatch fails. Updated the older Main Unit nav assertion to expect section activation rather than forced 970x546 reselection. Browser integration used complete IONIS Tryngolza, Cosentyx DTC and Cosentyx HCP archives, the current embedded renderer, real host CSS and the playback controller. The iframe retained 1280x616 in Main Unit/Findings; sameVideo stayed true through workspace navigation, playback resumed and screenshots showed video content. Creative-tab rebuilds reported zero detached playing videos. Temporary test pages/archives removed. The exact VONJO failure has not been rechecked after the correction because the user's page currently has no package loaded; keep user acceptance pending.
+
+## D087 — One lifecycle for creative, workspace and browser navigation (7.13.6)
+
+**Clarified user contract:** start video with sound; pause/resume on creative-tab changes, app-section changes, and actual browser tab/focus changes including click-outs. Preserve both picture and time. Removing browser visibility handling in D085 was contrary to this clarified contract and is superseded.
+
+**Recording reviewed:** `video issue.mp4` (52.708s) shows VONJO's picture white/black after browser-tab return while its audio is reported as continuing. Prior tests showing successful play flags or a separate video harness did not establish resolution of that native rendering failure.
+
+**Implementation:** renderer-owned `createPreviewMediaLifecycle` in `lib/preview-media.js`, embedded self-contained into 7.13.6. Cache live nodes by artboard/video layer so creative navigation preserves time, rather than creating a new video each paint. Keep workspace activity, browser focus and document visibility as separate gates. Observe child/parent focus and true document visibility, with top-document focus checks to exclude ordinary iframe/app control focus changes. Attempt sound by default and delegate autoplay permission; handle a real NotAllowedError with Play with sound. On browser return load a fresh native video surface from the same URL and seek before swap/play. Preserve audio settings/rate/manual pauses and suppress playback if the user leaves during restoration. Pause all outgoing media, clear caches on package reset, and exclude capture stages. Discovered and tested an additional mount-order issue: painting activates a video before its layout row is connected, so synchronize after the row mounts. Host no longer installs its own media pause listener.
+
+**Scope:** package-independent, no brand/filename special cases. Build identity remains 7.13.6 as requested. `scripts/structure/embed-media-lifecycle.mjs` updates the standalone copy; tests enforce source parity.
+
+**D087 validation:** 13 lifecycle regressions cover sound-policy fallback, cached creative-video time, detached row mounting, app sections, true hidden-document events, focus/click-out signals, parent/iframe focus exclusion, restore races, manually paused clips and clips cached on inactive creative tabs. TypeScript passes. Browser integration used the shared `design.psd(5).zip` VONJO revision (111 assets), IONIS Tryngolza and Cosentyx DTC with full current renderer/host CSS. VONJO retained ~6.39s -> 7.04s over creative-tab switching; app suspension retained 12.55s; browser-focus suspension paused at 12.81s then loaded a fresh video surface and continued with a visible picture. Unmuted/playing state and zero detached playing videos were checked. A fresh automated VONJO load encountered the browser's real NotAllowedError; Play with sound worked. Later package loads played unmuted automatically. Focus loss/return was driven through the same lifecycle browser-activity API because opening automated in-app tabs leaves document.hidden=false and top-document focus=true. Thus native browser-tab switching itself still requires acceptance in the user's browser. This limitation must not be described as a native-browser pass. Temporary test pages/archives removed before the final production build.
+
+**D087 final checks:** all 13 lifecycle tests pass; full suite 195 pass, one pre-existing archived registry parity test fails. Four inline scripts compile. TypeScript and production bundling pass with Node 22.22.2; final dist excludes temporary test pages and client ZIP fixtures.
+
+## D088 — Circular slide-progress glyph alternatives (7.13.7)
+
+**User-confirmed:** the reported mismatch is slide progress, not text. Create a new patch release from 7.13.6. The text investigation was abandoned without any text-rendering modifications.
+
+**Confirmed root cause:** live VONJO 970x546/tab2/slide1 circularBar contained both playIcon and muteIcon SVGs at overlapping coordinates. The export marks both visible. The supplied Tonmya archive contains only a playIcon in its circularBar templates, explaining why it looked correct under the same renderer. Group visibility and ring stroke were not the cause.
+
+**Decision:** create 7.13.7 and preserve 7.13.6 byte-for-byte. Add a shared content-scoped selector for one visible authored glyph per circularBar. Image slides prefer play; video slides prefer the available audio state. A missing preferred template falls back to one available authored variant, without enabling hidden layers. Keep source geometry/color objects and frame/indicator artwork unchanged. Scope video lookup to the control's own component, and replace the older category-wide play-hide heuristic with the same content rule. No client/package IDs select behavior; no text or autoplay/control-interaction changes.
+
+**Evidence and validation:** 39 initial focused checks passed, including all selected gallery states from VONJO, Tonmya and Cosentyx HCP manifests. Live user preview now displays 7.13.7 with only cp-control-playicon in the reported circularBar; screenshot inspected and the overlapping speaker glyph is gone. Add a retained-source hash regression for 7.13.6. Full checks/build are recorded below.
+
+**D088 final checks:** TypeScript passes; all four inline scripts compile; production bundle passes under Node 22.22.2. Full suite: 203 pass, one pre-existing archived registry parity failure. 7.13.6 checksum still matches the pre-task source. The final image capture was unavailable after the page returned to the no-package analysis frame; the earlier live visual inspection of 7.13.7 did show the single play glyph in the reported VONJO control. User acceptance remains pending.
+
+
+## D089 — [Gallery] Separate playback from audio and preserve sound on wrap (7.13.8)
+
+**Authorization:** user requested a new 7.13.8 release to match Signatera production Tab 2 controls and correct mute after a three-video next-arrow wrap. 7.13.7 is retained unchanged.
+
+**Production evidence:** `https://showcase.vdx.tv/Signatera/#uoHcBg`, expanded 970×546 Patient Perspectives tab: circular control contains pause while the video plays; sound is a separate white speaker over the video's bottom-right corner. Observed player markup specifies bottom/right 5px.
+
+**Root cause:** manual transition code muted/defaultMuted/zeroed the outgoing original before copying it for animation. That original belongs to the live video cache, and the painter only initialized sound on first use, so revisiting the slide retained those unintended audio values. A broad user-gesture listener unmuted only the currently presented clip before rendering the next one, masking the fault on initial visits and overriding explicit mute choices.
+
+**Decision:** use shared playback state for circular play/pause, with sound toggles positioned over video frames; suspend outgoing originals without audio mutation, and mute only animation copies. Preserve explicit sound preferences for all cached/new videos, including pending native-surface replacements. Retry permission-blocked playback on gestures without changing sound preferences. No package/client identifiers control this behavior. No text-rendering changes or new image-slide autoplay/timing guesses.
+
+
+**Validation:** 34 focused checks pass, including all selected circular-control states in Signatera, Cosentyx HCP and IONIS Tryngolza; the prior 7.13.7 source hash remains unchanged. Real-browser full-preview checks verified Signatera next→next→next retains audible video state, circular mouse pause and Enter resume, independent sound toggle, explicit mute retained on next slide, and 5px bottom/right audio overlay alignment. Cosentyx HCP retains muted video after creative-tab return and its image gallery keeps the play template. Tryngolza resumes unmuted at the saved position after a creative-tab return. Tests cover native-surface replacement/control bindings and audio changes during pending restoration; native browser-focus acceptance is not newly claimed by this task. TypeScript, production build and diff whitespace checks pass. Full suite: 215 pass / 1 pre-existing archived 7.8.0 registry wording failure. Temporary full-package test pages/ZIP copies were removed before production build.
+
+
+## D090 — [Gallery] Center playback states and animate circular progress (7.13.9)
+
+**Authorization:** user requested 7.13.9 after reporting an off-center pause icon and requesting full-circle progress over video length or non-video autoplay duration. Retain 7.13.8 unchanged.
+
+**Evidence:** Signatera's exported 970×546 Tab 2 play wrapper is x=38,y=502,w=14,h=18, centered at (45,511); its indicator is x=22,y=491,w=40,h=40, centered at (42,511). Reusing the play wrapper for pause therefore shifts pause 3px right. Live production `.vdx-progress-ctrl` centers playback states at top/left 50% with translate(-50%,-50%). The production component source `https://cdnx.tribalfusion.com/media/git/common/richmedia/component/common/3.13.11-12/vdx-components-turbo.js` defines gallery defaults `X_={timer:{enabled:!1,duration:3e3,resume:5e3},...}`; its gallery class merges X_. The same source maps video media time/duration to progress and CSS starts the progress arc at the top. Local Signatera ZIP has no runtime configuration; the designer-config response did not provide timing overrides.
+
+**Decision:** center runtime glyphs using their own indicator geometry; preserve dimensions and source styling. Animate normalized SVG stroke progress using media time for video and active elapsed time for images. Use the verified 3000ms gallery default when no duration override is supplied, enabling preview autoplay only through existing visible circular progress on a supported multi-slide gallery. Preserve explicit pause and audio settings; suspend with the existing Main Unit/browser lifecycle. Completion uses shared next-slide navigation with one controlling artboard, while per-state clock disposal prevents stale completion events. Exclude hotspot popups, category home and scan/capture stages. This extends earlier static-progress scope at the user's explicit request and supersedes D089's deferred progress/timing limitation. No text rendering changes.
+
+
+**Validation:** 42 focused checks pass (clock/media lifecycle, current release pointer, all visible circular controls across Signatera, Cosentyx HCP and IONIS Tryngolza, retained 7.13.8 source hash). Browser integration verifies Signatera glyph/ring center deltas dx=0,dy=0, video fraction derived from a 35.135104s clip, native video completion advancing exactly to slide2 without muting, and mouse/Enter play/pause. Cosentyx HCP image progress stayed at 0.4177666667 across workspace suspension and resumed afterwards; image completion advances through its slides. Tryngolza image progress stayed at 0.1069666667 while manually paused. Source clock tests cover explicit durations, inactive intervals, remount snapshots, seeks, buffering, unknown media duration and synchronous disposal at completion. TypeScript, production build and whitespace checks pass. Full suite: 223 pass / 1 pre-existing archived 7.8.0 registry wording failure. Native browser-focus behavior was exercised through the shared lifecycle regression tests rather than newly claimed as native browser-tab acceptance. Temporary full-package test pages and ZIP copies were removed. Full-page screenshot `/tmp/tqa-7139-progress.png` records the final centered pause glyph and partial video arc.
+
+
+## D091 — [CTA] Honor numbered CTA and client-logo click roles (7.13.10)
+
+**Evidence:** in 7.13.9 the QA click-out setup marks only `.cp-cta` nodes and the stage handler only recognizes `.cp-cta.qa-clickout`. The renderer paints the documented `button-clientLogo` role as a Smart Object background on its structural group, but retained groups default to `pointer-events: none`. Thus the artwork is visible but cannot reach the click handler. The same `button-clientLogo` plus direct `background` structure appears in IONIS Tryngolza, Cosentyx DTC, and Cosentyx HCP packages. The project's user-confirmed CTA authoring contract also defines numbered `buttonN` groups with a direct frame as CTA objects; the optional direct image/Smart Object background is named `background`.
+
+**Decision:** honor both explicit interaction roles. Promote numbered `buttonN` groups with exactly one direct frame to `.cp-cta` targets, regardless of whether their artwork is text or a named `background` image/Smart Object. Promote documented `button-clientLogo` structural groups through their existing image bounds. Expose link semantics and Enter activation, and use the existing default `https://www.vdx.tv/` QA destination. Generic logo-named artwork and map image buttons are not CTA targets. Keep layout-audit selection and all internal controls intact. Do not mutate package data or add tracking fields.
+
+**Versioning:** create patch build 7.13.10 from 7.13.9, and retain 7.13.9 unchanged.
+
+## D092 — [Feedback] Escalate package evidence only when needed (7.13.11)
+
+**Evidence:** sending every complete source package makes feedback slower and increases storage and privacy cost even when structured export data is sufficient. `export.json` can explain most finding, structure, and preview-state problems, while actual asset bytes remain necessary for corrupt or visually incorrect assets and the original ZIP remains necessary for archive loading, path, casing, and compression failures.
+
+**Decision:** replace the default full-package checkbox with three explicit evidence levels. Select **Package diagnostics** by default and include `export.json` plus a path/size inventory. **Diagnostics + affected assets** adds package files connected to current findings or validation warnings. **Complete package** adds the original ZIP and is described as the last-resort option. Keep screenshot and user attachment controls independent. Record the chosen level and included assets in `feedback.json`.
+
+**Versioning:** create patch build 7.13.11 from user-confirmed 7.13.10 and promote the current-preview pointer. The embedded renderer changes only its build identity; the feedback UI and bundle assembly are host capabilities.
+
+## D093 — [Feedback] Download locally and hand off through Box File Request (7.13.12)
+
+**Evidence:** direct Box API submission was not approved and required credentials unavailable to the static app. Asking users to choose among diagnostics, affected assets, and a complete package also added technical cognitive load.
+
+**Decision:** choose package evidence automatically from the feedback type. Ordinary reports include diagnostics, asset-validation reports add flagged assets, and package-loading reports include the original ZIP. Replace remote submission with a browser download. After download, show the generated filename and a single link to the approved Box File Request page for manual upload. Do not detect Box Drive, store credentials, or call the local Box upload endpoint.
+
+**Versioning:** create patch build 7.13.12 from user-confirmed 7.13.11 and promote the current-preview pointer. The embedded renderer changes only its build identity.
+
+**Completion-state follow-up:** keep the 7.13.12 identity and download/manual-upload flow. Promote the Box handoff into a high-contrast **One final step** panel with a primary-styled upload action so it cannot blend into the evidence UI. Replace the inconsistent outlined **Close** control with the standard primary **Done** button after download.
+
+## D094 — [QA Studio] Make the package overview action-first (7.14.0)
+
+**Authorization:** user approved implementing the reviewed overview design in a new minor build and confirmed `turbo-preview-7.13.12` as the latest source.
+
+**Decision:** create 7.14.0 from 7.13.12, retaining 7.13.12 unchanged. Replace the overview's low-action coverage blocks with Errors, Warnings, Total CTA count, and Package size cards; keep **See all findings** and provide quick access to Main Unit and available teaser previews. Add a designer snapshot for video names/sizes, tabs, recognized components, fonts, and frequent colors. Show the asset-validation warning badge for any video over 2.5 MB. These counts and metadata are extracted from the loaded package; unavailable metadata is described as unavailable rather than inferred.
+
+**Versioning:** this is a backward-compatible MINOR capability release. The renderer source is copied from 7.13.12 and changes only `PREVIEW_BUILD`; the overview is implemented in the QA Studio host. Promote `preview/current-preview.ts` to 7.14.0. The five core docs advance together to 1.8.3.
+
+## D095 — [QA Studio] Keep overview routes distinct and validate CTV/OTT video assets (7.14.1)
+
+**Evidence:** the Overview's Teaser preview action opened the CTV/OTT workspace whenever CTV/OTT media existed, which made the named Teaser destination unreachable from that action. Package Size was presented as an overview metric but did not lead to the Assets workspace. The documented CTV/OTT media asset `video_ctvott.mp4` was listed in the overview but did not receive the primary-video size and duration validation already used elsewhere.
+
+**Decision:** make Teaser preview always open Teasers. Add a separate CTV/OTT view quick action whenever CTV/OTT formats are available. Make Package Size open Assets. Apply the established 2.5 MB size warning and 30-second / 4 minute 30 second duration warnings/errors to documented `video_ctv.mp4`, `video_ott.mp4`, and `video_ctvott.mp4` assets, using CTV/OTT-specific finding IDs so reports remain clear.
+
+**Versioning:** create patch build 7.14.1 from user-confirmed 7.14.0 and promote `preview/current-preview.ts`. The embedded renderer changes only its build identity; the route and analyzer fixes are QA Studio host changes.
+
+## D096 — [Main Unit] Force Compare-mode video playback to mute (7.14.2)
+
+**Evidence:** Compare is a simultaneous multi-size review surface. More than one video may play at once, so audible playback is distracting and does not provide a usable review experience. Focused Preview is the intended context for reviewing sound.
+
+**Decision:** add a renderer-owned Compare mute gate to the shared media lifecycle. It forces all existing, restoring, and subsequently painted video surfaces to muted with zero volume while Compare is active. The gate takes precedence over sound-button interaction. Returning to focused Preview releases the gate and restores the reviewer's existing sound preference; a reviewer-selected mute remains muted.
+
+**Versioning:** create patch build 7.14.2 from user-confirmed 7.14.1 and promote `preview/current-preview.ts`. Keep the standalone renderer synchronized from `lib/preview-media.js` through the documented embedding script.
+
+## D097 — [Main Unit] Keep Compare mute in workspace scope (7.14.3)
+
+**Evidence:** after D096, Main Unit showed its package picker after a package had already been analyzed. Browser diagnostics identified `ReferenceError: compareEnabled is not defined` during artboard painting. The shared `paintArtboard` API is defined outside the workspace scope that owns `compareEnabled`, so reading that local variable inside the painter aborted package loading.
+
+**Decision:** restore asset-painter independence from workspace-local state. `renderStage()` applies the shared lifecycle's Compare mute gate before cards are built and videos are activated; the painter keeps its existing default audio initialization. This preserves the D096 mute policy while allowing any package to load normally.
+
+**Versioning:** create patch build 7.14.3 from user-confirmed 7.14.2 and promote `preview/current-preview.ts`.
+
+## D098 — [QA Studio] Make package-review intent explicit (7.15.0)
+
+**Evidence:** the Overview's CTA total did not state what was counted, Package Size presented file count as its primary value, video warning badges did not lead to their validation results, and Main Unit opened in a focused mode despite compare being the primary multi-size review task.
+
+**Decision:** label the CTA metric as recognized CTA/button groups; lead the Package Size card with uploaded ZIP size and show file count beneath it; make oversize-video warning badges open Findings filtered to the exact asset path; and start Main Unit in Compare with all available artboards selected. Rename the focused alternative from **Preview** to **Single view**. Compare retains the D096/D097 forced-mute policy.
+
+**Versioning:** create backward-compatible MINOR build 7.15.0 from user-confirmed 7.14.3 and promote `preview/current-preview.ts`. The Overview host keeps full asset paths in its video summary solely for exact findings navigation.
+
+## D099 — [QA Studio] Count CTA instances from Desktop Expandable (7.15.1)
+
+**Evidence:** a package-wide count inflated the metric when identical CTA groups were repeated across ad sizes. Designers need the number of CTA touchpoints to review across tabs and slides in the campaign's key Desktop Expandable state, rather than the number of repeated group instances across every size.
+
+**Decision:** label the Overview metric **CTAs**. Count recognized `buttonN`/legacy `button` groups only within the `970x546` Desktop Expandable artboard, retaining a distinct count for each tab/slide CTA instance. Do not add matching groups from other artboards. Use a tooltip to state the reference and calculation. If the package lacks `970x546`, show the metric as unavailable rather than substituting a different size.
+
+**Versioning:** create patch build 7.15.1 from user-confirmed 7.15.0 and promote `preview/current-preview.ts`.
+
+## D100 — [QA Studio] Hide technical completion status (7.15.2)
+
+**Evidence:** “Static analysis complete” confirmed that initial package checks had run, but its technical phrasing did not help creative reviewers and could be interpreted as a full creative approval.
+
+**Decision:** remove the completion label from the workspace navigation. Findings, assets, package analysis, and layout-audit controls remain available and unchanged; the UI no longer presents an unnecessary technical status claim.
+
+**Versioning:** create patch build 7.15.2 from user-confirmed 7.15.1 and promote `preview/current-preview.ts`.
+
+## D101 — [QA Studio] Prioritize destinations and package-review summary (7.15.3)
+
+**Evidence:** creative reviewers use Main Unit, Teaser preview, CTV/OTT view, and Findings as their primary entry points. The prior Overview placed those destinations in a lower panel while Errors, Warnings, CTAs, and Package Size occupied the leading row. The snapshot also showed a generic size warning for `video_ctvott.mp4` despite the dedicated video being exempt from the 2.5 MB limit.
+
+**Decision:** move the creative destinations to top-row action cards. Move Errors, Warnings, CTAs, and Package Size into a lower **Package review** / **Review summary** panel. Display a video warning in the snapshot only when its asset has a real validation finding. Restrict CTV/OTT recognition to the supplied `video_ctvott.mp4` convention; exempt it from the 2.5 MB size limit while retaining duration validation.
+
+**Versioning:** create patch build 7.15.3 from user-confirmed 7.15.2 and promote `preview/current-preview.ts`.
+
+## D102 — [Teasers] Match Main Unit order and horizontal layout (7.15.4)
+
+**Evidence:** the teaser gallery stacked every size in a single centered column, while Main Unit compare uses its available horizontal space and a deliberate size sequence.
+
+**Decision:** retain the existing ordering by matching teaser destinations to the package's Main Unit artboard sequence. Group wide cards across the full row, pair the banner and adhesion formats, then place tall and square formats together in a responsive bento layout. Stack the groups on narrow screens.
+
+**Versioning:** create patch build 7.15.4 from user-confirmed 7.15.3 and promote `preview/current-preview.ts`.

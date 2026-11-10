@@ -1,10 +1,10 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.7
+**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
+**Last updated:** 2026-11-03
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -42,6 +42,12 @@
 ```
 
 Dark is the default on load (`setTheme("dark")` runs unconditionally at startup — there is no persisted preference across sessions, and no localStorage is used).
+
+## QA Studio package overview (7.15.3)
+
+The Overview is the action-first landing page after package analysis. Lead with top-row cards for Main Unit, available Teaser preview, available CTV/OTT view, and Review findings; each opens its matching workspace. Below the package details, use **Package review** / **Review summary** for clickable Errors and Warnings counts, **CTAs**, and ZIP package size with file count below. CTAs counts CTA instances in Desktop Expandable (`970x546`) across tabs and slides; the tooltip states this reference and that repeats in other sizes count once. When that size is absent, show an unavailable state instead of a package-wide substitute. Package Size opens Assets.
+
+The package snapshot can include video filenames and sizes, tab labels, recognized component counts, font families, and a small palette of frequent colors. Show a video warning badge only when its asset has a validation finding; selecting it opens matching asset findings. `video_ctvott.mp4` is intentionally excluded from the 2.5 MB size warning. Omit unavailable values, and label extracted counts clearly as package totals. Main Unit starts in **Compare**; **Single view** is the explicit focused alternative.
 
 ## 2. Typography
 
@@ -81,6 +87,10 @@ The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a su
 - **Mobile-expandable scale** (v7.9.10+): focused `428x622` Preview adds a Fit/1× segmented pair inside the card label. Fit is the default and presents the authored stage through the production 375×622 responsive host; 1× shows the original 428px source view. This control changes presentation geometry only—the selected tab/slide remains the same. In Fit, qualifying full-width-video sibling branches follow D068's single branch-level vertical delta.
 - **Segmented buttons** (view mode, tab/slide/theme, all-sizes): flat rectangular buttons, `--surface-raised` fill + shadow when active (previously flat `--accent` fill) — reused identically across every control row; keep this one component rather than inventing new button styles per control.
 
+### QA outbound CTA click test (7.13.0; `buttonN`/logo roles in 7.13.10)
+
+Groups named `buttonN` with a positive integer suffix and one direct frame, plus the documented `button-clientLogo` role, show a pointer affordance and a tooltip that identifies `https://www.vdx.tv/` as the **QA click-out destination**. The optional CTA image/Smart Object background is named `background` per the authoring contract. Clicking or pressing Enter opens that destination in a new tab. Keep layout-audit mode's crosshair/selection behavior intact. Decorative logos, internal canvas tabs, gallery arrows, and map image buttons retain their existing behavior. Do not present this action as a production URL or tracking test.
+
 ## 6. States that must always be handled explicitly
 
 | State | Treatment |
@@ -94,7 +104,7 @@ The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a su
 | Photoshop Optical-kerning text | Not an error state — the tool cannot reproduce Photoshop's optical-kerning shaping at all (hard platform ceiling, no CSS/canvas equivalent). Always flagged via a dotted amber outline on the layer itself (`data-kerning-risk="layout-risk"|"cosmetic"`) and listed package-wide in the review panel. Do not visually conflate this with the red "something's missing/broken" family above — it is an inherent tool limitation being disclosed, not a package defect. |
 | ISI title placement | `970x546` and `mobile-instream` place the title above content; other named sizes, including `970x250`, place it below. This documents current behavior, not a fully production-verified universal policy; see Tech Spec §4.4/§8. |
 
-Gallery dots, arrows, and progress controls inherit their visibility from the selected PSD layer tree. A visible `circularBar` uses the PSD's authored green frame plus a source-bounds white SVG indicator, centered production SVG play glyph, and static muted-state SVG when a `muteIcon` is authored; a hidden `dots`, `arrows`, `progressBar`, or parent `slideProgress` must leave no preview-only substitute behind.
+Gallery dots, arrows, and progress controls inherit their visibility from the selected PSD layer tree. When the `dots` control is visible, clone its active and normal exported layers as the visual templates, preserving exported shape geometry, dimensions, and fills. Distribute the indicators across the authored dot track and mark the selected slide with the active layer. Derive percentage radii when the exported square path has equal radii of half its side (the PSD CSS `border-radius: 50%` case); otherwise preserve the exported numeric corner radii. Do not impose a circle without matching export geometry. A visible `circularBar` uses the PSD's authored green frame plus a source-bounds SVG indicator with exported stroke styling and a production SVG play glyph positioned in its exported boundsNoEffects, and static muted-state SVG when a `muteIcon` is authored; a hidden `dots`, `arrows`, `progressBar`, or parent `slideProgress` must leave no preview-only substitute behind.
 
 ### Gallery arrow interaction contract (7.12.5)
 
@@ -106,7 +116,9 @@ The preview applies one shared arrow contract to the supported direct-slide gall
 - Keep the gallery frame and persistent controls fixed; animate only the incoming/outgoing slide collection items with the current 500ms horizontal `ease-out` transition. Respect `prefers-reduced-motion`.
 - Ignore dot-prefixed export exclusions, arrows inside a slide, and arrows owned by nested components. Do not infer interaction from the word `arrow` alone.
 
-Other arrow-bearing component families (`view360`, `imageGallery`, `categoryGallery`, `dotterGallery`, `productGallery`, and `videoComponent`) use different state models or require production verification. Their controls remain authored/static until a component-specific state mapping is confirmed; they must never be attached to the global gallery slide state as a shortcut.
+Other arrow-bearing component families (`view360`, `imageGallery`, `dotterGallery`, `productGallery`, and `videoComponent`) use different state models or require production verification. Their controls remain authored/static until a component-specific state mapping is confirmed; they must never be attached to the global gallery slide state as a shortcut.
+
+Category galleries use a separate two-level state flow. When an authored `home` group exists, it is the initial cover and entry state even if Photoshop saved it hidden. Its category cards open matching `categoryN` groups; each category's nested `slideN` groups are selected by that category's authored slide arrows and dots. The nav bar's Home control returns to the category list, while its Prev/Next controls switch categories. State changes stay within the owning category gallery and do not borrow the generic active slide from another component. Autoplay and progress timing are only enabled when their Turbo configuration is available to the preview; do not infer values from layer names or substitute arbitrary defaults.
 
 An explicit blank PSD paragraph must remain visible as exactly one authored line-height. Do not simulate it with a global paragraph margin: that would alter normal paragraph spacing and production text geometry (D036).
 
@@ -159,4 +171,25 @@ The capture dialog includes one checked option, **Include CSM review PDF**, with
 After a successful run, **Download ZIP** remains the primary retained artifact and **Review PDF** provides direct access to the PDF. A PDF-only generation error is stated without hiding the valid PNG ZIP. Every PDF page uses a white background and compact gray section header, independent of the preview theme. The review begins with content rather than a generated cover so its flow matches the supplied CSM reference.
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-**Report feedback** belongs in the existing app menu beside **Generate report** and **Screenshots**. The modal keeps the common path short: category first, optional multiline Description with pasted-image support, optional reproduction steps, and a visible evidence review. Actual/Expected fields appear only for Visual mismatch; a valid CCRV or Showcase reference is required only when the selected category needs a production comparison. The primary action is **Submit Feedback**. Its progress and success states must be explicit, and the privacy message must state that the ZIP is prepared in memory and uploaded to the configured Box folder only on submit.
+**Report feedback** belongs in the existing app menu beside **Generate report** and **Screenshots**. The modal keeps the common path short: category first, optional multiline Description with pasted-image support, optional reproduction steps, and a visible evidence review. Actual/Expected fields appear only for Visual mismatch; a valid CCRV or Showcase reference is required only when the selected category needs a production comparison. The primary action is **Download feedback bundle**. After download, replace the ordinary footer state with a visually prominent **One final step** panel containing the filename and a primary-styled **Upload bundle to Box** action. Label the final dialog action **Done** and use the standard primary button treatment.
+
+Package evidence is selected automatically from the feedback type. Show one compact summary of what will be included rather than asking the user to choose among technical evidence levels.
+
+### slideProgress visibility — 7.13.6 (D083)
+
+The `slideProgress` group and its direct `progressBar` and `circularBar` groups render only when explicitly enabled (`visible: true`) in the export. Saved visibility overrides the dot naming rule for these groups, including a leading dot when the exporter retains the group. Both enabled styles may coexist; neither enabled means neither renders. Hidden ancestors and dot exclusions elsewhere still apply. Missing export artwork cannot be recovered by this rule.
+
+Circular controls now preserve the exported ring thickness and placement rather than imposing a 1px ring. Icon geometry uses boundsNoEffects rather than shrinking inside the effect-padded bounds. These rules apply to every circularBar instance; no creative-specific identifiers select the behavior (D084).
+
+
+### Video playback across navigation — 7.13.6 (D087)
+
+- Opening Main Unit starts the current video with sound when browser policy permits. If audible autoplay is blocked, show **Play with sound** over that video; never silently treat muted autoplay as the requested sound behavior.
+- Leaving a creative tab pauses its video. Returning to that tab resumes the saved video/time; a different video tab keeps its own position.
+- Leaving Main Unit for another app section pauses video. Returning preserves the selected artboard, creative tab and playback position.
+- Opening a browser click-out, switching browser tabs, or leaving browser focus pauses video. Return restores the video picture and resumes only when Main Unit is selected. Restore a manually paused picture without starting its sound.
+- Maintain a full-sized hidden iframe, and stop all outgoing media before a creative rebuild so removed nodes cannot keep playing sound.
+
+### One circular progress glyph — 7.13.7 (D088)
+
+Visible PSD play/mute/unmute templates describe alternative control states. Display only one at a time within each circularBar: play for selected image content, an available audio glyph for video content. Preserve authored visibility, geometry and color, including the ring and frame. Tonmya's single-play template must remain unchanged. VONJO and other packages with multiple exported templates must not show a combined play/speaker symbol. Do not select a control's state from a video in another component.

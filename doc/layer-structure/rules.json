@@ -50,7 +50,7 @@
       "statePaths":["slideN"],"recommendedChildPaths":["frame","slideN/frame","slideN/closeButton","triggerN/frame","triggerN/activeImage","triggerN/normalImage"],"observedControlPaths":["triggerN","slideN/closeButton","slideProgress"],
       "evidence":{"source":"sample/basetemplates/hotspot.zip","path":["970x546","tabComponent","tab3","hotSpotGallery"]},
       "rules":["LS-004","LS-005","LS-006","LS-007","LS-010"],
-      "exceptions":["Root backdrop is not required by the supplied template.","Initial popup visibility and close behavior require runtime confirmation."],
+      "exceptions":["Root backdrop is not required by the supplied template.","Preview opens the first exported slide by default; the close button returns to the trigger view. Production parity remains to be verified."],
       "runtimeStatus":"not-evaluated"
     },
     {

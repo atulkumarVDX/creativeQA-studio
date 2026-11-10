@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 import { strFromU8, strToU8, unzip, zipSync } from "fflate";
 import {
-  AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, Play,
+  AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, ExternalLink, Play,
   Camera, Download, FileSearch, Files, ImageIcon, Info, LoaderCircle,
   Link2, MessageSquareWarning, Moon, MoreVertical, PackageOpen, Paperclip,
   Search, ShieldCheck, Sparkles, Sun, Upload,
@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 import { deriveTeaserGeometry } from "@/lib/teaser-layout";
 import { buildMapPreviewConfig } from "@/lib/map-preview";
+import { setPreviewPlaybackActive } from "@/lib/preview-playback";
 
 type BridgeAsset = { durationSeconds?: number; name: string; compressedSize: number; uncompressedSize: number };
 type Theme = "dark" | "light";
@@ -36,6 +37,7 @@ type CtvOttVideos = Partial<Record<CtvOttFormat, string>>;
 type CtvOttArtboardLayer = { layerID?: number; name?: unknown; visible?: boolean };
 type CtvOttExportData = Record<string, unknown> & { document?: { artboards?: unknown } };
 type FeedbackType = "visual-mismatch" | "finding-issue" | "asset-validation" | "package-loading" | "preview-interaction" | "screenshot-export" | "app-ui" | "suggestion" | "other";
+type FeedbackEvidenceLevel = "diagnostics" | "affected-assets" | "complete-package";
 type FeedbackImageContext = "description" | "actual" | "expected";
 type FeedbackInlineImage = { id: string; context: FeedbackImageContext; file: File; previewUrl: string };
 type ProductionReference = { type: "ccrv" | "showcase"; url: string; creativeId: string; variant: string | null };
@@ -55,6 +57,7 @@ const PREVIEW_VERSION = currentPreview.version;
 const previewSource = currentPreview.source;
 const BRIDGE_TOKEN = `turbo-qa-preview-${PREVIEW_VERSION}`;
 const THEME_STORAGE_KEY = "turbo-qa-studio-theme";
+const FEEDBACK_BOX_UPLOAD_URL = "https://exponential.box.com/s/5plrgb9ogbk7m7cyztho4yfnu8orf37s";
 
 function parseProductionReference(raw: string): ProductionReference | null {
   try {
@@ -77,6 +80,28 @@ function parseProductionReference(raw: string): ProductionReference | null {
 
 function safeFilePart(value: string, fallback: string) {
   return value.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 100) || fallback;
+}
+
+function safeArchivePath(value: string) {
+  return value.split(/[\\/]+/).filter(Boolean).map(part => safeFilePart(part, "file")).join("/");
+}
+
+function affectedPackageFiles(summary: PackageSummary | null, files: PackageFile[]) {
+  if (!summary) return [];
+  const findingText = summary.findings.map(finding => JSON.stringify(finding).toLowerCase()).join("\n");
+  const affectedNames = new Set(summary.assets.filter(asset => {
+    const normalized = asset.name.toLowerCase();
+    const basename = normalized.split("/").pop() || normalized;
+    return asset.validationErrors.length > 0
+      || asset.validationWarnings.length > 0
+      || asset.status === "unreferenced"
+      || findingText.includes(normalized)
+      || findingText.includes(basename);
+  }).map(asset => asset.name.toLowerCase()));
+  return files.filter(([name]) => {
+    const normalized = name.replaceAll("\\", "/").toLowerCase();
+    return Array.from(affectedNames).some(asset => normalized === asset || normalized.endsWith(`/${asset}`));
+  });
 }
 
 function dataUrlToBytes(dataUrl: string) {
@@ -127,6 +152,7 @@ function setPreviewTheme(frame: HTMLIFrameElement | null, theme: Theme) {
 const bridgeScript = (String.raw`
 <script>
 (() => {
+  // Playback lifecycle is controlled by the host, including live-update recovery.
   document.documentElement.dataset.tqaBridge = "ready";
   const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
   let mapConfig = null;
@@ -336,9 +362,9 @@ const bridgeScript = (String.raw`
   const previewApi = window.CSM_PREVIEW;
   if (previewApi && typeof previewApi.paintArtboard === 'function') {
     const paintArtboard = previewApi.paintArtboard;
-    previewApi.paintArtboard = function(entry, activeTab, activeSlide) {
+    previewApi.paintArtboard = function(entry, activeTab, activeSlide, activeCategory) {
       clearMapOverlays(entry?.stageEl);
-      const result = paintArtboard.call(this, entry, activeTab, activeSlide);
+      const result = paintArtboard.call(this, entry, activeTab, activeSlide, activeCategory);
       mapPaints.set(entry.stageEl, { entry, activeTab, activeSlide });
       mapPaints.forEach((paint, stage) => { if (!stage.isConnected) mapPaints.delete(stage); });
       requestAnimationFrame(() => renderMapOverlays(entry, activeTab, activeSlide));
@@ -547,6 +573,7 @@ async function readVideoDuration(data: Uint8Array): Promise<number | undefined> 
 }
 
 async function readPackage(file: File) {
+  if (file.size > 600 * 1024 * 1024) throw new Error("ZIP/package exceeds the maximum 600 MB size.");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const entries = await new Promise<Record<string, Uint8Array>>((resolve, reject) => {
     unzip(bytes, (cause, result) => cause ? reject(cause) : resolve(result));
@@ -583,28 +610,50 @@ async function readPackage(file: File) {
   return { exportData, assets, teaserBytes, packageFiles: files as PackageFile[], mapPreviewConfig };
 }
 
-function teaserDisclaimerDocument(raw: string, size: string, files: PackageFile[], assetUrls: string[]) {
+function teaserDisclaimerDocument(raw: string, size: string, files: PackageFile[], assetUrls: string[], disclaimerPath = "disclaimer.html") {
   const doc = new DOMParser().parseFromString(raw, "text/html");
   doc.querySelectorAll("script, base").forEach(node => node.remove());
   const titleSource = doc.body.querySelector("#titleHtml, .title");
   const titleText = titleSource?.textContent?.trim() || "Important Safety Information and Prescribing Information";
   titleSource?.remove();
   const byPath = new Map(files.map(([name, data]) => [name.replace(/^.*?export\.json\/?/i, "").toLowerCase(), data]));
+  const disclaimerDirectory = disclaimerPath.replace(/[^/]*$/, "");
+  const resolvePackageAsset = (source: string) => {
+    const rawPath = source.replace(/^\$LOC\$/i, "").replace(/^\/+/, "");
+    const resolvedPath = new URL(rawPath, `https://package.invalid/${disclaimerDirectory}`).pathname.slice(1).toLowerCase();
+    const candidates = [resolvedPath, resolvedPath.replace(/^assets\//, ""), rawPath.toLowerCase()];
+    for (const candidate of candidates) {
+      const exact = byPath.get(candidate);
+      if (exact) return exact;
+    }
+    const basename = resolvedPath.split("/").pop() || "";
+    const matches = files.filter(([name]) => name.split("/").pop()?.toLowerCase() === basename);
+    return matches.length === 1 ? matches[0][1] : null;
+  };
+  const packageUrl = (source: string) => {
+    const bytes = resolvePackageAsset(source);
+    if (!bytes) return null;
+    const extension = source.split(/[?#]/)[0].split(".").pop()?.toLowerCase();
+    const mime = extension === "woff2" ? "font/woff2" : extension === "woff" ? "font/woff" : extension === "ttf" ? "font/ttf" : extension === "otf" ? "font/otf" : extension === "svg" ? "image/svg+xml" : extension === "jpg" || extension === "jpeg" ? "image/jpeg" : extension === "gif" ? "image/gif" : "image/png";
+    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime }));
+    assetUrls.push(url);
+    return url;
+  };
   for (const image of doc.body.querySelectorAll("img")) {
     const source = image.getAttribute("src") || "";
     image.removeAttribute("srcset");
     if (/^(?:data:|blob:)/i.test(source)) continue;
-    const normalized = source.replace(/^\$LOC\$/i, "").replace(/^\/+/, "").toLowerCase();
-    const basename = normalized.split("/").pop() || "";
-    const exact = byPath.get(normalized) || byPath.get(normalized.replace(/^assets\//, ""));
-    const matches = files.filter(([name]) => name.split("/").pop()?.toLowerCase() === basename);
-    const bytes = exact || (matches.length === 1 ? matches[0][1] : null);
-    if (!bytes) { image.remove(); continue; }
-    const extension = basename.split(".").pop();
-    const mime = extension === "svg" ? "image/svg+xml" : extension === "jpg" || extension === "jpeg" ? "image/jpeg" : extension === "gif" ? "image/gif" : "image/png";
-    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime }));
-    assetUrls.push(url);
+    const url = packageUrl(source);
+    if (!url) { image.remove(); continue; }
     image.src = url;
+  }
+  for (const style of doc.head.querySelectorAll("style")) {
+    style.textContent = style.textContent.replace(/url\((['\"]?)([^)'\"]+)\1\)/gi, (match, quote, rawSource) => {
+      const source = String(rawSource).trim();
+      if (/^(?:data:|blob:|https?:|\/\/|#)/i.test(source)) return match;
+      const url = packageUrl(source);
+      return url ? `url("${url}")` : match;
+    });
   }
   const content = doc.createElement("div");
   content.className = "content";
@@ -653,7 +702,7 @@ function createTeaserPackageLayouts(exportData: Record<string, unknown>, files: 
     layouts[size] = {
       isi,
       creative,
-      disclaimerSrcDoc: isi && disclaimer ? teaserDisclaimerDocument(disclaimer, size, files, urls) : null,
+      disclaimerSrcDoc: isi && disclaimer ? teaserDisclaimerDocument(disclaimer, size, files, urls, disclaimerEntry?.[0] || "disclaimer.html") : null,
       prequal: plain?.url || null,
       prequalWithIsi: withIsi?.url || null,
     };
@@ -767,7 +816,35 @@ export default function Home() {
   const [findingCategory, setFindingCategory] = useState("all");
   const [findingTab, setFindingTab] = useState("all");
   const [findingSize, setFindingSize] = useState("all");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTabState] = useState("overview");
+  const pilotStartedAtRef = useRef(Date.now());
+  const pilotFirstResultAtRef = useRef<number | null>(null);
+  const pilotStepsRef = useRef(new Set<string>(["Overview"]));
+  const pilotToolsRef = useRef(new Set<string>());
+  const pilotPackageOpenedRef = useRef("No");
+  const [pilotOpen, setPilotOpen] = useState(false);
+  const [pilotSending, setPilotSending] = useState(false);
+  const [pilotSent, setPilotSent] = useState(false);
+  const [pilotError, setPilotError] = useState("");
+  const [pilotTesterCode, setPilotTesterCode] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem("tqa-pilot-tester-code");
+      if (stored) return stored;
+      const code = `T${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+      window.localStorage.setItem("tqa-pilot-tester-code", code);
+      return code;
+    } catch { return "Tester"; }
+  });
+  const [pilotEaseRating, setPilotEaseRating] = useState("");
+  const [pilotBlocker, setPilotBlocker] = useState("");
+  const [pilotComments, setPilotComments] = useState("");
+  const setActiveTab = (section: string) => {
+    // Resume inside the navigation gesture so audible playback is permitted.
+    setPreviewPlaybackActive(iframeRef.current, section === "preview");
+    setActiveTabState(section);
+    const step = ({ overview: "Overview", findings: "Findings", assets: "Assets", teasers: "Teasers", ctvOtt: "Teasers", preview: "Preview" } as Record<string, string>)[section];
+    if (step) pilotStepsRef.current.add(step);
+  };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>("visual-mismatch");
   const [feedbackReferenceUrl, setFeedbackReferenceUrl] = useState("");
@@ -776,7 +853,7 @@ export default function Home() {
   const [feedbackExpected, setFeedbackExpected] = useState("");
   const [feedbackSteps, setFeedbackSteps] = useState("");
   const [feedbackIncludeScreenshot, setFeedbackIncludeScreenshot] = useState(true);
-  const [feedbackIncludePackage, setFeedbackIncludePackage] = useState(true);
+  const [feedbackPackageData, setFeedbackPackageData] = useState<{ exportData: Record<string, unknown>; packageFiles: PackageFile[] } | null>(null);
   const [feedbackAttachments, setFeedbackAttachments] = useState<File[]>([]);
   const [feedbackInlineImages, setFeedbackInlineImages] = useState<FeedbackInlineImage[]>([]);
   const feedbackInlineImagesRef = useRef<FeedbackInlineImage[]>([]);
@@ -790,8 +867,25 @@ export default function Home() {
   const hasProductionReferenceInput = feedbackReferenceUrl.trim().length > 0;
   const productionReferenceInvalid = hasProductionReferenceInput && !productionReference;
   const canCreateFeedbackBundle = !feedbackPreparing && !feedbackSuccess && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
+  const feedbackAffectedFiles = useMemo(() => affectedPackageFiles(summary, feedbackPackageData?.packageFiles || []), [summary, feedbackPackageData]);
+  const feedbackDiagnosticsSize = useMemo(() => feedbackPackageData ? strToU8(JSON.stringify(feedbackPackageData.exportData)).byteLength + strToU8(JSON.stringify(feedbackPackageData.packageFiles.map(([name, data]) => ({ name, size: data.byteLength })))).byteLength : 0, [feedbackPackageData]);
+  const feedbackEvidenceLevel: FeedbackEvidenceLevel = feedbackType === "package-loading" && sourcePackage
+    ? "complete-package"
+    : feedbackType === "asset-validation" && feedbackAffectedFiles.length > 0
+      ? "affected-assets"
+      : "diagnostics";
+  const feedbackEvidenceSummary = !sourcePackage
+    ? "No package evidence available"
+    : feedbackEvidenceLevel === "complete-package"
+      ? `Complete package · ${formatBytes(sourcePackage.size)}`
+      : feedbackEvidenceLevel === "affected-assets"
+        ? `Package diagnostics + ${feedbackAffectedFiles.length} flagged ${feedbackAffectedFiles.length === 1 ? "file" : "files"}`
+        : `Package diagnostics · about ${formatBytes(feedbackDiagnosticsSize)}`;
 
   useEffect(() => { summaryRef.current = summary; }, [summary]);
+  useEffect(() => {
+    setPreviewPlaybackActive(iframeRef.current, Boolean(summary) && activeTab === "preview");
+  }, [activeTab, summary]);
   useEffect(() => { feedbackInlineImagesRef.current = feedbackInlineImages; }, [feedbackInlineImages]);
 
   useEffect(() => () => {
@@ -952,9 +1046,10 @@ export default function Home() {
       setError("Finish or cancel screenshot capture before replacing the package.");
       return;
     }
-    if (!/\.zip$/i.test(file.name)) { setError("Choose a ZIP export package."); setStatus("error"); return; }
+    if (!/\.zip$/i.test(file.name)) { pilotPackageOpenedRef.current = "Error"; setError("Choose a ZIP export package."); setStatus("error"); return; }
     pendingFileRef.current = file;
     mapPreviewConfigRef.current = null;
+    setFeedbackPackageData(null);
     setSourcePackage(file);
     generationRequestRef.current = `${file.name}:${file.size}:${file.lastModified}`;
     generationNeededRef.current = false;
@@ -966,16 +1061,20 @@ export default function Home() {
     setCtvOttError("");
     setTeaserGenerationStatus("idle");
     setSummary(null); setPreviewSizeCount(null); setStatus("loading"); setError(""); setActiveTab("overview");
+    if (file.size > 600 * 1024 * 1024) {
+      setStatus("error"); setError("ZIP/package exceeds the maximum 600 MB size."); return;
+    }
     void loadPreviewFile(iframeRef.current, file);
     try {
       const packageData = await readPackage(file);
+      setFeedbackPackageData({ exportData: packageData.exportData, packageFiles: packageData.packageFiles });
       mapPreviewConfigRef.current = packageData.mapPreviewConfig;
       iframeRef.current?.contentWindow?.postMessage({
         type: "tqa:map-config",
         token: BRIDGE_TOKEN,
         config: packageData.mapPreviewConfig,
       }, "*");
-      const analyzed = analyzePackage(packageData.exportData, packageData.assets, file.name);
+      const analyzed = analyzePackage(packageData.exportData, packageData.assets, file.name, file.size);
       const detectedCtvOttFormats = detectCtvOttFormats(packageData.exportData);
       if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (typeof url === "string" && url.startsWith("blob:")) URL.revokeObjectURL(url); });
       teaserLayoutUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
@@ -995,8 +1094,11 @@ export default function Home() {
       setTeaserLayouts(nextLayouts.layouts);
       setSummary(analyzed);
       setStatus("ready"); setError("");
+      pilotPackageOpenedRef.current = "Yes";
+      if (pilotFirstResultAtRef.current === null) pilotFirstResultAtRef.current = Date.now();
       void renderCtvOttPackage(file, detectedCtvOttFormats, generationRequestRef.current);
     } catch (cause) {
+      pilotPackageOpenedRef.current = "Error";
       setStatus("error"); setError(cause instanceof Error ? cause.message : String(cause));
     }
   };
@@ -1052,6 +1154,8 @@ export default function Home() {
   const totalBytes = summary?.assets.reduce((sum, asset) => sum + asset.uncompressedSize, 0) || 0;
   const issueCount = summary ? count(summary.findings, "error") + count(summary.findings, "warning") : 0;
   const openScreenshots = () => {
+    pilotToolsRef.current.add("Screenshot capture");
+    pilotStepsRef.current.add("Screenshots");
     setActiveTab("preview");
     window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:open-screenshots", token: BRIDGE_TOKEN }, "*"), 0);
   };
@@ -1064,7 +1168,11 @@ export default function Home() {
     setActiveTab("preview");
     window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:focus-finding", token: BRIDGE_TOKEN, finding }, "*"), 0);
   };
+  const openAssetFindings = (assetPath: string) => {
+    setSeverity("all"); setFindingCategory("Assets"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(assetPath); setActiveTab("findings");
+  };
   const openCtvOtt = () => {
+    pilotToolsRef.current.add("CTV/OTT preview");
     setActiveTab("ctvOtt");
     if (ctvOttStatus === "error" && pendingFileRef.current && ctvOttFormats.length) {
       void renderCtvOttPackage(pendingFileRef.current, ctvOttFormats, generationRequestRef.current);
@@ -1072,9 +1180,48 @@ export default function Home() {
   };
 
   const openFeedback = () => {
+    pilotStepsRef.current.add("Feedback");
+    pilotToolsRef.current.add("Report feedback");
     setFeedbackError("");
     setFeedbackSuccess("");
     setFeedbackOpen(true);
+  };
+
+  const openPilotCheckin = () => {
+    setPilotError("");
+    setPilotSent(false);
+    setPilotOpen(true);
+  };
+
+  const submitPilotSession = async () => {
+    setPilotSending(true);
+    setPilotError("");
+    try {
+      const response = await fetch("/api/ctv-ott/notion/pilot-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session: `Session ${new Date(pilotStartedAtRef.current).toISOString().replace(/[:.]/g, "-")}`,
+          testerCode: pilotTesterCode.trim() || "Anonymous",
+          startedAt: new Date(pilotStartedAtRef.current).toISOString(),
+          appVersion: PREVIEW_VERSION,
+          packageOpened: pilotPackageOpenedRef.current,
+          stepsReached: [...pilotStepsRef.current],
+          toolsUsed: [...pilotToolsRef.current],
+          timeToFirstResultMinutes: pilotFirstResultAtRef.current === null ? null : Math.round((pilotFirstResultAtRef.current - pilotStartedAtRef.current) / 60000 * 10) / 10,
+          mainBlocker: pilotBlocker,
+          easeRating: pilotEaseRating ? Number(pilotEaseRating) : null,
+          comments: pilotComments
+        })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "The session summary could not be saved.");
+      setPilotSent(true);
+    } catch (cause) {
+      setPilotError(cause instanceof Error ? cause.message : "The session summary could not be saved.");
+    } finally {
+      setPilotSending(false);
+    }
   };
 
   const pasteFeedbackImages = (context: FeedbackImageContext, event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -1103,7 +1250,7 @@ export default function Home() {
     });
   };
 
-  const submitFeedback = async () => {
+  const downloadFeedbackBundle = async () => {
     const referenceInput = feedbackReferenceUrl.trim();
     const reference = referenceInput ? parseProductionReference(referenceInput) : null;
     if (referenceInput && !reference) {
@@ -1123,7 +1270,8 @@ export default function Home() {
         : null;
       const captureResult = capture && "dataUrl" in capture ? capture : null;
       const captureError = capture && "error" in capture ? capture.error : null;
-      const packageFile = feedbackIncludePackage ? sourcePackage : null;
+      const packageFile = feedbackEvidenceLevel === "complete-package" ? sourcePackage : null;
+      const includedAffectedFiles = feedbackEvidenceLevel === "affected-assets" ? feedbackAffectedFiles : [];
       const generatedAt = new Date().toISOString();
       const files: Record<string, Uint8Array> = {};
       const feedback = {
@@ -1152,25 +1300,34 @@ export default function Home() {
         package: summary ? {
           sourceFile: summary.sourceFile,
           creativeName: summary.creativeName,
-          included: Boolean(packageFile),
-          size: packageFile?.size || null,
+          evidenceLevel: feedbackPackageData ? feedbackEvidenceLevel : null,
+          completePackageIncluded: Boolean(packageFile),
+          completePackageSize: packageFile?.size || null,
+          affectedAssetCount: includedAffectedFiles.length,
           artboards: summary.artboards,
           findings: summary.findings,
         } : null,
         evidence: {
           activePreviewScreenshot: Boolean(captureResult),
           screenshotRequested: feedbackIncludeScreenshot,
+          packageDiagnostics: Boolean(feedbackPackageData),
+          affectedAssets: includedAffectedFiles.map(([name, data]) => ({ name, size: data.byteLength })),
           sourcePackage: Boolean(packageFile),
           pastedImages: feedbackInlineImages.map(image => ({ context: image.context, name: image.file.name, size: image.file.size, type: image.file.type || null })),
           attachments: feedbackAttachments.map(file => ({ name: file.name, size: file.size, type: file.type || null })),
         },
       };
       files["feedback.json"] = strToU8(JSON.stringify(feedback, null, 2));
+      if (feedbackPackageData) {
+        files["package/diagnostics/export.json"] = strToU8(JSON.stringify(feedbackPackageData.exportData, null, 2));
+        files["package/diagnostics/file-inventory.json"] = strToU8(JSON.stringify(feedbackPackageData.packageFiles.map(([name, data]) => ({ name, size: data.byteLength })), null, 2));
+      }
       if (captureResult) files["evidence/active-preview.png"] = dataUrlToBytes(captureResult.dataUrl);
       for (const image of feedbackInlineImages) {
         const folder = image.context === "description" ? "description" : `${image.context}-result`;
         files[`evidence/${folder}/${safeFilePart(image.file.name, `${image.context}-pasted.png`)}`] = new Uint8Array(await image.file.arrayBuffer());
       }
+      for (const [name, data] of includedAffectedFiles) files[`package/affected-assets/${safeArchivePath(name)}`] = data;
       if (packageFile) files[`package/${safeFilePart(packageFile.name, "source-package.zip")}`] = new Uint8Array(await packageFile.arrayBuffer());
       const usedAttachmentNames = new Set<string>();
       for (const attachment of feedbackAttachments) {
@@ -1190,14 +1347,15 @@ export default function Home() {
       const stamp = generatedAt.replace(/[:.]/g, "-");
       const creative = safeFilePart(summary?.creativeName || "turbo", "turbo").toLowerCase();
       const filename = `${creative}-feedback-${stamp}.zip`;
-      const response = await fetch("/api/ctv-ott/feedback/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/zip", "X-Feedback-Filename": encodeURIComponent(filename) },
-        body: archiveBuffer,
-      });
-      const result = await response.json().catch(() => null) as { error?: string; name?: string } | null;
-      if (!response.ok) throw new Error(result?.error || `Box submission failed (${response.status}).`);
-      setFeedbackSuccess(`Submitted ${result?.name || filename} to Box.`);
+      const url = URL.createObjectURL(new Blob([archiveBuffer], { type: "application/zip" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setFeedbackSuccess(filename);
     } catch (cause) {
       setFeedbackError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -1220,6 +1378,7 @@ export default function Home() {
                 <DropdownMenuItem onSelect={downloadReport}><Download /> Generate report</DropdownMenuItem>
                 <DropdownMenuItem disabled={captureBusy} onSelect={openScreenshots}><Camera /> Screenshots</DropdownMenuItem>
               </>}
+              <DropdownMenuItem onSelect={openPilotCheckin}><CheckCircle2 /> Finish testing session</DropdownMenuItem>
               <DropdownMenuItem onSelect={openFeedback}><MessageSquareWarning /> Report feedback</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Theme</DropdownMenuLabel>
@@ -1239,7 +1398,7 @@ export default function Home() {
             <h1>Preflight a Turbo package before production.</h1>
             <p>Inspect structure, copy consistency, asset references, typography risks, and the full interactive preview from one ZIP.</p>
             <Button size="lg" onClick={() => fileInputRef.current?.click()}><Archive /> Choose ZIP package</Button>
-            <div className="privacy-note"><ShieldCheck /> Processed locally in your browser. Nothing is uploaded.</div>
+            <div className="privacy-note"><ShieldCheck /> Creative files stay in your browser. A usage summary is sent to Notion only when you choose “Finish testing session”.</div>
           </div>
           {status === "error" && <div className="error-banner"><CircleAlert /> {error}</div>}
         </section>
@@ -1252,8 +1411,8 @@ export default function Home() {
             <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "findings" ? "active" : "inactive"} aria-selected={activeTab === "findings"} onClick={() => setActiveTab("findings")}><FileSearch /> Findings <span className="nav-count">{summary.findings.length}</span></button>
             <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "assets" ? "active" : "inactive"} aria-selected={activeTab === "assets"} onClick={() => setActiveTab("assets")}><Files /> Assets <span className="nav-count">{summary.assets.length}</span></button>
             <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "teasers" ? "active" : "inactive"} aria-selected={activeTab === "teasers"} onClick={() => setActiveTab("teasers")}><ImageIcon /> Teasers</button>
-            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "preview" ? "active" : "inactive"} aria-selected={activeTab === "preview"} onClick={() => openMainUnit("970x546")}><ImageIcon /> Main Unit <span className="preview-version">{PREVIEW_VERSION}</span></button>
-          </div><div className="scan-status"><CheckCircle2 /> Static analysis complete</div></div>
+            <button type="button" role="tab" data-slot="tabs-trigger" data-state={activeTab === "preview" ? "active" : "inactive"} aria-selected={activeTab === "preview"} onClick={() => setActiveTab("preview")}><ImageIcon /> Main Unit <span className="preview-version">{PREVIEW_VERSION}</span></button>
+          </div></div>
 
           <div className="ctv-ott-subnav" role="navigation" aria-label="CTV and OTT teaser navigation">
             {ctvOttFormats.length > 0 && <button type="button" className={activeTab === "ctvOtt" ? "active" : ""} onClick={openCtvOtt}><Play /> {ctvOttViewLabel(ctvOttFormats)}</button>}
@@ -1263,10 +1422,30 @@ export default function Home() {
           </div>
 
           {activeTab === "overview" && <div role="tabpanel" className="workspace-content">
-            <section className="summary-hero"><div><span className="eyebrow">PACKAGE SUMMARY</span><h1>{summary.creativeName}</h1><p>{issueCount ? `${issueCount} issue${issueCount === 1 ? "" : "s"} need review before handoff.` : "No errors or warnings were found by the current rule set."}</p></div><Button variant="outline" onClick={() => setActiveTab("findings")}>Review findings <ChevronRight /></Button></section>
-            <section className="stat-grid"><Stat label="Artboards" value={summary.artboards.length} detail={summary.artboards.join(" · ")} /><Stat label="Content states" value={`${summary.tabCount} / ${summary.slideCount}`} detail="Tabs / named slides" /><Stat label="Text layers" value={summary.textLayerCount} detail="Checked for typography risks" /><Stat label="Package assets" value={summary.assets.length} detail={`${formatBytes(totalBytes)} uncompressed`} /></section>
-            <section className="severity-grid">{(["error", "warning", "info"] as Severity[]).map(level => <button key={level} className={`severity-card ${level}`} onClick={() => { setSeverity(level); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); setActiveTab("findings"); }}><span><SeverityIcon level={level} /></span><strong>{count(summary.findings, level)}</strong><div><b>{level === "info" ? "Notes" : `${level[0].toUpperCase()}${level.slice(1)}s`}</b><small>{level === "error" ? "Critical issues" : level === "warning" ? "Needs designer review" : "Risks and limitations"}</small></div><ChevronRight /></button>)}</section>
-            <section className="overview-grid"><article className="panel"><div className="panel-heading"><span className="eyebrow">COVERAGE</span><h2>Current analysis</h2></div><div className="coverage-list">{["Turbo structure and required artboards", "Asset references and package inventory", "Copy presence across artboards", "Tab-wide element presence", "CTA text mode and production rendering risks", "Shift+Enter soft-return production errors", "Spacing, defaults, superscript and kerning"].map(item => <div key={item}><CheckCircle2 /><span>{item}</span></div>)}</div></article><article className="panel next-panel"><span className="eyebrow">NEXT ANALYSIS LAYER</span><h2>Rendered geometry</h2><p>Cropped copy, hanging lines, alignment and screenshot batches will use the same state index after fonts and assets settle.</p><Badge variant="outline">Foundation ready</Badge></article></section>
+            <section className="summary-hero"><div><span className="eyebrow">PACKAGE SUMMARY</span><h1>{summary.creativeName}</h1><p>{issueCount ? `${issueCount} issue${issueCount === 1 ? "" : "s"} need review before handoff.` : "No errors or warnings were found by the current rule set."}</p></div><Button variant="outline" onClick={() => setActiveTab("findings")}>See all {summary.findings.length} findings <ChevronRight /></Button></section>
+            <section className="stat-grid overview-action-grid" aria-label="Quick access">
+              <button className="quick-link overview-action-card" onClick={() => setActiveTab("preview")}><span className="quick-link-icon"><ImageIcon /></span><span><strong>Main Unit</strong><small>{summary.artboards.length} sizes · {summary.tabs.length} tabs</small></span><ChevronRight /></button>
+              {teaserMedia && <button className="quick-link overview-action-card" onClick={() => setActiveTab("teasers")}><span className="quick-link-icon"><Play /></span><span><strong>Teaser preview</strong><small>Open teaser formats</small></span><ChevronRight /></button>}
+              {ctvOttFormats.length > 0 && <button className="quick-link overview-action-card" onClick={openCtvOtt}><span className="quick-link-icon"><Play /></span><span><strong>CTV/OTT view</strong><small>{ctvOttFormats.map(format => format.toUpperCase()).join(" + ")} ready</small></span><ChevronRight /></button>}
+              <button className="quick-link overview-action-card findings-link" onClick={() => setActiveTab("findings")}><span className="quick-link-icon"><FileSearch /></span><span><strong>Review findings</strong><small>{summary.findings.length} items · highest priority first</small></span><ChevronRight /></button>
+            </section>
+            <section className="overview-grid overview-details">
+              <article className="panel package-at-glance"><div className="panel-heading"><div><span className="eyebrow">PACKAGE DETAILS</span><h2>Package at a glance</h2></div></div>
+                <div className="snapshot-row"><strong>Videos ({summary.videos.length})</strong><div className="snapshot-content">{summary.videos.length ? summary.videos.map((video, index) => { const asset = summary.assets.find(item => item.name === video.path); const hasValidationFinding = Boolean(asset?.validationErrors.length || asset?.validationWarnings.length); return <div className="video-summary" key={`${video.path}-${video.size}-${index}`}><span>{video.name} · {formatBytes(video.size)}</span>{hasValidationFinding && <button type="button" className="asset-status warning" onClick={() => openAssetFindings(video.path)} aria-label={`Show findings for ${video.name}`}>Warning</button>}</div>; }) : <span className="muted">None found</span>}</div></div>
+                <div className="snapshot-row"><strong>Tabs ({summary.tabs.length})</strong><span>{summary.tabs.length ? summary.tabs.join(" · ") : "No named tabs found"}</span></div>
+                <div className="snapshot-row"><strong>Components ({summary.components.reduce((total, item) => total + item.count, 0)})</strong><span>{summary.components.length ? summary.components.map(item => `${item.name} (${item.count})`).join(" · ") : "No recognized components found"}</span></div>
+                <div className="snapshot-row"><strong>Fonts ({summary.fonts.length})</strong><span>{summary.fonts.length ? summary.fonts.join(" · ") : "No font metadata found"}</span></div>
+                <div className="snapshot-row"><strong>Colors ({summary.colorCount})</strong><span className="color-summary">{summary.colors.map(color => <span key={color.hex} title={`${color.hex} · ${color.count} uses`}><i style={{ backgroundColor: color.hex }} />{color.hex}</span>)}</span></div>
+              </article>
+              <article className="panel review-summary"><div className="panel-heading"><div><span className="eyebrow">PACKAGE REVIEW</span><h2>Review summary</h2></div></div>
+                <section className="stat-grid overview-metrics review-summary-metrics">
+                  <button className="stat-card metric-error" onClick={() => { setSeverity("error"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); setActiveTab("findings"); }}><p>Errors</p><strong>{count(summary.findings, "error")}</strong><span>Critical issues to fix</span></button>
+                  <button className="stat-card metric-warning" onClick={() => { setSeverity("warning"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); setActiveTab("findings"); }}><p>Warnings</p><strong>{count(summary.findings, "warning")}</strong><span>Items for designer review</span></button>
+                  <div className="stat-card metric-cta" title={summary.ctaReferenceArtboard ? `Counts CTA instances across tabs and slides in the Desktop Expandable reference size (${summary.ctaReferenceArtboard}). Repeated groups in other ad sizes are counted once.` : "Desktop Expandable (970x546) was not found, so CTAs cannot be calculated."}><p>CTAs</p><strong>{summary.ctaCount ?? "—"}</strong><span>{summary.ctaReferenceArtboard ? `Desktop Expandable · ${summary.ctaReferenceArtboard}` : "Desktop Expandable unavailable"}</span></div>
+                  <button className="stat-card metric-assets" onClick={() => setActiveTab("assets")}><p>Package size</p><strong>{formatBytes(sourcePackage?.size || totalBytes)}</strong><span>{summary.assets.length} files</span></button>
+                </section>
+              </article>
+            </section>
           </div>}
 
           {activeTab === "findings" && <div role="tabpanel" className="workspace-content">
@@ -1312,7 +1491,7 @@ export default function Home() {
           <DialogHeader>
             <span className="eyebrow">LOCAL DEBUG BUNDLE</span>
             <DialogTitle>Report feedback</DialogTitle>
-            <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. A ZIP is prepared locally in memory and uploaded to the configured Box folder only when you submit.</DialogDescription>
+            <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. The feedback ZIP is prepared locally and downloaded to your computer.</DialogDescription>
           </DialogHeader>
 
           <div className="feedback-form">
@@ -1347,25 +1526,69 @@ export default function Home() {
             <label className="feedback-field"><span>Steps to reproduce (optional)</span><textarea value={feedbackSteps} onChange={event => setFeedbackSteps(event.target.value)} placeholder={'1. Open the package\n2. Select the size and state\n3. Observe the issue'} /></label>
 
             <section className="feedback-evidence" aria-labelledby="feedback-evidence-title">
-              <div className="feedback-evidence-heading"><div><strong id="feedback-evidence-title">Evidence included</strong><span>Review everything before submitting feedback.</span></div><ShieldCheck /></div>
+              <div className="feedback-evidence-heading"><div><strong id="feedback-evidence-title">Evidence included</strong><span>Start lightweight. Add package files only when they help reproduce the issue.</span></div><ShieldCheck /></div>
               <label className="feedback-check"><input type="checkbox" checked={feedbackIncludeScreenshot} disabled={!summary} onChange={event => setFeedbackIncludeScreenshot(event.target.checked)} /><span><b>Active preview screenshot</b><small>{summary ? "Captures the current artboard and records its tab, slide, view, scale, and theme." : "Open a package to include a rendered artboard."}</small></span></label>
-              <label className="feedback-check"><input type="checkbox" checked={feedbackIncludePackage} disabled={!sourcePackage} onChange={event => setFeedbackIncludePackage(event.target.checked)} /><span><b>Source package</b><small>{sourcePackage ? `${sourcePackage.name} · ${formatBytes(sourcePackage.size)}` : "No package is currently open."}</small></span></label>
+              <div className="feedback-package-evidence"><div className="feedback-package-heading"><div><b>Package evidence</b><small>Selected automatically from the feedback type.</small></div><span>Automatic</span></div><div className="feedback-auto-evidence"><CheckCircle2 aria-hidden="true" /><span><b>{feedbackEvidenceSummary}</b><small>{feedbackEvidenceLevel === "complete-package" ? "The original ZIP is needed to investigate package loading." : feedbackEvidenceLevel === "affected-assets" ? "Only files connected to asset findings or validation warnings are added." : "Includes export.json and the package file inventory; asset contents stay out."}</small></span></div></div>
               <label className="feedback-attachment"><Paperclip /><span><b>Add supporting files</b><small>Reference screenshots, logs, PDFs, or corrected assets</small></span><input type="file" multiple onChange={event => setFeedbackAttachments(Array.from(event.target.files || []))} /></label>
               {feedbackAttachments.length > 0 && <div className="feedback-attachment-list">{feedbackAttachments.map((file, index) => <span key={`${file.name}-${file.size}-${index}`}>{file.name} · {formatBytes(file.size)}</span>)}</div>}
             </section>
 
             {feedbackError && <div className="feedback-error" role="alert"><CircleAlert /> {feedbackError}</div>}
-            {feedbackSuccess && <div className="feedback-success" role="status"><CheckCircle2 /> {feedbackSuccess}</div>}
+            {feedbackSuccess && <div className="feedback-success" role="status" aria-live="polite">
+              <div className="feedback-success-icon"><CheckCircle2 aria-hidden="true" /></div>
+              <div className="feedback-success-content">
+                <span className="feedback-success-kicker">One final step</span>
+                <strong>Feedback bundle downloaded</strong>
+                <p>Upload the downloaded ZIP to Box so the team can review your feedback.</p>
+                <span className="feedback-success-filename">{feedbackSuccess}</span>
+                <Button asChild className="feedback-upload-button"><a href={FEEDBACK_BOX_UPLOAD_URL} target="_blank" rel="noreferrer">Upload bundle to Box <ExternalLink aria-hidden="true" /></a></Button>
+              </div>
+            </div>}
           </div>
 
           <DialogFooter className="feedback-footer">
-            <Button variant="outline" disabled={feedbackPreparing} onClick={() => setFeedbackOpen(false)}>{feedbackSuccess ? "Close" : "Cancel"}</Button>
-            <Button disabled={!canCreateFeedbackBundle} onClick={() => void submitFeedback()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Submitting feedback…</> : <><Upload /> Submit Feedback</>}</Button>
+            <Button variant={feedbackSuccess ? "default" : "outline"} disabled={feedbackPreparing} onClick={() => setFeedbackOpen(false)}>{feedbackSuccess ? "Done" : "Cancel"}</Button>
+            {!feedbackSuccess && <Button disabled={!canCreateFeedbackBundle} onClick={() => void downloadFeedbackBundle()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Preparing bundle…</> : <><Download /> Download feedback bundle</>}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <iframe ref={iframeRef} title="Turbo package preview" srcDoc={srcDoc} onLoad={() => {
+      <Dialog open={pilotOpen} onOpenChange={open => { if (!pilotSending) setPilotOpen(open); }}>
+        <DialogContent className="feedback-dialog" aria-describedby="pilot-session-description">
+          <DialogHeader>
+            <span className="eyebrow">CREATIVE TEAM PILOT</span>
+            <DialogTitle>{pilotSent ? "Session recorded" : "Finish testing session"}</DialogTitle>
+            <DialogDescription id="pilot-session-description">
+              {pilotSent
+                ? "Your short usage summary and feedback were saved to the Pilot Sessions database. Package contents and screenshots were not sent."
+                : "We’ll save the sections you visited, tools you used, and your answers to the Pilot Sessions database. Package contents and screenshots are not included."}
+            </DialogDescription>
+          </DialogHeader>
+          {!pilotSent && <div className="feedback-form">
+            <label className="feedback-field"><span>Tester code</span><input value={pilotTesterCode} onChange={event => {
+              const value = event.target.value;
+              setPilotTesterCode(value);
+              try { window.localStorage.setItem("tqa-pilot-tester-code", value); } catch {}
+            }} /></label>
+            <label className="feedback-field"><span>How easy was the app to use? (optional)</span>
+              <select value={pilotEaseRating} onChange={event => setPilotEaseRating(event.target.value)}>
+                <option value="">Choose a rating</option><option value="1">1 — Very difficult</option><option value="2">2 — Difficult</option><option value="3">3 — Okay</option><option value="4">4 — Easy</option><option value="5">5 — Very easy</option>
+              </select>
+            </label>
+            <label className="feedback-field"><span>What was the main blocker? (optional)</span><textarea value={pilotBlocker} onChange={event => setPilotBlocker(event.target.value)} placeholder="What slowed you down or felt unclear?" /></label>
+            <label className="feedback-field"><span>Anything else you’d like us to know? (optional)</span><textarea value={pilotComments} onChange={event => setPilotComments(event.target.value)} placeholder="Suggestions or other feedback" /></label>
+            {pilotError && <div className="feedback-error" role="alert"><CircleAlert /> {pilotError}</div>}
+          </div>}
+          <DialogFooter className="feedback-footer">
+            {pilotSent
+              ? <Button onClick={() => setPilotOpen(false)}>Done</Button>
+              : <><Button variant="outline" disabled={pilotSending} onClick={() => setPilotOpen(false)}>Cancel</Button><Button disabled={pilotSending} onClick={() => void submitPilotSession()}>{pilotSending ? <><LoaderCircle className="spin" /> Saving…</> : "Save session"}</Button></>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <iframe ref={iframeRef} title="Turbo package preview" allow="autoplay" srcDoc={srcDoc} onLoad={() => {
+        setPreviewPlaybackActive(iframeRef.current, Boolean(summary) && activeTab === "preview");
         if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
       }} className={summary && activeTab === "preview" ? "preview-frame" : "analysis-frame"} />
     </main>

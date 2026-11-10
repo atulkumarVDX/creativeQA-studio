@@ -1,12 +1,12 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.15.4** — `preview/turbo-preview-7.15.4.html`. Teaser cards follow Main Unit artboard order and wrap horizontally (D102).
 
 > **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.7
+**Reflects build:** `preview/turbo-preview-7.15.4.html` @ **v7.15.4** (current); historical baselines are described below.
+**Last updated:** 2026-11-03
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -28,16 +28,20 @@ Two independent distribution lines currently exist (see §2), which is itself th
 - Single-select size picker (checkboxes), tab/slide segmented controls, no theming, no compare mode.
 - Simplest, oldest lineage; does not yet include most of the fixes and features in the artifact line (see §5 matrix).
 
-### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.9.11 current source**
+### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.15.3 current source**
 
 - Built to run as a Claude artifact / any static host: everything (engine, UI, styling) is inlined in one `.html` file plus a CDN `<script>` for JSZip.
 - Ingests a **`.zip`** of the whole export package (via drag-drop or file picker), unzips in-browser with JSZip, and resolves every asset filename to an in-memory `Blob` URL through `CSM_PREVIEW.setAssetResolver()` — nothing is uploaded anywhere.
 - Dark/light theme toggle, sticky size/tab/slide control panel, Compare mode (all available sizes), Compare-card registration marks, always-on text-risk disclosure (§4.5), and a focused mobile-instream Fit/1× control (§4.7).
-- `preview/turbo-preview-7.9.11.html` is the **current source** and declares `PREVIEW_BUILD = "7.9.11"`. v7.9.10 is preserved as the previous patch build; v7.7.0 remains the reconciled historical baseline.
+- `preview/turbo-preview-7.15.3.html` is the **current source** and declares `PREVIEW_BUILD = "7.15.3"`. The embedded renderer is based on user-confirmed 7.15.2; earlier releases remain available as historical builds.
 - QA Studio imports only `preview/current-preview.ts`. That pointer statically imports the confirmed current HTML and owns its version/path metadata. Historical builds live under `preview/archive/` and are available to regression tests without entering the application module graph. See `18-Preview-Build-Inventory.md` for the version-to-path register.
 - v7.7.0 combines PATCH-level regression corrections (D041/D042) with the backward-compatible mobile-instream scale capability (D043), so the release uses a MINOR increment per `05-Docs-Maintenance.md` §2.
 
 ## 3. Data model
+
+### QA Studio overview summary (7.15.3)
+
+The host derives overview data from the already analyzed `export.json` and ZIP inventory: CTA instances, tab labels, recognized component group counts, font-family metadata, frequently repeated RGB colors, and video file sizes. **CTAs** counts recognized CTA/button groups across tabs and slides in the Desktop Expandable (`970x546`) reference size. Repeated groups in other ad sizes are excluded, so the number represents designer-facing CTA touchpoints rather than a package-wide total. If the reference size is absent, the card explicitly reports that CTAs cannot be calculated. The Overview presents creative destinations first, followed by a grouped review summary for Errors, Warnings, CTAs, and Package Size. Package size uses the uploaded ZIP byte length when available, displays file count below it, and opens Assets. Teaser preview and CTV/OTT view are separate quick actions. Video warning badges appear only when the corresponding asset has validation findings and open Findings with the matching asset path pre-filtered. The dedicated `video_ctvott.mp4` is excluded from the 2.5 MB size rule but retains duration validation. These are descriptive summaries; the video badge does not change analyzer findings.
 
 `CSM_PREVIEW.parseExport(data)` turns raw `export.json` into:
 
@@ -80,11 +84,12 @@ Key derived structures:
 
 | Check | Result |
 |---|---|
-| Name starts with `.` | Skipped entirely (D023) |
+| `slideProgress` group or its direct `progressBar` / `circularBar` group | Requires `visible === true`; its dot marker is ignored. Hidden/missing visibility disables the subtree (D083). |
+| Name starts with `.` | Skipped entirely elsewhere (D023) |
 | Name matches never-rasterized patterns | Skipped (D026), except `playIcon`, `muteIcon`, or `unmuteIcon` within a visible `circularBar`, reconstructed from recovered production SVG paths (D034) |
 | Is a group layer (`layerSection === layerSectionStart`) | Recursed into, not rendered itself |
 | Name matches `video [id, ...]` and resolves via `videoPlaylist` | Rendered as `<video>` (D027) |
-| `layerKind === 4` (shape) | Rendered as a filled/bordered/shadowed `<div>` using exported per-corner radii through `getShapeBorderRadius()` (D066), or skipped if no fill data; a fill-less `circularBar/indicator` is rendered as a source-bounds SVG circle with its exported 1px colour stroke (D033) |
+| `layerKind === 4` (shape) | Rendered as a filled/bordered/shadowed `<div>` using exported per-corner radii through `getShapeBorderRadius()` (D066), or skipped if no fill data; a fill-less `circularBar/indicator` uses its exported path bounds and stroke width, colour, opacity and alignment (D084; legacy fallback D033) |
 | Has a `textKey` descriptor | Rendered as live HTML text, never an image (per PSD guidelines §7.4 — confirmed no PNG ever exists for text layers) |
 | Otherwise | Rendered as `<img>` against `{name}-{layerID}.png` or a custom asset name, with one `-2x.png` retry on 404 (D024) |
 
@@ -148,7 +153,11 @@ Focused Preview renders the authored `428x622` mobile-expandable stage through a
 
 The ISI frame is a responsive exception: it fills the 375px host at x=0 and its inner content retains vertical scrolling. Full-width video also changes the vertical flow of its owning production tab. After the video is resized, the renderer computes `round(responsiveVideoHeight - authoredVideoHeight)` and applies that delta once to every direct sibling branch of the video. Descendants retain their coordinates relative to the shifted branch, so copy, CTA, disclosure, background and control clusters move together. The video branch itself and unrelated structures are not shifted. The renderer must never select individual leaves by comparing their tops with the shortened video boundary.
 
-Preview-mode tab and slide controls are derived only from the selected artboard, preventing controls for unavailable states. Compare mode deliberately aggregates the included artboards. Text synchronization matches the supplied production `vdx-container-turbo.js` 3.13.8-0 candidate basis: paragraph padding-left plus text-indent, with the most-negative text-indent retained; padding-right is not included in candidate width scoring.
+Preview-mode tab and slide controls are derived only from the selected artboard, preventing controls for unavailable states. Compare mode deliberately aggregates the included artboards. Text synchronization matches the supplied production `vdx-container-turbo.js` 3.13.12-0 candidate basis: paragraph padding-left plus padding-right plus text-indent, with the most-negative text-indent retained.
+
+### 4.9 QA-only outbound CTA click test (Artifact line, v7.13.0 — D077)
+
+After each artboard render, the host marks numbered `buttonN` groups with one direct frame (`.cp-cta`) and the documented `button-clientLogo` role as keyboard-focusable links. A `buttonN` group's direct frame defines its hit area; its optional image/Smart Object background is named `background` per the authoring contract. For `button-clientLogo`, the renderer promotes the existing background-image group to a pointer hit target. A delegated stage handler opens the fixed `https://www.vdx.tv/` destination in a new tab on click or Enter. This is a default interaction target for preview QA, not an inferred campaign URL. It does not change `export.json`, package files, production actions, or tracking configuration. Decorative logos, reconstructed canvas tabs, gallery arrows, map Smart Object buttons, and layout-audit selection retain their existing behavior.
 
 ## 5. Feature / fix matrix across the three files
 
@@ -187,6 +196,8 @@ Preview-mode tab and slide controls are derived only from the selected artboard,
 | Bento-style Compare layout (hero/wide/banner/tall/square) | No | No | **Yes (D038)** |
 | Mobile-expandable responsive ISI, anchored controls, scoped state controls, video sibling-flow delta | No | No | **Yes (D067/D068, v7.9.11)** |
 | CTA text metadata alignment validation | No | No | **Validation required: flag measured CTA-label shifts and provide the Photoshop text round-trip repair (TR-012)** |
+| Photoshop paragraph spacing (`spaceBefore` / `spaceAfter`) | No | No | **Yes — inherited and implied paragraph spacing is mapped per rendered paragraph across sizes (TR-003, v7.15.5)** |
+| QA-only outbound click test for `buttonN` CTA groups and `button-clientLogo` | No | No | **Yes — opens `https://www.vdx.tv/` in a new tab; no package mutation or tracking event (D077/D091, v7.13.0/7.13.10)** |
 
 ## 6. Engine constants (stable across all files unless noted)
 
@@ -245,4 +256,55 @@ The capture orchestrator retains successful PNG blobs as review inputs while add
 The package video is decoded at 5, 12, and 15 seconds, clamped inside shorter videos. Starting at 5 seconds avoids an empty intro sample and follows the requested screenshot policy. `video1.mp4` is preferred; the first package MP4 is the fallback. Matching `preQual_<size>.png` files supply teaser evidence. Main-unit pages are created only from successful preview captures. Size-specific grids reproduce the reference density; phone, player, browser, and OTT shells are drawn as document presentation around source evidence. Full ISI is dynamically typeset into one dense page from the parsed disclaimer; it is not a screenshot of a production scroll container. PDF creation is optional and a PDF-specific failure does not discard valid PNGs or prevent the diagnostic ZIP.
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-QA Studio uses its existing same-origin iframe bridge to request one active-stage PNG and structured preview state. The host conditionally validates a `showcase.vdx.tv` CCRV/Showcase URL, combines `feedback.json`, screenshot evidence, the optional in-memory source ZIP, and user attachments with `fflate`, then posts the ZIP to the loopback `/api/ctv-ott/feedback/upload` endpoint. The local service authenticates to Box with Client Credentials Grant and uploads to `BOX_FEEDBACK_FOLDER_ID`; credentials never enter browser code. The endpoint rejects non-local browser origins and fails closed when configuration is absent. See `19-Feedback-Debug-Bundle.md` for the schema and boundaries.
+QA Studio uses its existing same-origin iframe bridge to request one active-stage PNG and structured preview state. The host conditionally validates a `showcase.vdx.tv` CCRV/Showcase URL, combines `feedback.json`, screenshot evidence, automatically selected package evidence, and user attachments with `fflate`, then downloads the ZIP through a temporary object URL. The confirmation state links to the approved Box File Request page; the app performs no remote upload. See `19-Feedback-Debug-Bundle.md` for the schema and boundaries.
+
+From 7.13.12, the host retains the unpacked `export.json` and package file table after analysis. Bundle assembly adds diagnostics for ordinary feedback, associated package files for asset-validation feedback, and the original ZIP for package-loading feedback. Archive paths are sanitized segment by segment.
+
+### Circular control geometry — 7.13.6 (D084)
+
+Within circularBar, use the indicator's AGMStrokeStyleInfo for width, enabled state, colour, opacity and inside/centre/outside alignment, with ellipse axes derived from path bounds. The 1px fallback applies only to legacy manifests without a stroke descriptor. Reconstructed play/mute/unmute glyphs use boundsNoEffects at full size when valid; older manifests retain the production sizing fallback. Apply the authored solid-colour overlay and layer opacity to glyph fill. The recovered production glyph paths remain the fallback artwork; arbitrary embedded Smart Object contents, unsupported effects and animation are not proven pixel-identical by this change.
+
+
+## Main Unit playback lifecycle — 7.13.6 (D087 supersedes D085/D086 playback rules)
+
+`lib/preview-media.js` is the authoritative media lifecycle. Embed its source into the standalone current HTML with `node scripts/structure/embed-media-lifecycle.mjs`; the regression suite verifies byte-for-byte source parity. `lib/preview-playback.ts` delegates workspace activity to that renderer and records early activity in `documentElement.dataset.tqaWorkspaceActive`, rather than attaching a second competing media listener. The iframe delegates autoplay permission with `allow="autoplay"`.
+
+Playback is allowed only for a currently presented video while Main Unit is active, its browser document is visible, and browser focus is active. Visibility changes plus deferred window/parent-window focus checks cover browser-tab switches and click-outs. Focus moving between the creative iframe and ordinary app controls must not count as leaving the browser document: the focus check uses the top document. If the user returns to the browser while another app section is selected, the video remains paused until Main Unit is selected.
+
+Compare mode adds a renderer-owned forced mute gate. It applies to existing, restored, and newly painted video surfaces before playback proceeds; its sound button cannot override the gate. Returning to focused Preview releases the gate and restores the reviewer's prior sound preference.
+
+Compare state belongs to the workspace renderer, while asset painting belongs to the shared renderer API. The paint function must not read workspace-local state directly; `renderStage()` applies the mute gate before it paints or activates video surfaces.
+
+Videos attempt audible playback by default. Browser `NotAllowedError` is handled with an explicit **Play with sound** action over the video. This is a browser-permission fallback, not a silent-muted default or a guarantee that policy can be bypassed. A later interaction retries pending playback without restarting manually paused media.
+
+The painter caches live video nodes by artboard entry and authored video-layer/source key. Leaving a creative tab pauses its video before detachment. Returning reattaches that node and resumes at its retained time. Painting happens in detached layout rows, so activation schedules a synchronization after the synchronous row mount. Scan/capture stages use separate muted, non-autoplay video nodes and do not enter the live playback cache. Package replacement/dropzone reset silences and clears all cached media.
+
+Leaving Main Unit pauses presented media without removing it. Browser focus/visibility loss also pauses media and marks its native video surface for restoration. On browser return, clone the video from the same source, load metadata and seek to its saved time before replacing the old paused node and resuming. Keep source, authored style/geometry, audio state and rate; update the creative cache to the replacement. If the user leaves again while restoration is pending, the replacement must remain paused. Manually paused videos restore their picture without starting sound. This explicitly addresses the recording's white/black video picture while the old audio clock continued.
+
+Hidden and visible iframes retain identical fixed viewport dimensions, including responsive offsets. Hide the inactive frame with visibility:hidden rather than shrinking it to 1x1. Video layers retain a zero-distance 3D transform; outgoing media is always paused before artboard/stage removal. D085/D086 in the decisions log describe earlier attempts and are not the final contract.
+
+### Circular slide-progress variants — 7.13.7 (D088)
+
+`selectCircularControlVariants` resolves one glyph per enabled circularBar after the PSD visibility walker collects the selected content. Exported playIcon/muteIcon/unmuteIcon layers are runtime alternatives and must not be painted simultaneously. Resolve the owning component from circularBar -> slideProgress -> owner; search only the selected renderables inside that owner for video. Image content prefers playIcon. Video content prefers the authored unmuteIcon or muteIcon for the preview audio preference, then an available authored audio variant. If the preferred artwork is absent or hidden, retain one available exported variant; do not synthesize missing layers. Independent galleries cannot borrow each other's video state. Category galleries use the same rule instead of hiding play for every selected category slide.
+
+The chosen renderable keeps its original layer, boundsNoEffects, position, size, color, opacity and source paint order. Frame/indicator/linear progress artwork and D083 group visibility are unchanged. This correction concerns the static glyph presented during painting; it does not add gallery autoplay, animated progress or new click behavior. Text rendering is unchanged.
+
+
+### Gallery playback/audio separation — 7.13.8 (D089 supersedes D088 icon choice)
+
+Circular bars select one play template for image and video content. On live video slides, the glyph becomes pause while playing and play while paused, and controls playback using the shared lifecycle record. Preserve the authored glyph geometry/color and ring; if only an audio template exists, reuse its geometry for the standard playback glyph. Hidden progress groups remain hidden under D083. Match controls to their nearest supported owning gallery inside the current artboard; video elsewhere must not bind an unrelated gallery's circular control.
+
+Every live video gets its own white sound toggle, inset 5 source pixels from its bottom-right corner (24×18 source pixels), matching the observed Signatera production player placement. It changes audio independently of playback. The explicit audio choice is retained across cached and newly visited videos and native-surface restoration. Generic pointer/keyboard interactions retry pending playback without forcing audio on. Scan/capture stages remain free of interactive overlays.
+
+Before a manual gallery transition, deactivate/pause the source video without changing muted/defaultMuted/volume. Only the disposable outgoing clone is muted. This prevents revisited cached slides losing sound after a wrap. Controls follow native-surface replacements through the lifecycle record, and already-paused video stays paused when navigating away and back. Package reset clears the audio preference. This release adds video play/pause controls; image-slide timing, automatic gallery advance and animated ring progress still require authored timing configuration and are unchanged.
+
+
+### Circular progress and centering — 7.13.9 (D090)
+
+`centerCircularControlIcon` centers the play/pause wrapper on the owning indicator rectangle rather than inheriting the authored play triangle's optical offset. Wrapper size, fill, ring bounds and Photoshop stroke geometry remain unchanged. Circular progress uses a normalized two-arc SVG path starting at 12 o'clock, preserving non-square axes, with dash offset `1 - fraction`.
+
+The shared `lib/preview-progress.js` clock is embedded by `node scripts/structure/embed-progress-clock.mjs`; tests enforce source parity. Video fraction is `currentTime / duration` from the current lifecycle video, including restored native surfaces, seeks, and buffers. Non-video clocks count only connected, active, unpaused time. The production component bundle's gallery default is 3000ms (`X_.timer.duration`), with enabled progress providing the preview's autoplay opt-in. Internal `gallery.timer.duration` overrides the duration when supplied; timer.enabled=false disables timed auto advance. No campaign-specific timing table or network configuration fetch occurs in the preview. ZIPs lacking production configuration use the verified 3000ms default; this does not establish parity with unseen campaign-specific overrides.
+
+Only selected live supported gallery slides with a visible enabled circular indicator acquire clocks. Hotspot popups, category home states and scan/capture stages do not. Image clocks require multiple slides; video progress can run for a single slide. Circular controls toggle the image timer or the actual video independently of audio. Main Unit/browser inactivity suspends progress via the existing shared media activity gate, without counting hidden time. Creative-tab/app suspension retains image elapsed time and pause intent; manual slide navigation resets gallery progress. Video position continues to use the video cache.
+
+Completion advances to the next slide and wraps through existing gallery navigation. Videos in multi-slide galleries use native ended events (loop=false); videos without automatic gallery advance keep looping. In synchronized multi-size preview, only the first selected artboard that presents circular progress can advance the shared slide selection. Other sizes display their own media progress; pending animation clocks are retired before a render, preventing duplicate completion/navigation or detached background timers.
