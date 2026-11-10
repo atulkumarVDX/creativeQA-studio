@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const preview = readFileSync("preview/turbo-preview-7.12.5.html", "utf8");
+const preview = readFileSync("preview/archive/turbo-preview-7.12.5.html", "utf8");
 const app = readFileSync("app/page.tsx", "utf8");
 const renderer = readFileSync("scripts/ctv-ott-renderer.mjs", "utf8");
 const stack = readFileSync("scripts/preview-stack.mjs", "utf8");
@@ -43,7 +43,7 @@ test("the browser reaches the renderer through the same-origin app proxy", () =>
 });
 
 test("FFmpeg renderer stays on the approved production preview profile", () => {
-  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview\/turbo-preview-7\.12\.4\.html"\)/);
+  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview\/archive\/turbo-preview-7\.12\.4\.html"\)/);
   assert.match(renderer, /role === "disclaimer"/);
   assert.match(renderer, /duration - 8/);
   assert.match(renderer, /duration - 7\.8/);

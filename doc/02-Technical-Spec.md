@@ -1,15 +1,15 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-> **Current release: 7.15.4** — `preview/turbo-preview-7.15.4.html`. Teaser cards follow Main Unit artboard order and wrap horizontally (D102).
+> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
 
 > **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
 
-**Doc version:** 1.8.7
-**Reflects build:** `preview/turbo-preview-7.15.4.html` @ **v7.15.4** (current); historical baselines are described below.
-**Last updated:** 2026-11-03
+**Doc version:** 1.8.8
+**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
+**Last updated:** 2026-11-10
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
 
 ---
 
@@ -28,12 +28,12 @@ Two independent distribution lines currently exist (see §2), which is itself th
 - Single-select size picker (checkboxes), tab/slide segmented controls, no theming, no compare mode.
 - Simplest, oldest lineage; does not yet include most of the fixes and features in the artifact line (see §5 matrix).
 
-### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.15.3 current source**
+### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.15.5 current source**
 
 - Built to run as a Claude artifact / any static host: everything (engine, UI, styling) is inlined in one `.html` file plus a CDN `<script>` for JSZip.
 - Ingests a **`.zip`** of the whole export package (via drag-drop or file picker), unzips in-browser with JSZip, and resolves every asset filename to an in-memory `Blob` URL through `CSM_PREVIEW.setAssetResolver()` — nothing is uploaded anywhere.
 - Dark/light theme toggle, sticky size/tab/slide control panel, Compare mode (all available sizes), Compare-card registration marks, always-on text-risk disclosure (§4.5), and a focused mobile-instream Fit/1× control (§4.7).
-- `preview/turbo-preview-7.15.3.html` is the **current source** and declares `PREVIEW_BUILD = "7.15.3"`. The embedded renderer is based on user-confirmed 7.15.2; earlier releases remain available as historical builds.
+- `preview/turbo-preview-7.15.5.html` is the **current source** and declares `PREVIEW_BUILD = "7.15.5"`. Earlier releases remain available under `preview/archive/` as historical builds.
 - QA Studio imports only `preview/current-preview.ts`. That pointer statically imports the confirmed current HTML and owns its version/path metadata. Historical builds live under `preview/archive/` and are available to regression tests without entering the application module graph. See `18-Preview-Build-Inventory.md` for the version-to-path register.
 - v7.7.0 combines PATCH-level regression corrections (D041/D042) with the backward-compatible mobile-instream scale capability (D043), so the release uses a MINOR increment per `05-Docs-Maintenance.md` §2.
 
@@ -161,7 +161,7 @@ After each artboard render, the host marks numbered `buttonN` groups with one di
 
 ## 5. Feature / fix matrix across the three files
 
-| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/turbo-preview-7.9.11.html` (v7.9.11, current source) |
+| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/archive/turbo-preview-7.9.11.html` (v7.9.11, historical source) |
 |---|:---:|:---:|:---:|
 | Package input | Single `export.json`, same-folder assets | `.zip` via JSZip, blob URLs | `.zip` via bundled JSZip, blob URLs |
 | Theming | None | Dark/Light | Dark/Light |

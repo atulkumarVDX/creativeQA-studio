@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const html = readFileSync('preview/turbo-preview-7.12.5.html', 'utf8');
+const html = readFileSync('preview/archive/turbo-preview-7.12.5.html', 'utf8');
 // Run the actual UI helpers without access to the renderer's lexical scope.
 // This catches the missing slideKey / isGallery / exclusion constant failures
 // that static string assertions missed.

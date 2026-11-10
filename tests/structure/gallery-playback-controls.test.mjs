@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const html = readFileSync('preview/turbo-preview-7.13.9.html', 'utf8');
+const html = readFileSync('preview/archive/turbo-preview-7.13.9.html', 'utf8');
 const script = html.match(/<script>\s*(const PREVIEW_BUILD[\s\S]*?)<\/script>/)[1];
 const context = vm.createContext({ window: {}, console: { log() {} } });
 vm.runInContext(script, context);
@@ -99,5 +99,5 @@ test('outgoing original media is suspended, while only the transition clone is m
 
 test('7.13.8 retains the prior release source exactly', async () => {
   const { createHash } = await import('node:crypto');
-  assert.equal(createHash('sha256').update(readFileSync('preview/turbo-preview-7.13.7.html')).digest('hex'), 'af32cf45f5b3586025b0731db1da33a400b45a17062a6ebd64ce32c1bc44ec0c');
+  assert.equal(createHash('sha256').update(readFileSync('preview/archive/turbo-preview-7.13.7.html')).digest('hex'), 'af32cf45f5b3586025b0731db1da33a400b45a17062a6ebd64ce32c1bc44ec0c');
 });

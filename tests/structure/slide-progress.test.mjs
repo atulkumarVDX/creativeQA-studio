@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const html = readFileSync('preview/turbo-preview-7.13.7.html', 'utf8');
+const html = readFileSync('preview/archive/turbo-preview-7.13.7.html', 'utf8');
 const script = html.match(/<script>\s*(const PREVIEW_BUILD[\s\S]*?)<\/script>/)[1];
 const context = vm.createContext({ window: {}, console: { log() {} } });
 vm.runInContext(script, context);

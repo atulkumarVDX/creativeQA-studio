@@ -2,29 +2,31 @@
 
 **Current QA Studio release:** `preview/turbo-preview-7.15.5.html` (based on 7.15.4; creative-wide video/package limits and AdEx escalation guidance)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-11-03
+**Inventory date:** 2026-11-10
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
 ## Runtime and archive policy
 
-QA Studio imports only the source named by `preview/current-preview.ts`. The current HTML is directly under `preview/`. Older 7.11.2–7.11.15 HTML files are **also still present directly under `preview/`** as retained history, although they are not runtime imports; 7.11.0-feedback and 7.11.1 are archived. Do not describe the intended archive policy as already completed, or delete/move retained builds without approval. Regression tests may read historical files directly; app code must not import the archive.
+QA Studio imports only the source named by `preview/current-preview.ts`. The active folder retains the current release (`7.15.5`) plus the two immediately preceding releases (`7.15.4` and `7.15.3`) for quick comparison. All older HTML builds are stored under `preview/archive/`. Regression tests may read historical files directly from that archive; app code must not import the archive.
 
 “Unique” below means the complete HTML has a content hash not shared by another inventoried build after normalizing only the `const PREVIEW_BUILD = "…"` declaration. It is a byte-level implementation distinction, not a claim that every difference is behaviorally meaningful.
 
-## Current release and retained CTV/OTT patch series
+## Current release and archived CTV/OTT patch series
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.15.4.html` | 681,401 | 7.15.4 | `preview/` | Current patch. Inherits 7.15.3 renderer; Teasers follow Main Unit artboard order in a responsive bento layout. |
-| `turbo-preview-7.15.3.html` | 681,401 | 7.15.3 | `preview/` | Current patch. Promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
-| `turbo-preview-7.15.2.html` | 681,401 | 7.15.2 | `preview/` | Retained patch. Hides the technical workspace completion label while retaining package checks and Findings (D100). |
-| `turbo-preview-7.15.1.html` | 681,401 | 7.15.1 | `preview/` | Retained patch. CTAs counts Desktop Expandable (`970x546`) CTA instances across tabs and slides; repeated groups in other sizes are excluded (D099). |
-| `turbo-preview-7.15.0.html` | 681,401 | 7.15.0 | `preview/` | Retained MINOR release. Starts Main Unit in muted Compare with all sizes selected and names focused mode Single view (D098). |
-| `turbo-preview-7.14.3.html` | 681,424 | 7.14.3 | `preview/` | Retained predecessor. Keeps Compare mute at workspace scope so Main Unit packages load normally (D097). |
-| `turbo-preview-7.14.2.html` | 681,424 | 7.14.2 | `preview/` | Retained predecessor. Forces Compare-mode videos to mute while preserving the reviewer’s focused-Preview audio preference (D096). |
-| `turbo-preview-7.14.1.html` | 680,777 | 7.14.1 | `preview/` | Retained predecessor. Keeps Teasers and CTV/OTT as distinct overview routes, makes Package Size open Assets, and validates documented CTV/OTT videos (D095). |
-| `turbo-preview-7.14.0.html` | 680,779 | 7.14.0 | `preview/` | Retained predecessor. Based on confirmed 7.13.12; embedded renderer behavior is unchanged (D094). |
+> **Archive update (2026-11-10):** only 7.15.5, 7.15.4, and 7.15.3 remain directly under `preview/`. All other entries in this table—including rows below retained for their original release notes—now reside under `preview/archive/`.
+| `turbo-preview-7.15.5.html` | 681,401 | 7.15.5 | `preview/` | Current release. Adds creative-wide video/package limits and AdEx escalation guidance. |
+| `turbo-preview-7.15.4.html` | 681,401 | 7.15.4 | `preview/` | Recent retained patch. Inherits 7.15.3 renderer; Teasers follow Main Unit artboard order in a responsive bento layout. |
+| `turbo-preview-7.15.3.html` | 681,401 | 7.15.3 | `preview/` | Recent retained patch. Promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
+| `turbo-preview-7.15.2.html` | 681,401 | 7.15.2 | `preview/archive/` | Historical patch. Hides the technical workspace completion label while retaining package checks and Findings (D100). |
+| `turbo-preview-7.15.1.html` | 681,401 | 7.15.1 | `preview/archive/` | Historical patch. CTAs counts Desktop Expandable (`970x546`) CTA instances across tabs and slides; repeated groups in other sizes are excluded (D099). |
+| `turbo-preview-7.15.0.html` | 681,401 | 7.15.0 | `preview/archive/` | Historical MINOR release. Starts Main Unit in muted Compare with all sizes selected and names focused mode Single view (D098). |
+| `turbo-preview-7.14.3.html` | 681,424 | 7.14.3 | `preview/archive/` | Historical predecessor. Keeps Compare mute at workspace scope so Main Unit packages load normally (D097). |
+| `turbo-preview-7.14.2.html` | 681,424 | 7.14.2 | `preview/archive/` | Historical predecessor. Forces Compare-mode videos to mute while preserving the reviewer’s focused-Preview audio preference (D096). |
+| `turbo-preview-7.14.1.html` | 680,777 | 7.14.1 | `preview/archive/` | Historical predecessor. Keeps Teasers and CTV/OTT as distinct overview routes, makes Package Size open Assets, and validates documented CTV/OTT videos (D095). |
+| `turbo-preview-7.14.0.html` | 680,779 | 7.14.0 | `preview/archive/` | Historical predecessor. Based on confirmed 7.13.12; embedded renderer behavior is unchanged (D094). |
 | `turbo-preview-7.13.12.html` | 680,780 | 7.13.12 | `preview/` | Retained previous release. Automatically selects feedback evidence, downloads the bundle locally, and links to manual Box upload; embedded renderer differs from 7.13.11 only by build identity (D093). |
 | `turbo-preview-7.13.11.html` | 680,780 | 7.13.11 | `preview/` | Retained prior release. Adds progressive package-evidence levels in the QA Studio feedback host; embedded renderer differs from 7.13.10 only by build identity (D092). |
 | `turbo-preview-7.13.10.html` | 679,914 | 7.13.10 | `preview/` | Retained prior release. Honors numbered `buttonN` CTA groups with one direct frame and documented `button-clientLogo` groups; generic decorative logos and map image buttons remain static (D091). |
@@ -94,8 +96,8 @@ The groups above were compared across the full file after normalizing only the b
 
 ## Cleanup disposition
 
-- **Current/runtime-retained:** `preview/turbo-preview-7.11.16.html`, `preview/current-preview.ts`, and the 7.11.16 renderer.
-- **Older 7.11 patch files:** 7.11.2–7.11.15 remain under `preview/` and are not runtime imports. Archival cleanup has not been performed.
+- **Current/runtime-retained:** `preview/turbo-preview-7.15.5.html`, `preview/turbo-preview-7.15.4.html`, `preview/turbo-preview-7.15.3.html`, and `preview/current-preview.ts`.
+- **Older patch files:** all builds through 7.15.2 are stored under `preview/archive/` and are not runtime imports.
 - **Archived:** historical releases, including the preserved 7.11.1 baseline.
 - **Removed:** none.
 - **Retained duplicate baselines:** 7.8.1/7.8.2, 7.8.15/7.8.16, and 7.9.7/7.9.8 remain because documentation or regression tests distinguish their release identities.
@@ -118,7 +120,7 @@ The post-change JavaScript contains one `preview.js loaded:` renderer marker. It
 - Lint: 0 errors, 11 warnings (existing image-optimization and unused-function findings; no new loader error).
 - Production build: passed. Vite retained its standard chunk-size warning because the current 7.9.11 single-file renderer is still embedded.
 - Runtime isolation: application code has no `import.meta.glob` and no `preview/archive` import.
-- Current renderer integrity: `preview/turbo-preview-7.9.11.html` was not edited; SHA-256 after validation is `b49541bfc3c8beb0ae6f0dca438128453d3e3da63c90be543438f3a5292b0c3c`.
+- Historical renderer integrity: `preview/archive/turbo-preview-7.9.11.html` was not edited; SHA-256 after validation is `b49541bfc3c8beb0ae6f0dca438128453d3e3da63c90be543438f3a5292b0c3c`.
 
 ## Maintenance checklist
 
@@ -151,7 +153,7 @@ The arrow contract is shared across the supported direct-slide gallery families 
 
 ## 7.13.6
 
-Current pointer: `preview/turbo-preview-7.13.6.html`. slideProgress and its progressBar/circularBar groups require explicit enabled visibility, overriding their dot marker (D083). Other controls retain existing visibility rules. 7.13.5 is retained unchanged.
+Historical source: `preview/archive/turbo-preview-7.13.6.html`. slideProgress and its progressBar/circularBar groups require explicit enabled visibility, overriding their dot marker (D083). Other controls retain existing visibility rules.
 
 7.13.6 follow-up (D084): circularBar rendering now reads authored stroke styling and no-effects icon bounds. Validated against 19 sample archives and the live loaded artboard; no creative-specific runtime overrides.
 
