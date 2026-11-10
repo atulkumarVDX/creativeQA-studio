@@ -494,3 +494,7 @@ Next useful evidence, without blocking this draft:
 Initial CTV/OTT layer-tree coverage is complete. A supplied AE project and matching export packages now establish the motion/effects references used by the **local 7.11.16 preview**; see [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). A production runtime/export for every publisher and theme is still not established by this authoring-tree inventory.
 
 Reproduction: run `tools/inventory_layer_templates.py` with `psd-tools==1.19.0`. It reads PSDs from ZIP memory and the LaRoche PSB without saving them; emits inventory and tree appendices. Layer iteration follows foreground-to-background order per the parser's [official usage documentation](https://psd-tools.readthedocs.io/en/latest/usage.html). Parser output establishes structural evidence only; no composited-image fidelity is claimed.
+
+### Runtime visibility exception: slideProgress (7.13.6, D083)
+
+For preview rendering, `slideProgress` and its direct `progressBar` / `circularBar` groups require saved `visible: true`; their leading dot marker does not decide visibility. A disabled or unspecified group suppresses its descendants. Other dot-prefixed ancestors remain excluded. This is a runtime exception to the general dot rule, not a change to historical exporter evidence or structural audit scope. Exporters may omit dotted artwork entirely; the preview cannot reconstruct absent assets.

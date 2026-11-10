@@ -151,7 +151,7 @@ test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=
  assert.equal(logo.style.height,value(logoGroup.boundsNoEffects.height)+'px');
  assert.match(readFileSync('app/page.tsx','utf8'),/import \{ currentPreview \} from "\.\.\/preview\/current-preview"/);
  assert.doesNotMatch(readFileSync('app/page.tsx','utf8'),/import\.meta\.glob/);
- assert.match(readFileSync('app/page.tsx','utf8'),/onClick=\{\(\) => openMainUnit\("970x546"\)\}/);
+ assert.match(readFileSync('app/page.tsx','utf8'),/onClick=\{\(\) => setActiveTab\("preview"\)\}><ImageIcon \/> Main Unit/);
  assert.match(readFileSync('app/page.tsx','utf8'),/const selectedSize = Array\.from\(document\.querySelectorAll\("#sizePicker \.chip"\)\)/);
  assert.match(readFileSync('app/page.tsx','utf8'),/Teaser generation temporarily selects mobile-instream/);
  assert.match(readFileSync('app/page.tsx','utf8'),/const previousTransform = stage\.style\.transform;[\s\S]*?stage\.style\.transform = "none";[\s\S]*?stage\.style\.transform = previousTransform;/);

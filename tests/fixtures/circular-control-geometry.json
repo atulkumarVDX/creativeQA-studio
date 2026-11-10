@@ -1,0 +1,1897 @@
+[
+  {
+    "source": "Sanofi - Alprolix.zip",
+    "layers": [
+      {
+        "name": "circularBar",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 7,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionStart"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 2286
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 5064
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 5064
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 2286
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 315
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3978
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 365
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4028
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186897,
+        "parentLayerID": 75637,
+        "itemIndex": 428
+      },
+      {
+        "name": "muteIcon",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": true,
+        "layerEffects": {
+          "solidFill": {
+            "_obj": "solidFill",
+            "enabled": true,
+            "present": true,
+            "showInDialog": true,
+            "mode": {
+              "_enum": "blendMode",
+              "_value": "normal"
+            },
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "opacity": {
+              "_unit": "percentUnit",
+              "_value": 100
+            }
+          }
+        },
+        "layerKind": 5,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 324
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3985
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 356
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4021
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 36
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 331
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3992
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 349
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4014
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 22
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 18
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186896,
+        "parentLayerID": 186897,
+        "itemIndex": 427
+      },
+      {
+        "name": "playIcon",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": true,
+        "layerEffects": {
+          "solidFill": {
+            "_obj": "solidFill",
+            "enabled": true,
+            "present": true,
+            "showInDialog": true,
+            "mode": {
+              "_enum": "blendMode",
+              "_value": "normal"
+            },
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "opacity": {
+              "_unit": "percentUnit",
+              "_value": 100
+            }
+          }
+        },
+        "layerKind": 5,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 324
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3992
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 356
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4020
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 28
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 331
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3999
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 349
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4013
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 14
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 18
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186895,
+        "parentLayerID": 186897,
+        "itemIndex": 426
+      },
+      {
+        "name": "indicator",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 320
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3983
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 360
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4023
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 40
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 40
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 320
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3983
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 360
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4023
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 40
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 40
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 320,
+            "left": 3983,
+            "bottom": 360,
+            "right": 4023
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 320
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 3983
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 360
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 4023
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.2259887005649718,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.29197080291970806,
+              "tx": 3671.135593220339,
+              "ty": -91.67883211678782
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 3983,
+                "vertical": 320
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 4023,
+                "vertical": 320
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 4023,
+                "vertical": 360
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 3983,
+                "vertical": 360
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": false,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": true,
+          "fillEnabled": false,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 2
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignInside"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186894,
+        "parentLayerID": 186897,
+        "itemIndex": 425
+      },
+      {
+        "name": "frame",
+        "visible": true,
+        "opacity": 135,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 315
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3978
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 365
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4028
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 315
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 3978
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 365
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4028
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 50
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 315,
+            "left": 3978,
+            "bottom": 365,
+            "right": 4028
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 315
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 3978
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 365
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 4028
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.2824858757062147,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.36496350364963503,
+              "tx": 3588.169491525424,
+              "ty": -199.59854014598568
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 3978,
+                "vertical": 315
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 4028,
+                "vertical": 315
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 4028,
+                "vertical": 365
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 3978,
+                "vertical": 365
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": true,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 73.00277709960938,
+              "grain": 71.9989013671875,
+              "blue": 137.99789428710938
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": false,
+          "fillEnabled": true,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignCenter"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 52.708172500133514,
+              "grain": 190.0000038743019,
+              "blue": 20.863814055919647
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186893,
+        "parentLayerID": 186897,
+        "itemIndex": 424
+      }
+    ]
+  },
+  {
+    "source": "Natrelle_creative_psd.zip",
+    "layers": [
+      {
+        "name": "circularBar",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 7,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionStart"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 2074
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4821
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 4821
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 2074
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 342
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2786
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 383
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2827
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186383,
+        "parentLayerID": 186391,
+        "itemIndex": 277
+      },
+      {
+        "name": "muteIcon",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": true,
+        "layerEffects": {
+          "solidFill": {
+            "_obj": "solidFill",
+            "enabled": true,
+            "present": true,
+            "showInDialog": true,
+            "mode": {
+              "_enum": "blendMode",
+              "_value": "normal"
+            },
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "opacity": {
+              "_unit": "percentUnit",
+              "_value": 100
+            }
+          }
+        },
+        "layerKind": 5,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 349
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2791
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 377
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2823
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 28
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 356
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2798
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 370
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2816
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 18
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 14
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186382,
+        "parentLayerID": 186383,
+        "itemIndex": 276
+      },
+      {
+        "name": "playIcon",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": true,
+        "layerEffects": {
+          "solidFill": {
+            "_obj": "solidFill",
+            "enabled": true,
+            "present": true,
+            "showInDialog": true,
+            "mode": {
+              "_enum": "blendMode",
+              "_value": "normal"
+            },
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "opacity": {
+              "_unit": "percentUnit",
+              "_value": 100
+            }
+          }
+        },
+        "layerKind": 5,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 348
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2796
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 377
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2821
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 25
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 29
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 355
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2803
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 370
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2814
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 11
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 15
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186381,
+        "parentLayerID": 186383,
+        "itemIndex": 275
+      },
+      {
+        "name": "indicator",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 346
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2790
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 379
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2823
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 33
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 33
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 346
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2790
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 379
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2823
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 33
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 33
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 346.4375,
+            "left": 2790.0625,
+            "bottom": 378.9375,
+            "right": 2822.5625
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 346.4360871567314
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 2790.062656982585
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 378.93734301741455
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 2822.5639128432686
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.18362291446713683,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.2372354442385635,
+              "tx": 2536.6630350179366,
+              "ty": 11.934110780357315
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 2790.062656982585,
+                "vertical": 346.4360871567314
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 2822.5639128432686,
+                "vertical": 346.4360871567314
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 2822.5639128432686,
+                "vertical": 378.93734301741455
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 2790.062656982585,
+                "vertical": 378.93734301741455
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": false,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": true,
+          "fillEnabled": false,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 2
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignInside"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186380,
+        "parentLayerID": 186383,
+        "itemIndex": 274
+      },
+      {
+        "name": "frame",
+        "visible": true,
+        "opacity": 191,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 342
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2786
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 383
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2827
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 342
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 2786
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 383
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 2827
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 41
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 342.375,
+            "left": 2786,
+            "bottom": 383,
+            "right": 2826.625
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 342.373430174146
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 2785.9999999999995
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 383
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 2826.626569825854
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.22952864308392099,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.2965443052982043,
+              "tx": 2469.2504725441886,
+              "ty": -75.75404029632233
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 2785.9999999999995,
+                "vertical": 342.373430174146
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 2826.626569825854,
+                "vertical": 342.373430174146
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 2826.626569825854,
+                "vertical": 383
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 2785.9999999999995,
+                "vertical": 383
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": true,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 0,
+              "grain": 0,
+              "blue": 0
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": false,
+          "fillEnabled": true,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignCenter"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 52.708172500133514,
+              "grain": 190.0000038743019,
+              "blue": 20.863814055919647
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186379,
+        "parentLayerID": 186383,
+        "itemIndex": 273
+      }
+    ]
+  },
+  {
+    "source": "SPIRIVA_turbo_ISI_size_psd.zip",
+    "layers": [
+      {
+        "name": "circularBar",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 7,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionStart"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 3997
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 6310
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 6310
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 3997
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 377
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4205
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 415
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4243
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186037,
+        "parentLayerID": 186045,
+        "itemIndex": 285
+      },
+      {
+        "name": "playIcon",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": true,
+        "layerEffects": {
+          "solidFill": {
+            "_obj": "solidFill",
+            "enabled": true,
+            "present": true,
+            "showInDialog": true,
+            "mode": {
+              "_enum": "blendMode",
+              "_value": "normal"
+            },
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            },
+            "opacity": {
+              "_unit": "percentUnit",
+              "_value": 100
+            }
+          }
+        },
+        "layerKind": 5,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 382
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4214
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 410
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4239
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 25
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 28
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 389
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4221
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 403
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4232
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 11
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 14
+          }
+        },
+        "keyOriginType": [],
+        "fillEnabled": false,
+        "vectorMaskEmpty": true,
+        "layerID": 186035,
+        "parentLayerID": 186037,
+        "itemIndex": 283
+      },
+      {
+        "name": "indicator",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 380
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4208
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 412
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4240
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 380
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4208
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 412
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4240
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 32
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 380.9375,
+            "left": 4208.78125,
+            "bottom": 411.21875,
+            "right": 4239.0625
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 380.94414062500005
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 4208.783984375
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 411.2160156250002
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 4239.055859374999
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.1710275423728814,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.22096259124087594,
+              "tx": 3972.7659759004237,
+              "ty": 69.38688697536531
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 4208.783984375,
+                "vertical": 380.94414062500005
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 4239.055859374999,
+                "vertical": 380.94414062500005
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 4239.055859374999,
+                "vertical": 411.2160156250002
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 4208.783984375,
+                "vertical": 411.2160156250002
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": false,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": true,
+          "fillEnabled": false,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 2
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignInside"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 255,
+              "grain": 255,
+              "blue": 255
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186034,
+        "parentLayerID": 186037,
+        "itemIndex": 282
+      },
+      {
+        "name": "frame",
+        "visible": true,
+        "opacity": 255,
+        "fillOpacity": 255,
+        "layerFXVisible": false,
+        "layerKind": 4,
+        "layerSection": {
+          "_enum": "layerSectionType",
+          "_value": "layerSectionContent"
+        },
+        "bounds": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 377
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4205
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 415
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4243
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          }
+        },
+        "boundsNoEffects": {
+          "_obj": "rectangle",
+          "top": {
+            "_unit": "pixelsUnit",
+            "_value": 377
+          },
+          "left": {
+            "_unit": "pixelsUnit",
+            "_value": 4205
+          },
+          "bottom": {
+            "_unit": "pixelsUnit",
+            "_value": 415
+          },
+          "right": {
+            "_unit": "pixelsUnit",
+            "_value": 4243
+          },
+          "width": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          },
+          "height": {
+            "_unit": "pixelsUnit",
+            "_value": 38
+          }
+        },
+        "pathBounds": {
+          "_obj": "rectangle",
+          "pathBounds": {
+            "_obj": "classFloatRect",
+            "top": 377.15625,
+            "left": 4205,
+            "bottom": 415,
+            "right": 4242.84375
+          }
+        },
+        "keyOriginType": [
+          {
+            "keyOriginType": 5,
+            "keyOriginResolution": 72,
+            "keyOriginShapeBBox": {
+              "_obj": "unitRect",
+              "unitValueQuadVersion": 1,
+              "top": {
+                "_unit": "pixelsUnit",
+                "_value": 377.16015625
+              },
+              "left": {
+                "_unit": "pixelsUnit",
+                "_value": 4205
+              },
+              "bottom": {
+                "_unit": "pixelsUnit",
+                "_value": 415
+              },
+              "right": {
+                "_unit": "pixelsUnit",
+                "_value": 4242.83984375
+              }
+            },
+            "transform": {
+              "_obj": "transform",
+              "xx": 0.2137844279661017,
+              "xy": 0,
+              "yx": 0,
+              "yy": 0.2762032390510949,
+              "tx": 3909.9774894067796,
+              "ty": -12.286410812043982
+            },
+            "keyOriginBoxCorners": {
+              "rectangleCornerA": {
+                "_obj": "paint",
+                "horizontal": 4205,
+                "vertical": 377.16015625
+              },
+              "rectangleCornerB": {
+                "_obj": "paint",
+                "horizontal": 4242.83984375,
+                "vertical": 377.16015625
+              },
+              "rectangleCornerC": {
+                "_obj": "paint",
+                "horizontal": 4242.83984375,
+                "vertical": 415
+              },
+              "rectangleCornerD": {
+                "_obj": "paint",
+                "horizontal": 4205,
+                "vertical": 415
+              }
+            },
+            "keyOriginIndex": 0,
+            "keyActionMode": 0
+          }
+        ],
+        "fillEnabled": true,
+        "vectorMaskEmpty": false,
+        "adjustment": [
+          {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 0,
+              "grain": 227.99652099609375,
+              "blue": 123.99810791015625
+            }
+          }
+        ],
+        "AGMStrokeStyleInfo": {
+          "_obj": "strokeStyle",
+          "strokeStyleVersion": 2,
+          "strokeEnabled": false,
+          "fillEnabled": true,
+          "strokeStyleLineWidth": {
+            "_unit": "pixelsUnit",
+            "_value": 0
+          },
+          "strokeStyleLineDashOffset": {
+            "_unit": "pointsUnit",
+            "_value": 0
+          },
+          "strokeStyleMiterLimit": 100,
+          "strokeStyleLineCapType": {
+            "_enum": "strokeStyleLineCapType",
+            "_value": "strokeStyleButtCap"
+          },
+          "strokeStyleLineJoinType": {
+            "_enum": "strokeStyleLineJoinType",
+            "_value": "strokeStyleMiterJoin"
+          },
+          "strokeStyleLineAlignment": {
+            "_enum": "strokeStyleLineAlignment",
+            "_value": "strokeStyleAlignCenter"
+          },
+          "strokeStyleScaleLock": false,
+          "strokeStyleStrokeAdjust": false,
+          "strokeStyleLineDashSet": [],
+          "strokeStyleBlendMode": {
+            "_enum": "blendMode",
+            "_value": "normal"
+          },
+          "strokeStyleOpacity": {
+            "_unit": "percentUnit",
+            "_value": 100
+          },
+          "strokeStyleContent": {
+            "_obj": "solidColorLayer",
+            "color": {
+              "_obj": "RGBColor",
+              "red": 52.708172500133514,
+              "grain": 190.0000038743019,
+              "blue": 20.863814055919647
+            }
+          },
+          "strokeStyleResolution": 72
+        },
+        "layerID": 186033,
+        "parentLayerID": 186037,
+        "itemIndex": 281
+      }
+    ]
+  }
+]

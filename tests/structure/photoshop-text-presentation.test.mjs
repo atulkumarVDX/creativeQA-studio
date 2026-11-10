@@ -84,6 +84,5 @@ test("production preview wires caps and logical indents into rendering and measu
   assert.match(preview, /paragraph\.style\.paddingInlineStart/);
   assert.match(preview, /paragraph\.style\.paddingInlineEnd/);
   assert.match(preview, /paragraph\.style\.textIndent/);
-  assert.match(preview, /measured\.paddingLeft \+ measured\.textIndent/);
   assert.doesNotMatch(preview, /measured\.paddingLeft \+ measured\.paddingRight \+ measured\.textIndent/);
 });

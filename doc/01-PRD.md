@@ -1,10 +1,10 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.12.5** — `preview/turbo-preview-7.12.5.html`. Adds manual gallery arrow navigation and directional slide transitions; map and feedback behavior inherit 7.12.4 and 7.12.3 respectively.
+> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
 
-**Doc version:** 1.8.0
-**Reflects build:** `preview/turbo-preview-7.12.5.html` @ **v7.12.5** (current); historical baselines are described below.
-**Last updated:** 2026-10-23
+**Doc version:** 1.8.7
+**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
+**Last updated:** 2026-11-03
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
@@ -16,6 +16,8 @@
 Photoshop-authored, multi-size display/video ad creative ("VDX Turbo" packages) is exported by a separate pipeline into `export.json` (a serialized layer manifest) plus rasterized PNGs, fonts, and video. Before a package ships, someone needs to verify — per size, per tab, per gallery slide — that the export actually matches what was authored in the PSD: correct text, correct wrapping, correct nav labels, correct ISI/legal copy, no missing assets, no overlapping layers. Doing this by opening Photoshop or waiting on the real ad-serving pipeline is slow and doesn't scale across dozens of size/tab/slide combinations per package.
 
 ## 2. Product goal
+
+QA Studio should make the first screen useful for active QA: surface the highest-priority findings, package-level design facts, and direct routes into the creative. The 7.15.1 overview uses findings counts, the number of CTA instances in the Desktop Expandable reference size, ZIP size, and an at-a-glance package snapshot to support that goal. Teaser preview, CTV/OTT view, and Assets are separate, direct destinations. Video warning badges open the related asset findings. Compare-mode video playback is silent; Single view retains the reviewer's sound preference.
 
 A **zero-install, offline, in-browser QC preview** that reconstructs the exported creative at true 1:1 pixel scale directly from `export.json` + its asset files — accurate enough to catch real production bugs (wrong colors, wrong wraps, overlapping text, missing nav labels) before the package ships, without needing Photoshop, a build step, or a server.
 
@@ -49,6 +51,7 @@ Both exist because they serve different delivery contexts, not because one is me
 8. **Authored blank paragraphs are preserved** — an explicit empty paragraph in PSD copy must retain one line of vertical space instead of collapsing in the HTML preview (D036).
 9. **Known text-fidelity limitations are disclosed, not hidden** (Artifact line) — Optical-kerning risks receive a dotted amber in-canvas marker and package-wide panel entry; genuine measurement failures receive a dashed red in-canvas marker and a panel entry for the rendered state. This baseline disclosure is always on. `?textQA=1` additionally runs the eager audit across every valid artboard × tab × slide and enables catalog-oriented diagnostics; it is not required to discover ordinary findings. See `02-Technical-Spec.md` §4.5 (D037, D042).
 10. **Mobile-expandable responsive flow is structural, not campaign-specific** (Artifact line) — in the 375×622 view, qualifying full-width video is resized proportionally and its rounded height delta is applied once to each direct sibling branch. Descendants preserve local spacing, while contained video and unrelated structures remain unchanged (D067/D068).
+11. **Outbound interaction is a QA check, not tracking** (Artifact line, v7.13.0/7.13.10) — a group named `buttonN` with a positive integer suffix and one direct frame, plus the documented `button-clientLogo` role, opens `https://www.vdx.tv/` in a new tab so reviewers can confirm outbound interaction. The optional CTA image/Smart Object background follows the authoring contract and is named `background`. Internal navigation, gallery controls, and map image buttons keep their own behavior. Decorative logo artwork is not made clickable by appearance alone. The destination is a default preview target; it is not read from or written to the package, and no pixel or click-tracking event is sent (D077/D091).
 
 ## 6. Feature parity gaps (current state, not aspirational)
 
@@ -70,11 +73,12 @@ The two products — and the several generations within the Artifact line — ar
 - Not a replacement for a served-ad comparison: the recovered production text-geometry algorithm (D031) and static circular-control geometry (D032–D034) narrow the gap, but final visual approval still requires the target browser, package fonts, and a production reference together.
 - Not a design/editing tool — read-only preview of an already-exported package.
 - No accounts, no server-side storage, no analytics observed in any of the three files.
+- No production click URL or tracking configuration is generated. The v7.13.0 click-out is only a QA interaction test using a fixed default destination.
 - The kerning/text-sync review surface is a **detection and disclosure aid**, not a fix — it does not and cannot make browser-rendered text match Photoshop's Optical-kerning shaping; it exists so a reviewer knows where to expect a discrepancy, not to eliminate it.
 
 ## 8. Versioning
 
-See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line and the Artifact line are versioned **independently**; each ships its own `PREVIEW_BUILD` tag which must equal its semver. The current Artifact release is the 7.9.11 patch. v7.7.0 remains the historical MINOR release that formally introduced the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
+See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line and the Artifact line are versioned **independently**; each ships its own `PREVIEW_BUILD` tag which must equal its semver. The current Artifact release is 7.15.1. v7.7.0 remains the historical MINOR release that formally introduced the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
 
 ## 9. Release invariants
 
@@ -97,4 +101,10 @@ The screenshot flow must optionally create a 16:9 landscape review PDF in the sa
 Device, browser, player, and OTT frames are review-document approximations around captured package evidence. They must not be described as captured production chrome. The VPM hover transition remains unavailable because the preview has no transition state; teaser and engaged endpoints are presented separately. The complete requirement and capability matrix is in [14 — CSM Review PDF](14-CSM-Review-PDF.md).
 # Feedback/debug bundle addendum — 7.11.0-feedback
 
-QA users can open **Report feedback** from the app menu and submit a structured debug bundle directly to the configured Box folder. A valid CCRV or Showcase URL is mandatory only for a visual mismatch, where a production comparison target is essential; it is optional but validated when supplied for other feedback types. Description and reproduction steps remain optional, and Actual/Expected fields appear only for visual mismatches. The ZIP is assembled in memory and uploaded only after the explicit **Submit Feedback** action. The complete contract is defined in `19-Feedback-Debug-Bundle.md`.
+QA users can open **Report feedback** from the app menu and download a structured debug bundle for manual upload to the approved Box File Request page. A valid CCRV or Showcase URL is mandatory only for a visual mismatch, where a production comparison target is essential; it is optional but validated when supplied for other feedback types. Description and reproduction steps remain optional, and Actual/Expected fields appear only for visual mismatches. The ZIP is assembled in memory only after the explicit **Download feedback bundle** action. The complete contract is defined in `19-Feedback-Debug-Bundle.md`.
+
+From 7.13.12, package evidence is chosen automatically: lightweight diagnostics for ordinary reports, flagged assets for asset-validation reports, and the complete source ZIP for package-loading reports.
+
+### Video playback acceptance — 7.13.6 / D087
+
+Main Unit videos should attempt sound on first presentation. If the browser refuses audible autoplay, provide Play with sound as the explicit recovery. Creative-tab changes, app-section changes, and browser tab/focus changes (including click-outs) pause the outgoing video. Returning to an eligible video in Main Unit resumes its saved position with a visible picture and the existing sound settings. Returning to another app section must not restart background sound. Manually paused videos remain paused. Apply these rules to all packages and video-bearing creative tabs.

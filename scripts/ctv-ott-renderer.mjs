@@ -15,11 +15,11 @@ const HTML_FILE = join(BUILD_DIR, "../preview/turbo-preview-7.12.4.html");
 // 0.0.0.0 inside the container and publish the container port on host loopback.
 const HOST = process.env.TURBO_PREVIEW_HOST || "127.0.0.1";
 const PORT = Number(process.env.TURBO_PREVIEW_PORT || 4177);
-// Production sample packages can exceed 500 MB because of embedded PSD/video
-// payloads. Keep a bounded local-render guard while allowing the supplied
-// Ipsen package through.
-const MAX_PACKAGE_BYTES = 1 * 1024 * 1024 * 1024;
+// Creative upload and aggregate uncompressed-video limits (binary MB).
+const MAX_PACKAGE_BYTES = 600 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const MAX_FEEDBACK_BYTES = 1 * 1024 * 1024 * 1024;
+const MAX_NOTION_EVENT_BYTES = 32 * 1024;
 const FPS = "30000/1001";
 const MAX_DURATION = 270;
 
@@ -778,6 +778,14 @@ async function renderPackage(zipPath, format, outputPath) {
     await mkdir(unpacked);
     await run("/usr/bin/unzip", ["-q", zipPath, "-d", unpacked]);
     const files = await walkFiles(unpacked);
+    const videoFiles = files.filter(file => /\.(?:mp4|webm|mov|m4v)$/i.test(file));
+    const videoSizes = await Promise.all(videoFiles.map(file => stat(file)));
+    if (videoSizes.reduce((sum, file) => sum + file.size, 0) > MAX_VIDEO_BYTES)
+      throw new Error("All videos combined exceed the maximum 500 MB size.");
+    for (const videoFile of videoFiles) {
+      const videoDuration = await probeDuration(videoFile);
+      if (videoDuration > MAX_DURATION) throw new Error("Video exceeds 4 minutes 30 seconds. Escalate to the AdEx team.");
+    }
     const exportPath = files.find(file => basename(file).toLowerCase() === "export.json");
     if (!exportPath) throw new Error("No export.json was found in the package.");
     const data = JSON.parse(await readFile(exportPath, "utf8"));
@@ -787,7 +795,7 @@ async function renderPackage(zipPath, format, outputPath) {
     }
     const duration = await probeDuration(model.videoFile);
     if (!Number.isFinite(duration) || duration <= 0) throw new Error("The CTV/OTT source video has no readable duration.");
-    if (duration > MAX_DURATION) throw new Error(`Source video exceeds the ${MAX_DURATION}-second CTV/OTT limit.`);
+    if (duration > MAX_DURATION) throw new Error(`Source video exceeds the ${MAX_DURATION}-second CTV/OTT limit. Escalate to the AdEx team.`);
     const inputs = ffmpegInputs(model);
     const args = ["-hide_banner", "-y", "-i", inputs[0].file];
     for (const input of inputs.slice(1)) {
@@ -828,12 +836,138 @@ function jsonResponse(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
+async function receiveJson(request, maxBytes = MAX_NOTION_EVENT_BYTES) {
+  const chunks = [];
+  let received = 0;
+  for await (const chunk of request) {
+    received += chunk.length;
+    if (received > maxBytes) throw new Error("The usage summary is too large.");
+    chunks.push(chunk);
+  }
+  if (!received) throw new Error("The usage summary was empty.");
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function notionRichText(value, maxLength = 1800) {
+  const text = String(value ?? "").trim().slice(0, maxLength);
+  return text ? [{ type: "text", text: { content: text } }] : [];
+}
+
+function notionSelect(value) {
+  const name = String(value ?? "").trim();
+  return name ? { select: { name } } : { select: null };
+}
+
+const NOTION_PILOT_VERSION = "2025-09-03";
+const NOTION_PILOT_PROPERTY_TYPES = {
+  "Tester code": "rich_text",
+  "Date": "date",
+  "App version": "rich_text",
+  "Package opened": "select",
+  "Steps reached": "multi_select",
+  "Tools used": "multi_select",
+  "Time to first result (min)": "number",
+  "Main blocker": "rich_text",
+  "Ease rating": "number",
+  "Tester comments": "rich_text"
+};
+
+async function notionRequest(path, token, options = {}) {
+  const response = await fetch(`https://api.notion.com/v1/${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Notion-Version": NOTION_PILOT_VERSION,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers
+    }
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message || "Notion could not save this session.");
+  return result;
+}
+
+async function findNotionPilotDataSource(databaseId, token) {
+  const database = await notionRequest(`databases/${databaseId}`, token);
+  const sources = Array.isArray(database.data_sources) ? database.data_sources : [];
+  if (!sources.length) throw new Error("Notion could not find a data source in the Pilot Sessions database.");
+
+  const schemas = await Promise.all(sources.map(async source => {
+    try {
+      const dataSource = await notionRequest(`data_sources/${source.id}`, token);
+      return { id: source.id, properties: dataSource.properties || {} };
+    } catch {
+      return null;
+    }
+  }));
+  const compatible = schemas.filter(source => source && Object.values(source.properties).some(property => property.type === "title"));
+  if (!compatible.length) throw new Error("Notion could not read a title column in the Pilot Sessions database.");
+
+  const score = source => Object.entries(NOTION_PILOT_PROPERTY_TYPES).reduce((total, [name, type]) => (
+    total + (source.properties[name]?.type === type ? 1 : 0)
+  ), 0);
+  compatible.sort((left, right) => score(right) - score(left));
+  return compatible[0];
+}
+
+async function handleNotionPilotSession(request, response) {
+  const token = process.env.NOTION_API_TOKEN;
+  const databaseId = process.env.NOTION_PILOT_DATABASE_ID;
+  if (!token || !databaseId) return jsonResponse(response, 503, { error: "Notion tracking is not configured." });
+  const origin = request.headers.origin;
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      const local = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+      const configured = String(process.env.TURBO_APP_ORIGIN || "").replace(/\/$/, "");
+      if (!local && (!configured || parsed.origin !== configured)) return jsonResponse(response, 403, { error: "Usage summaries are accepted only from the QA Studio app." });
+    } catch {
+      return jsonResponse(response, 403, { error: "Invalid app origin." });
+    }
+  }
+  try {
+    const body = await receiveJson(request);
+    const fields = {
+      "Session": { title: notionRichText(body.session, 100) },
+      "Tester code": { rich_text: notionRichText(body.testerCode, 80) },
+      "Date": { date: body.startedAt ? { start: new Date(body.startedAt).toISOString() } : null },
+      "App version": { rich_text: notionRichText(body.appVersion, 40) },
+      "Package opened": notionSelect(body.packageOpened),
+      "Steps reached": { multi_select: (Array.isArray(body.stepsReached) ? body.stepsReached : []).slice(0, 12).map(name => ({ name: String(name).slice(0, 100) })) },
+      "Tools used": { multi_select: (Array.isArray(body.toolsUsed) ? body.toolsUsed : []).slice(0, 12).map(name => ({ name: String(name).slice(0, 100) })) },
+      "Time to first result (min)": { number: Number.isFinite(body.timeToFirstResultMinutes) ? Math.max(0, Math.min(1440, body.timeToFirstResultMinutes)) : null },
+      "Main blocker": { rich_text: notionRichText(body.mainBlocker) },
+      "Ease rating": { number: Number.isFinite(body.easeRating) ? Math.max(1, Math.min(5, body.easeRating)) : null },
+      "Tester comments": { rich_text: notionRichText(body.comments) }
+    };
+    const normalizedDatabaseId = databaseId.replace(/-/g, "");
+    const dataSource = await findNotionPilotDataSource(normalizedDatabaseId, token);
+    const titleProperty = Object.entries(dataSource.properties).find(([, property]) => property.type === "title")?.[0];
+    const compatibleFields = Object.fromEntries(Object.entries(fields).filter(([name]) => (
+      name === "Session" || dataSource.properties[name]?.type === NOTION_PILOT_PROPERTY_TYPES[name]
+    )));
+    compatibleFields[titleProperty] = fields.Session;
+    delete compatibleFields.Session;
+    const result = await notionRequest("pages", token, {
+      method: "POST",
+      body: JSON.stringify({
+        parent: { type: "data_source_id", data_source_id: dataSource.id },
+        properties: compatibleFields
+      })
+    });
+    return jsonResponse(response, 201, { ok: true, id: result.id });
+  } catch (error) {
+    const message = error?.message || "Could not read the usage summary.";
+    return jsonResponse(response, 502, { error: message });
+  }
+}
+
 async function receivePackage(request, target) {
   let received = 0;
   const chunks = [];
   for await (const chunk of request) {
     received += chunk.length;
-    if (received > MAX_PACKAGE_BYTES) throw new Error("Package exceeds the 1 GB local-render limit.");
+    if (received > MAX_PACKAGE_BYTES) throw new Error("ZIP/package exceeds the maximum 600 MB size.");
     chunks.push(chunk);
   }
   await writeFile(target, Buffer.concat(chunks));
@@ -932,6 +1066,7 @@ async function startServer() {
     if (request.method === "GET" && url.pathname === "/health") return jsonResponse(response, 200, { ok: true, build: "7.12.4", renderer: "ffmpeg", boxFeedbackConfigured: Boolean(process.env.BOX_CLIENT_ID && process.env.BOX_CLIENT_SECRET && process.env.BOX_ENTERPRISE_ID && process.env.BOX_FEEDBACK_FOLDER_ID) });
     if (request.method === "POST" && url.pathname === "/render") return handleRender(request, response, url);
     if (request.method === "POST" && url.pathname === "/feedback/upload") return handleFeedbackUpload(request, response);
+    if (request.method === "POST" && url.pathname === "/notion/pilot-session") return handleNotionPilotSession(request, response);
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/turbo-preview-7.12.4.html")) {
       response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
       return createReadStream(HTML_FILE).pipe(response);

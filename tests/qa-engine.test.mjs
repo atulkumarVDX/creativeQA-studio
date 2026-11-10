@@ -42,6 +42,32 @@ test("reports artboards in the same document order used by Main Unit preview", (
   assert.deepEqual(summary.artboards, ["300x250", "300x600", "970x546"]);
 });
 
+test("CTA total uses Desktop Expandable only and preserves tab and slide instances", () => {
+  const rawLayers = [
+    group(1, "970x546", -1, true),
+    group(2, "tab1", 1), group(3, "button1", 2),
+    group(4, "tab2", 1),
+    group(5, "slide1", 4), group(6, "button1", 5),
+    group(7, "slide2", 4), group(8, "button1", 7),
+    group(9, "slide3", 4), group(10, "button1", 9),
+    group(11, "slide4", 4), group(12, "button1", 11),
+    group(13, "tab3", 1),
+    group(14, "slide1", 13), group(15, "button1", 14),
+    group(16, "slide2", 13), group(17, "button1", 16),
+    group(20, "300x250", -1, true),
+    group(21, "tab1", 20), group(22, "button1", 21),
+  ];
+  const summary = analyzePackage({ rawLayers, document: { artboards: [1, 20] } }, [], "fixture.psd.zip");
+  assert.equal(summary.ctaReferenceArtboard, "970x546");
+  assert.equal(summary.ctaCount, 7);
+});
+
+test("CTA total is unavailable when Desktop Expandable is absent", () => {
+  const summary = analyze([group(1, "300x250", -1, true), group(2, "tab1", 1), group(3, "button1", 2)]);
+  assert.equal(summary.ctaReferenceArtboard, null);
+  assert.equal(summary.ctaCount, null);
+});
+
 test("requests a production review for Mobile Instream paragraph labels without claiming disappearance", () => {
   const summary = analyze([
     group(1, "master", -1, true),
@@ -186,6 +212,24 @@ test("ordinary paragraph breaks are allowed and other controls retain their gene
   ]);
   assert.equal(summary.findings.some(item => item.ruleId === "rendering.shift-enter-soft-return"), false);
   assert.equal(summary.findings.filter(item => item.ruleId === "copy.unsupported-control-character").length, 1);
+});
+
+test("reports replacement characters with an exact Photoshop repair", () => {
+  const layer = text(5, "Bullet copy", 3, "box");
+  layer.textKey.textKey = "� Allow providers to consider available treatment options";
+  const summary = analyze([
+    group(1, "master", -1, true),
+    group(2, "300x250", -1, true),
+    group(3, "tab1", 2),
+    layer,
+  ]);
+  const finding = summary.findings.find(item => item.ruleId === "copy.replacement-character");
+  assert.equal(finding?.severity, "error");
+  assert.equal(finding?.confidence, "high");
+  assert.equal(finding?.layerId, 5);
+  assert.match(finding?.evidence || "", /U\+FFFD/);
+  assert.match(finding?.suggestedFix || "", /replace the black diamond\/question-mark symbol/);
+  assert.deepEqual(finding?.highlight, { prefix: "", value: "�", suffix: "·Allow·providers·to·consider·available·tre" });
 });
 
 test("does not require disclaimer.html when the package has no ISI marker", () => {
@@ -368,4 +412,42 @@ test("video duration boundaries use warnings above 30 seconds and errors above 2
     assert.equal(asset.validationErrors.length, expected === "error" ? 1 : 0);
     assert.ok(asset.validationWarnings.length);
   }
+});
+
+test("the dedicated CTV/OTT video is excluded from the 2.5 MB limit but keeps duration validation", () => {
+  const summary = analyzePackage({ rawLayers: [] }, [{ name: "media/video_ctvott.mp4", uncompressedSize: 2621441, durationSeconds: 30.01 }], "test.zip");
+  const asset = summary.assets[0];
+  assert.equal(asset.validationWarnings.includes("CTV/OTT video exceeds 2.5 MB."), false);
+  assert.ok(asset.validationWarnings.includes("CTV/OTT video exceeds 30 seconds; confirm long-form handling."));
+  assert.equal(summary.findings.some(finding => finding.ruleId === "assets.ctv-ott-video-size"), false);
+  assert.equal(summary.findings.find(finding => finding.ruleId === "assets.ctv-ott-video-duration")?.severity, "warning");
+});
+
+test("video summaries retain their full asset path for finding links", () => {
+  const summary = analyzePackage({ rawLayers: [] }, [{ name: "media/video_ctvott.mp4", uncompressedSize: 1024 }], "test.zip");
+  assert.deepEqual(summary.videos, [{ name: "video_ctvott.mp4", path: "media/video_ctvott.mp4", size: 1024 }]);
+});
+
+test("combined video budget counts all videos, including outside export folder, with inclusive maximum", () => {
+  const mb = 1024 * 1024;
+  const entries = [ {name: "creative/export.json"},
+    {name: "creative/video1.mp4", uncompressedSize: 200 * mb, durationSeconds: 270},
+    {name: "creative/video_ctvott.mp4", uncompressedSize: 200 * mb, durationSeconds: 270},
+    {name: "extras/playlist.webm", uncompressedSize: 100 * mb, durationSeconds: 270},
+    {name: "creative/background.png", uncompressedSize: 700 * mb} ];
+  const atLimit = analyzePackage({rawLayers: []}, entries, "test.zip", 600 * mb);
+  assert.equal(atLimit.findings.some(f => f.ruleId === "assets.total-video-size" || f.ruleId === "assets.package-size"), false);
+  entries[3].uncompressedSize += 1;
+  const over = analyzePackage({rawLayers: []}, entries, "test.zip", 600 * mb + 1);
+  assert.equal(over.findings.find(f => f.ruleId === "assets.total-video-size").severity, "error");
+  assert.equal(over.findings.find(f => f.ruleId === "assets.package-size").severity, "error");
+  assert.equal(over.assets.filter(a => a.validationErrors.some(e => e.includes("All videos combined"))).length, 3);
+});
+
+test("secondary video duration over 4:30 requires AdEx escalation in Findings and Assets", () => {
+  const summary = analyzePackage({rawLayers: []}, [{name: "nested/playlist.mov", uncompressedSize: 100, durationSeconds: 270.001}], "test.zip");
+  const finding = summary.findings.find(f => f.ruleId === "assets.video-duration");
+  assert.equal(finding.severity, "error");
+  assert.match(finding.suggestedFix, /AdEx/);
+  assert.ok(summary.assets[0].validationErrors.some(e => /AdEx/.test(e)));
 });

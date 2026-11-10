@@ -1,8 +1,8 @@
 # Preview Build Inventory
 
-**Current QA Studio release:** `preview/turbo-preview-7.12.5.html` (CTV/OTT and Box feedback service in `scripts/ctv-ott-renderer.mjs`)
+**Current QA Studio release:** `preview/turbo-preview-7.15.5.html` (based on 7.15.4; creative-wide video/package limits and AdEx escalation guidance)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-10-23
+**Inventory date:** 2026-11-03
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
@@ -16,8 +16,31 @@ QA Studio imports only the source named by `preview/current-preview.ts`. The cur
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.12.5.html` | 617,939 | 7.12.5 | `preview/` | Current pointer and badge. Adds manual previous/next gallery arrow controls and directional slide-in transitions; no autoplay or circular progress interaction. |
-| `turbo-preview-7.12.4.html` | 611,740 | 7.12.4 | `preview/` | Current pointer, badge and local-service health build. Production-aligned Leaflet/Mapbox location-map rendering is provided by the QA Studio host. |
+| `turbo-preview-7.15.4.html` | 681,401 | 7.15.4 | `preview/` | Current patch. Inherits 7.15.3 renderer; Teasers follow Main Unit artboard order in a responsive bento layout. |
+| `turbo-preview-7.15.3.html` | 681,401 | 7.15.3 | `preview/` | Current patch. Promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
+| `turbo-preview-7.15.2.html` | 681,401 | 7.15.2 | `preview/` | Retained patch. Hides the technical workspace completion label while retaining package checks and Findings (D100). |
+| `turbo-preview-7.15.1.html` | 681,401 | 7.15.1 | `preview/` | Retained patch. CTAs counts Desktop Expandable (`970x546`) CTA instances across tabs and slides; repeated groups in other sizes are excluded (D099). |
+| `turbo-preview-7.15.0.html` | 681,401 | 7.15.0 | `preview/` | Retained MINOR release. Starts Main Unit in muted Compare with all sizes selected and names focused mode Single view (D098). |
+| `turbo-preview-7.14.3.html` | 681,424 | 7.14.3 | `preview/` | Retained predecessor. Keeps Compare mute at workspace scope so Main Unit packages load normally (D097). |
+| `turbo-preview-7.14.2.html` | 681,424 | 7.14.2 | `preview/` | Retained predecessor. Forces Compare-mode videos to mute while preserving the reviewer’s focused-Preview audio preference (D096). |
+| `turbo-preview-7.14.1.html` | 680,777 | 7.14.1 | `preview/` | Retained predecessor. Keeps Teasers and CTV/OTT as distinct overview routes, makes Package Size open Assets, and validates documented CTV/OTT videos (D095). |
+| `turbo-preview-7.14.0.html` | 680,779 | 7.14.0 | `preview/` | Retained predecessor. Based on confirmed 7.13.12; embedded renderer behavior is unchanged (D094). |
+| `turbo-preview-7.13.12.html` | 680,780 | 7.13.12 | `preview/` | Retained previous release. Automatically selects feedback evidence, downloads the bundle locally, and links to manual Box upload; embedded renderer differs from 7.13.11 only by build identity (D093). |
+| `turbo-preview-7.13.11.html` | 680,780 | 7.13.11 | `preview/` | Retained prior release. Adds progressive package-evidence levels in the QA Studio feedback host; embedded renderer differs from 7.13.10 only by build identity (D092). |
+| `turbo-preview-7.13.10.html` | 679,914 | 7.13.10 | `preview/` | Retained prior release. Honors numbered `buttonN` CTA groups with one direct frame and documented `button-clientLogo` groups; generic decorative logos and map image buttons remain static (D091). |
+| `turbo-preview-7.13.9.html` | 678,828 | 7.13.9 | `preview/` | Retained prior release. Centered playback glyphs, video-duration circular progress and 3-second default image autoplay (D090). |
+| `turbo-preview-7.13.8.html` | 670,940 | 7.13.8 | `preview/` | Retained unchanged. Circular video play/pause, bottom-right sound overlay and sound retention on gallery wrap (D089). |
+| `turbo-preview-7.13.7.html` | 665,498 | 7.13.7 | `preview/` | Retained unchanged. One authored circular progress glyph per selected content/component, preventing overlapping play/audio templates (D088). Inherits media lifecycle D087. |
+| `turbo-preview-7.13.6.html` | 663,549 | 7.13.6 | `preview/` | Retained unchanged. Includes explicit progress visibility, authored circular control geometry and media lifecycle work (D083–D087). |
+| `turbo-preview-7.13.5.html` | 644,031 | 7.13.5 | `preview/` | Previous release retained. CategoryGallery opens on its authored home cover and normalizes controller/render state to hide home tiles when a category slide is selected (D082). |
+| `turbo-preview-7.13.4.html` | 642,319 | 7.13.4 | `preview/` | Retained predecessor. CategoryGallery uses separate category and nested slide navigation (D081); retains export-derived gallery dot radii. |
+| `turbo-preview-7.13.3.html` | 632,725 | 7.13.3 | `preview/` | Retained predecessor. Dot radii derive from exported path bounds and corner radii, including the active 50% circle geometry (D080); retains QA-only CTA click behavior. |
+| `turbo-preview-7.13.2.html` | 631,615 | 7.13.2 | `preview/` | Retained predecessor. Uses export-driven active/normal shapes and sizes; superseded for circle geometry by 7.13.3 (D079). |
+| `turbo-preview-7.13.1.html` | 631,875 | 7.13.1 | `preview/` | Retained patch. Added CSS circle overrides for active/normal indicators; superseded by export-driven geometry in 7.13.2. |
+| `turbo-preview-7.13.0.html` | 631,536 | 7.13.0 | `preview/` | Retained predecessor. Adds QA-only click/Enter behavior on recognized text CTAs; no package mutation or tracking (D077). |
+| `turbo-preview-7.12.6.html` | 629,844 | 7.12.6 | `preview/` | Retained predecessor source for 7.13.0, including component-support updates. |
+| `turbo-preview-7.12.5.html` | 620,409 | 7.12.5 | `preview/` | Retained prior build. Adds manual previous/next gallery arrow controls and directional slide-in transitions; no autoplay or circular progress interaction. |
+| `turbo-preview-7.12.4.html` | 611,740 | 7.12.4 | `preview/` | Retained prior build and local-service health baseline. Production-aligned Leaflet/Mapbox location-map rendering is provided by the QA Studio host. |
 | `turbo-preview-7.12.3.html` | 611,740 | 7.12.3 | `preview/` | Retained prior build. Direct Box feedback submission is provided by the QA Studio host and service. |
 | `turbo-preview-7.11.2.html` through `turbo-preview-7.11.15.html` | Varies | Matching filename/build | `preview/` | Retained patch history, not app imports. The companion renderer changed across patches; do not infer behavior from HTML hashes alone. |
 
@@ -125,3 +148,13 @@ Adds manual gallery navigation through authored left/right or previous/next arro
 The current build's transition follow-up uses a 500ms ease-out motion to match the production gallery's short horizontal slide feel. The change remains in 7.12.5 as requested; no new build number was created.
 
 The arrow contract is shared across the supported direct-slide gallery families (`rmGallery`, `colorPickerGallery`, `hotspotGallery`, and `staticProductGallery`). Other arrow-bearing component families remain static until their component-specific state models are verified; they are not routed through the global gallery slide state.
+
+## 7.13.6
+
+Current pointer: `preview/turbo-preview-7.13.6.html`. slideProgress and its progressBar/circularBar groups require explicit enabled visibility, overriding their dot marker (D083). Other controls retain existing visibility rules. 7.13.5 is retained unchanged.
+
+7.13.6 follow-up (D084): circularBar rendering now reads authored stroke styling and no-effects icon bounds. Validated against 19 sample archives and the live loaded artboard; no creative-specific runtime overrides.
+
+## 7.15.5
+
+Based on 7.15.4; adds creative-wide combined video budget (500 MB), ZIP upload limit (600 MB), all-video duration validation and AdEx escalation guidance. Embedded rendering behavior is unchanged. Companion CTV/OTT renderer validation updated; its historical HTML profile is retained.

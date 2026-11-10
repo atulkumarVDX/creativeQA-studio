@@ -326,7 +326,7 @@ label.
 
 ## 5. Case TR-003 — Soft returns receive paragraph spacing, then text fitting shifts the block upward
 
-**Status:** Production failure reproduced; shared conversion fix and QA checks proposed, not implemented.  
+**Status:** Production failure reproduced; shared paragraph conversion implemented in development build 7.15.5, with regression coverage.
 **Verified:** 2026-09-11  
 **Preview source:** `turbo_preview_artifact_7_7_0.html`  
 **Campaign/state:** La Roche-Posay Mela Q3 2026, `160x600 > tab3 > rmGallery > slide4`  
@@ -400,6 +400,17 @@ between bullets. It can look acceptable while failing to reproduce production
 or the complete PSD typography. A local sync success cannot certify production
 parity. Scaling correction is not the explanation for this current layer.
 
+### Structured correction now implemented
+
+The shared PSD paragraph mapper now preserves `spaceBefore` and `spaceAfter`
+(including exported `impliedSpaceBefore`/`impliedSpaceAfter` values and inherited
+style values) for every generated paragraph. The renderer applies those values
+as scaled block margins after resetting only inline margins, so paragraph spacing
+survives across all artboard sizes instead of being silently discarded. This is
+not a size-specific offset or a copy rewrite. Regression tests cover direct and
+inherited spacing values and verify that the generated preview applies both
+paragraph margins.
+
 The output-level fault is confirmed. The production export-to-HTML converter's
 source is not in this workspace; its exact faulty function cannot yet be named.
 
@@ -440,9 +451,11 @@ TR-005 now applies this evidence-based rule: U+0003 by itself is not a defect;
 warn only when nonzero paragraph spacing follows the break. The production
 DOM for the current Ipsen reference layer shows the correctly handled case.
 
-Suggested message: “Paragraph spacing is being applied between lines inside a
-bullet. Production then moves the oversized text block upward. This requires a
-text-export correction; recreating the layer does not guarantee prevention.”
+Suggested message: “This text uses Photoshop paragraph spacing that the export
+did not carry over. In Photoshop, select the text layer and convert it to
+Paragraph Text, then convert it back to Point Text and export the package again.
+Turbo QA will also preserve valid paragraph spacing when it is present in the
+export.”
 
 ### PSD handling and regression fixture
 
@@ -1184,7 +1197,45 @@ Show the error in Findings with the ad size, tab, slide, CTA name, text layer na
 
 For every supported artboard/state containing a live CTA label, validation must record the CTA frame bounds, label glyph bounds, text mode, and text transform. A passing case has the label within the approved horizontal alignment tolerance. A failing fixture must reproduce the pre-repair transformed label; its corrected companion must be the same source after the paragraph-text → point-text round trip, with unchanged copy and styling and no alignment error. Include both cases in regression validation so metadata-only signals do not become false errors.
 
-## 18. New-case template
+## 18. Case TR-013 — Replacement character in exported live text
+
+**Status:** Implemented in the package validator (v7.15.5)
+
+### Symptom
+
+The preview shows a black diamond with a question mark where a bullet or other
+approved glyph should appear. Production may still look correct when the same
+Photoshop group also has a flattened PNG export, which can hide the text-data
+problem.
+
+### Confirmed export signal
+
+The affected `textKey.textKey` contains Unicode `U+FFFD` (`�`). This is the
+Unicode replacement character: the original glyph was lost before the browser
+received the text. A font change cannot recover the missing character.
+
+### Detection rule
+
+For every exported live-text layer, scan the raw `textKey.textKey` for `U+FFFD`.
+Emit `copy.replacement-character` as an **error** with high confidence. Include
+the layer, location, code point, count, and a one-character highlight. Do not
+infer a replacement or rewrite the approved copy automatically.
+
+### Designer-facing fix
+
+> **Unsupported character found in this text layer.**
+> Replace the black diamond/question-mark symbol with the intended character
+> (for example, `•`) in Photoshop, export the ZIP again, and reopen it in Turbo
+> QA.
+
+### Validation fixture
+
+The supplied `Archive.zip` contains nine affected bullet layers with `U+FFFD`.
+The package also contains `bullets-*.png` composites that preserve the visual
+bullet, proving why a production image can look correct while the live text is
+corrupted. Regression coverage uses a minimal live-text layer containing `�`.
+
+## 19. New-case template
 
 Copy this section for each future case.
 

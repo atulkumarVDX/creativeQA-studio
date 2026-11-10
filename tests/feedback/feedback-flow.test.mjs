@@ -4,7 +4,7 @@ import test from "node:test";
 
 const page = readFileSync("app/page.tsx", "utf8");
 const previewPointer = readFileSync("preview/current-preview.ts", "utf8");
-const preview = readFileSync("preview/turbo-preview-7.12.5.html", "utf8");
+const preview = readFileSync("preview/turbo-preview-7.15.5.html", "utf8");
 const renderer = readFileSync("scripts/ctv-ott-renderer.mjs", "utf8");
 
 test("feedback is available from the existing app menu", () => {
@@ -23,15 +23,39 @@ test("feedback requires a production reference only for visual mismatches", () =
   assert.match(page, /productionReference: reference/);
 });
 
-test("feedback bundle contains structured evidence and submits through the local Box service", () => {
+test("feedback bundle contains structured evidence and downloads locally", () => {
   assert.match(page, /files\["feedback\.json"\]/);
   assert.match(page, /files\["evidence\/active-preview\.png"\]/);
+  assert.match(page, /files\["package\/diagnostics\/export\.json"\]/);
+  assert.match(page, /files\["package\/diagnostics\/file-inventory\.json"\]/);
+  assert.match(page, /package\/affected-assets/);
   assert.match(page, /files\[`package\/\$\{safeFilePart\(packageFile\.name/);
   assert.match(page, /zipSync\(files/);
-  assert.match(page, /fetch\("\/api\/ctv-ott\/feedback\/upload"/);
-  assert.match(page, /<Upload \/> Submit Feedback/);
-  assert.match(renderer, /url\.pathname === "\/feedback\/upload"/);
-  assert.match(renderer, /uploadFeedbackToBox/);
+  assert.match(page, /URL\.createObjectURL\(new Blob/);
+  assert.match(page, /link\.download = filename/);
+  assert.match(page, /<Download \/> Download feedback bundle/);
+  assert.doesNotMatch(page, /fetch\("\/api\/ctv-ott\/feedback\/upload"/);
+});
+
+test("package evidence is selected automatically from the feedback type", () => {
+  assert.match(page, /feedbackType === "package-loading" && sourcePackage/);
+  assert.match(page, /feedbackType === "asset-validation" && feedbackAffectedFiles\.length > 0/);
+  assert.match(page, /Selected automatically from the feedback type/);
+  assert.match(page, />Automatic</);
+  assert.doesNotMatch(page, /role="radiogroup"/);
+  assert.match(page, /feedbackEvidenceLevel === "complete-package" \? sourcePackage : null/);
+});
+
+test("download completion points the user to the manual Box upload page", () => {
+  assert.match(page, /FEEDBACK_BOX_UPLOAD_URL = "https:\/\/exponential\.box\.com\/s\/5plrgb9ogbk7m7cyztho4yfnu8orf37s"/);
+  assert.match(page, />One final step</);
+  assert.match(page, />Feedback bundle downloaded</);
+  assert.match(page, /Upload the downloaded ZIP to Box so the team can review your feedback/);
+  assert.match(page, /className="feedback-upload-button"/);
+  assert.match(page, />Upload bundle to Box/);
+  assert.match(page, /target="_blank" rel="noreferrer"/);
+  assert.match(page, /feedbackSuccess \? "Done" : "Cancel"/);
+  assert.doesNotMatch(page, /feedbackSuccess \? "Close" : "Cancel"/);
 });
 
 test("the Box upload endpoint accepts feedback only from the local app", () => {
@@ -67,7 +91,7 @@ test("description and comparison fields accept pasted image evidence", () => {
 });
 
 test("the merged current build retains the feedback-enabled host integration", () => {
-  assert.match(previewPointer, /turbo-preview-7\.12\.5\.html/);
-  assert.match(preview, /const PREVIEW_BUILD = "7\.12\.5"/);
+  assert.match(previewPointer, /turbo-preview-7\.15\.5\.html/);
+  assert.match(preview, /const PREVIEW_BUILD = "7\.15\.5"/);
   assert.match(preview, /window\.CSM_PREVIEW_BUILD = PREVIEW_BUILD/);
 });

@@ -52,6 +52,14 @@ export type PackageSummary = {
   tabCount: number;
   slideCount: number;
   textLayerCount: number;
+  ctaCount: number | null;
+  ctaReferenceArtboard: string | null;
+  tabs: string[];
+  components: { name: string; count: number }[];
+  fonts: string[];
+  colorCount: number;
+  colors: { hex: string; count: number }[];
+  videos: { name: string; path: string; size: number }[];
   findings: Finding[];
   assets: AssetRecord[];
   firstViews: { artboard: string; totalBytes: number; status: "over-limit" | "review" }[];
@@ -186,6 +194,13 @@ function describeControlCharacter(text: string) {
   return "hidden control character";
 }
 
+function replacementCharacterMatch(text: string) {
+  const index = text.indexOf("\uFFFD");
+  return index >= 0
+    ? { index, count: Array.from(text).filter(character => character === "\uFFFD").length }
+    : null;
+}
+
 function hasInternalSpacing(text: string) {
   // Only flag a spacing run between visible characters. Whitespace at the
   // beginning or end of a line can be intentional Photoshop layout padding.
@@ -222,6 +237,7 @@ function findingGuidance(ruleId: string, title: string, message: string) {
   if (ruleId === "rendering.cta-mobile-label-review") return { category: "Browser compatibility", suggestedFix: "If the label is missing in production, convert it to point text in Photoshop. Keep the approved copy and styling, then re-export and check the published Mobile Instream unit." };
   if (ruleId.includes("soft-return")) return { category: "Typography", suggestedFix: "Check Space After in Photoshop. If the gap is unintended, adjust it, re-export, and compare with production." };
   if (ruleId.includes("control-character")) return { category: "Hidden characters", suggestedFix: "Replace the hidden character with the intended character in Photoshop, then check the copy in Preview." };
+  if (ruleId === "copy.replacement-character") return { category: "Text encoding", suggestedFix: "In Photoshop, replace the black diamond/question-mark symbol with the intended character (for example, •), then export the ZIP again and reopen it in Turbo QA." };
   if (ruleId === "copy.spacing") return { category: "Copy", suggestedFix: "Check the spacing in Photoshop and remove extra spaces or tabs if they are not intentional." };
   if (ruleId === "copy.line-end-spacing") return { category: "Copy", suggestedFix: "In Photoshop, keep the spaces if they help align the line. Otherwise remove the trailing spaces and re-export." };
   if (ruleId.includes("placeholder")) return { category: "Copy", suggestedFix: "Replace this with approved copy, or confirm that the placeholder is intentional." };
@@ -238,6 +254,7 @@ function findingReason(ruleId: string, message: string) {
   if (ruleId === "rendering.cta-mobile-label-review") return "This is paragraph text directly inside a Mobile Instream button. That setup matched a published label omission with a reported point-text repair. It is a review signal, not proof of disappearance; paragraph-text buttons can work in production.";
   if (ruleId === "rendering.shift-enter-soft-return") return "A paragraph with Space After follows a Shift+Enter break, so production may add an unintended gap between these lines.";
   if (ruleId === "copy.unsupported-control-character") return "The copy contains a non-printing character that could affect how it appears.";
+  if (ruleId === "copy.replacement-character") return "The export contains U+FFFD, the Unicode replacement character. This means the original glyph was lost in the text data and may render as a black diamond with a question mark.";
   if (ruleId === "copy.spacing") return "The text contains repeated spaces, a tab, or repeated non-breaking spaces.";
   if (ruleId === "copy.line-end-spacing") return "Photoshop exported whitespace before a line ending. This may be intentional layout padding, so it is a low-priority review note.";
   if (ruleId === "copy.default-placeholder") return "The text matches a common placeholder phrase, such as “Headline goes here” or “Button text.”";
@@ -257,7 +274,7 @@ function makeFinding(partial: Omit<Finding, "id" | "category" | "suggestedFix" |
   return { ...partial, ...findingGuidance(partial.ruleId, partial.title, partial.message), reason: findingReason(partial.ruleId, partial.message), id: `f-${(hash >>> 0).toString(36)}` };
 }
 
-export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[], sourceFile: string): PackageSummary {
+export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[], sourceFile: string, packageSizeBytes?: number): PackageSummary {
   const layers: Layer[] = Array.isArray(data.rawLayers) ? data.rawLayers : [];
   const byId = new Map<number, Layer>();
   layers.forEach(layer => {
@@ -416,6 +433,19 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
         ...location,
       }));
     }
+    const replacement = replacementCharacterMatch(rawText);
+    if (replacement) {
+      findings.push(makeFinding({
+        ruleId: "copy.replacement-character",
+        severity: "error",
+        confidence: "high",
+        title: "This copy contains a replacement character.",
+        message: `The text contains ${replacement.count === 1 ? "a replacement" : `${replacement.count} replacement`} character${replacement.count === 1 ? "" : "s"} (�). It may appear as a black diamond with a question mark in the preview or published creative.`,
+        evidence: `Unicode code point U+FFFD at exported text position ${replacement.index}. The original character is not recoverable from this text layer.`,
+        highlight: spacingHighlight(rawText, replacement.index, 1),
+        ...location,
+      }));
+    }
     if (/[\u0000-\u0002\u0004-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(rawText)) {
       findings.push(makeFinding({
         ruleId: "copy.unsupported-control-character",
@@ -462,6 +492,45 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
 
   const tabNames = new Set(contexts.map(context => context.tab).filter(Boolean));
   const slideNames = new Set(contexts.map(context => context.slide).filter(Boolean));
+  const tabs = [...tabNames].sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0)).map((tab, index) => {
+    const tabNumber = tab.match(/\d+/)?.[0] || String(index + 1);
+    const labelLayer = layers.find(layer => new RegExp(`^title${tabNumber}_(?:normal|active|hover)$`, "i").test(normalized(layer.name)) && layer.textKey?.textKey);
+    return normalized(labelLayer?.textKey?.textKey) || `Tab ${tabNumber}`;
+  });
+  // 970x546 is the Desktop Expandable reference state in the supported
+  // package format. Count its CTA instances across tabs and slides only, so
+  // the same CTA repeated at other ad sizes is not inflated in the overview.
+  const ctaReferenceArtboard = artboardLayers
+    .map(layer => normalized(layer.name))
+    .find(name => name.toLowerCase() === "970x546") || null;
+  const ctaCount = ctaReferenceArtboard
+    ? contexts.filter(context => context.artboard === ctaReferenceArtboard && isCtaGroup(context.layer, context)).length
+    : null;
+  const componentPattern = /^(tabComponent|videoComponent|rmGallery|colorPickerGallery|hotSpotGallery|categoryGallery|dotterGallery|locationMap|plugShareMap|view360|comparisonSlider|productGallery|staticProductGallery|countdown|dynamicCopy|scrollPane)(?:[-_ ]?\d+)?$/i;
+  const componentCounts = new Map<string, number>();
+  contexts.forEach(context => {
+    if (context.layer.layerSection?._value !== "layerSectionStart" || context.excluded || !context.artboard) return;
+    const match = normalized(context.layer.name).match(componentPattern);
+    if (match) componentCounts.set(match[1], (componentCounts.get(match[1]) || 0) + 1);
+  });
+  const fonts = new Set<string>();
+  (data.fonts || []).forEach((font: any) => { if (font.fontFamily) fonts.add(normalized(font.fontFamily)); });
+  textContexts.forEach(context => (context.layer.textKey?.textStyleRange || []).forEach((range: any) => {
+    const family = normalized(range?.textStyle?.fontName || range?.textStyle?.fontPostScriptName);
+    if (family) fonts.add(family);
+  }));
+  const colorCounts = new Map<string, number>();
+  const visitColors = (value: any) => {
+    if (!value || typeof value !== "object") return;
+    const red = value.redFloat ?? value.red, green = value.greenFloat ?? value.grainFloat ?? value.grain ?? value.green, blue = value.blueFloat ?? value.blue;
+    if ([red, green, blue].every(channel => Number.isFinite(Number(channel)))) {
+      const channels = [red, green, blue].map(channel => Math.round(Math.max(0, Math.min(1, Number(channel) > 1 ? Number(channel) / 255 : Number(channel))) * 255));
+      const hex = `#${channels.map(channel => channel.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+      colorCounts.set(hex, (colorCounts.get(hex) || 0) + 1);
+    }
+    Object.values(value).forEach(visitColors);
+  };
+  layers.forEach(visitColors);
 
   // Tab-wide presence: a component may move between slides, so slide is deliberately ignored.
   const inventories = new Map<string, Map<string, number>>();
@@ -568,6 +637,9 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
     .filter(item => !basePrefix || item.path.startsWith(basePrefix))
     .map(item => ({ asset: item.asset, path: item.path.slice(basePrefix.length) }))
     .filter(item => item.path && !/(^|\/)export\.json$/i.test(item.path));
+  // Retain videos outside the export folder for creative-wide validation.
+  if (basePrefix) zipAssets.filter(asset => !asset.name.startsWith(basePrefix) && /\.(?:mp4|webm|mov|m4v)$/i.test(asset.name))
+    .forEach(asset => relativeAssets.push({ asset, path: asset.name }));
   const available = new Set(relativeAssets.map(item => item.path));
 
   // disclaimer.html is a runtime dependency only when the package declares an
@@ -635,6 +707,7 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
     const match = /^v1\s*:\s*([^\[]+)/i.exec(String(context.layer.name ?? ""));
     if (match) primaryVideoNames.add(match[1].trim());
   }
+  const isCtvOttVideo = (path: string) => /^video_ctvott\.(?:mp4|webm|mov|m4v)$/i.test(path.split("/").pop() || path);
   const firstViewInfo = (path: string) => {
     const base = path.split("/").pop() || path;
     if (primaryVideoNames.has(path)) return { scopes: [...scopePaths.keys()], reason: "Primary video" };
@@ -668,6 +741,7 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
       } as AssetRecord;
     })
     .sort((a, b) => b.uncompressedSize - a.uncompressedSize);
+  const videos = assets.filter(asset => /^(?:mp4|webm|mov|m4v)$/i.test(asset.extension)).map(asset => ({ name: asset.name.split("/").pop() || asset.name, path: asset.name, size: asset.uncompressedSize }));
 
   const firstViews = [...scopePaths.keys()].map(artboard => {
     const totalBytes = assets.filter(a => a.firstViewScopes.includes(artboard) && !a.firstViewBudgetExcluded).reduce((sum, a) => sum + a.uncompressedSize, 0);
@@ -685,26 +759,44 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
       `${view.artboard}: ${view.totalBytes} bytes. First-view assets must be strictly below 512000 bytes. Video and autogenerated posters are excluded.`, view.artboard);
     }
   }
+  // Count every packaged video once, including playlists, CTV/OTT and files
+  // outside the export.json directory. Archive compression is not video size.
+  const packagedVideos = [...new Map(zipAssets.filter(asset => /\.(?:mp4|webm|mov|m4v)$/i.test(asset.name)).map(asset => [asset.name, asset])).values()];
+  const totalVideoBytes = packagedVideos.reduce((sum, asset) => sum + bytes(asset.uncompressedSize), 0);
+  if (totalVideoBytes > 500 * 1024 * 1024) {
+    const message = `All videos combined exceed 500 MB (${formatBytes(totalVideoBytes)}).`;
+    assets.filter(asset => /^(?:mp4|webm|mov|m4v)$/i.test(asset.extension)).forEach(asset => asset.validationErrors.push(message));
+    budgetFinding("assets.total-video-size", "Combined video size exceeds 500 MB.", message);
+  }
+  if (packageSizeBytes != null && packageSizeBytes > 600 * 1024 * 1024)
+    budgetFinding("assets.package-size", "ZIP/package exceeds 600 MB.", `ZIP/package is ${formatBytes(packageSizeBytes)}; maximum 600 MB.`);
   for (const asset of assets) {
     const base = asset.name.split("/").pop() || asset.name;
     if (/^(?:teaserLogo|peelLogo)(?:-\d+)?\.[a-z0-9]+$/i.test(base) && asset.uncompressedSize > 10 * 1024) {
       asset.validationErrors.push("Teaser logo exceeds 10 KB.");
       budgetFinding("assets.teaser-logo-size", "Teaser logo exceeds 10 KB.", `${asset.name}: ${asset.uncompressedSize} bytes; maximum 10240 bytes.`);
     }
-    if (primaryVideoNames.has(asset.name)) {
+    const videoValidation = primaryVideoNames.has(asset.name)
+      ? { rulePrefix: "primary-video", label: "Primary video" }
+      : isCtvOttVideo(asset.name)
+        ? { rulePrefix: "ctv-ott-video", label: "CTV/OTT video" }
+        : /\.(?:mp4|webm|mov|m4v)$/i.test(asset.name) ? { rulePrefix: "video", label: "Video" } : null;
+    if (videoValidation) {
       const duration = asset.durationSeconds;
       const addVideoFinding = (ruleId: string, message: string, severity: Severity) => {
         (severity === "error" ? asset.validationErrors : asset.validationWarnings).push(message);
         findings.push({ ...makeFinding({ ruleId, title: message, message: `${asset.name}: ${message}`, severity, confidence: "high" }),
-          category: "Assets", reason: message, suggestedFix: severity === "error" ? "Shorten the primary video to at most 4 minutes 30 seconds." : "Optimize the video or confirm long-form handling." });
+          category: "Assets", reason: message, suggestedFix: severity === "error" ? "Escalate videos longer than 4 minutes 30 seconds to the AdEx team." : "Optimize the video or confirm long-form handling." });
       };
-      if (asset.uncompressedSize > 2.5 * 1024 * 1024)
-        addVideoFinding("assets.primary-video-size", "Primary video exceeds 2.5 MB.", "warning");
+      // The CTV/OTT renderer accepts its dedicated package video above the
+      // banner-video limit. Duration validation still applies.
+      if (!isCtvOttVideo(asset.name) && asset.uncompressedSize > 2.5 * 1024 * 1024)
+        addVideoFinding(`assets.${videoValidation.rulePrefix}-size`, `${videoValidation.label} exceeds 2.5 MB.`, "warning");
       if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
-        if (duration > 270) addVideoFinding("assets.primary-video-duration", "Primary video exceeds 4 minutes 30 seconds.", "error");
-        else if (duration > 30) addVideoFinding("assets.primary-video-duration", "Primary video exceeds 30 seconds; confirm long-form handling.", "warning");
+        if (duration > 270) addVideoFinding(`assets.${videoValidation.rulePrefix}-duration`, `${videoValidation.label} exceeds 4 minutes 30 seconds. Escalate to the AdEx team.`, "error");
+        else if (duration > 30) addVideoFinding(`assets.${videoValidation.rulePrefix}-duration`, `${videoValidation.label} exceeds 30 seconds; confirm long-form handling.`, "warning");
       } else {
-        addVideoFinding("assets.primary-video-duration-unavailable", "Video duration could not be verified.", "warning");
+        addVideoFinding(`assets.${videoValidation.rulePrefix}-duration-unavailable`, "Video duration could not be verified.", "warning");
       }
     }
   }
@@ -726,6 +818,14 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
     tabCount: tabNames.size,
     slideCount: slideNames.size,
     textLayerCount: textContexts.length,
+    ctaCount,
+    ctaReferenceArtboard,
+    tabs,
+    components: [...componentCounts].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name)),
+    fonts: [...fonts].filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    colorCount: colorCounts.size,
+    colors: [...colorCounts].map(([hex, count]) => ({ hex, count })).sort((a, b) => b.count - a.count).slice(0, 8),
+    videos,
     findings,
     assets,
     firstViews,
