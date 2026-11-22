@@ -1,4 +1,4 @@
-import previewSource from "./turbo-preview-7.15.5.html?raw";
+import previewSource from "./turbo-preview-7.15.10.html?raw";
 
 /**
  * The single QA Studio preview release pointer.
@@ -7,7 +7,7 @@ import previewSource from "./turbo-preview-7.15.5.html?raw";
  * Historical HTML builds belong in ./archive and must never be imported here.
  */
 export const currentPreview = {
-  version: "7.15.5",
-  path: "preview/turbo-preview-7.15.5.html",
+  version: "7.15.10",
+  path: "preview/turbo-preview-7.15.10.html",
   source: previewSource,
 } as const;

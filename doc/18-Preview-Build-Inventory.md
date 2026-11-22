@@ -1,8 +1,8 @@
 # Preview Build Inventory
 
-**Current QA Studio release:** `preview/turbo-preview-7.15.5.html` (based on 7.15.4; creative-wide video/package limits and AdEx escalation guidance)
+**Current QA Studio release:** `preview/turbo-preview-7.15.10.html` (based on 7.15.9; uses Mapbox.js Streets styleLayer and resolves location feeds per map)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-11-03
+**Inventory date:** 2026-11-20
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
@@ -16,7 +16,13 @@ QA Studio imports only the source named by `preview/current-preview.ts`. The cur
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.15.4.html` | 681,401 | 7.15.4 | `preview/` | Current patch. Inherits 7.15.3 renderer; Teasers follow Main Unit artboard order in a responsive bento layout. |
+| `turbo-preview-7.15.10.html` | 686,959 | 7.15.10 | `preview/` | Current patch. Carries the 7.15.9 renderer forward with updated build identity; host map setup uses `L.mapbox.styleLayer` for Streets v11 and resolves each location map's data feed (D106). |
+| `turbo-preview-7.15.9.html` | 686,958 | 7.15.9 | `preview/` | Retained predecessor. Carries the 7.15.8 renderer forward with updated build identity; Mapbox tile failure handling is implemented in the QA Studio host. |
+| `turbo-preview-7.15.8.html` | 686,958 | 7.15.8 | `preview/` | Retained patch. Carries 7.15.7 renderer forward with updated build identity; duration tolerance is implemented in the QA Studio host (D105). |
+| `turbo-preview-7.15.7.html` | 686,958 | 7.15.7 | `preview/` | Retained patch. Centers all teaser cards in one parent and places lower sizes in D104 order. |
+| `turbo-preview-7.15.6.html` | 686,958 | 7.15.6 | `preview/` | Retained patch. Compare audio is available for one selected ad size; all other sizes remain muted. |
+| `turbo-preview-7.15.5.html` | 681,401 | 7.15.5 | `preview/` | Retained patch. Adds creative-wide video/package limits and AdEx escalation guidance. |
+| `turbo-preview-7.15.4.html` | 681,401 | 7.15.4 | `preview/` | Retained patch. Inherits 7.15.3 renderer; Teasers follow Main Unit artboard order in a responsive bento layout. |
 | `turbo-preview-7.15.3.html` | 681,401 | 7.15.3 | `preview/` | Current patch. Promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
 | `turbo-preview-7.15.2.html` | 681,401 | 7.15.2 | `preview/` | Retained patch. Hides the technical workspace completion label while retaining package checks and Findings (D100). |
 | `turbo-preview-7.15.1.html` | 681,401 | 7.15.1 | `preview/` | Retained patch. CTAs counts Desktop Expandable (`970x546`) CTA instances across tabs and slides; repeated groups in other sizes are excluded (D099). |
@@ -158,3 +164,24 @@ Current pointer: `preview/turbo-preview-7.13.6.html`. slideProgress and its prog
 ## 7.15.5
 
 Based on 7.15.4; adds creative-wide combined video budget (500 MB), ZIP upload limit (600 MB), all-video duration validation and AdEx escalation guidance. Embedded rendering behavior is unchanged. Companion CTV/OTT renderer validation updated; its historical HTML profile is retained.
+
+## 7.15.6
+
+Based on 7.15.5; scopes audio selection to an ad-size group. Compare starts muted. Unmuting one size makes only that size audible; muting it silences all sizes. The selection persists across video surface replacement and Compare/Single mode changes.
+
+## 7.15.7
+
+Based on user-confirmed 7.15.6. QA Studio wraps every available teaser card in one max-width parent centered in the window. The two 970×250 cards stay centered; the lower mosaic contains 160×600, 300×600, 300×250, and mobile instream in that order when present. 728×90 follows the mosaic and 320×50 follows 728×90; both align to the parent's left edge. Missing formats and empty groups are omitted. Same-build follow-ups preserve stage dimensions, scroll the gallery horizontally on narrower windows, and keep one generation-status banner below Mobile In-stream as it changes from rendering to ready. Mobile instream keeps its established 0.5× presentation viewport. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated because these layout changes are in the QA Studio host.
+
+## 7.15.8
+
+Based on user-confirmed 7.15.7. Adds a 0.05-second allowance to the shared 30-second warning and 270-second error thresholds to absorb normal container timestamp/frame rounding. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated; duration validation is implemented in the QA Studio host.
+
+
+## 7.15.9
+
+Patch based on user-confirmed 7.15.8. Preserves the original Streets v11 tile URL. The QA Studio host now registers Leaflet tile-error handling before requests start and shows the map fallback when all tiles fail, including when Leaflet's layer-level `load` event fires after failed requests. A diagnostic request from the active localhost origin received HTTP 401 `Not Authorized - Invalid Token` for both the original v11 URL and the attempted v12 URL; rendering tiles therefore also requires a valid configured `VITE_MAPBOX_ACCESS_TOKEN`. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated.
+
+## 7.15.10
+
+Patch based on 7.15.9. The host map adapter loads Streets v11 through Mapbox.js `L.mapbox.styleLayer` using the production style URL, with 512px tiles and the existing `zoomOffset: -1`. Each map receives the feed referenced by its data marker when multiple `data.json` files are present. A single-feed package remains supported; an ambiguous multi-feed package renders its no-data state rather than using an unrelated first feed. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated. See D106 for evidence and validation status.

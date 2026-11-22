@@ -1,10 +1,10 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.15.3** — `preview/turbo-preview-7.15.3.html`. Promotes creative destinations and groups package-review metrics together (D101).
+> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Nominal video duration checks allow timestamp/frame rounding (D105).
 
-**Doc version:** 1.8.7
-**Reflects build:** `preview/turbo-preview-7.15.3.html` @ **v7.15.3** (current); historical baselines are described below.
-**Last updated:** 2026-11-03
+**Doc version:** 1.9.3
+**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
+**Last updated:** 2026-11-19
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
 **Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.

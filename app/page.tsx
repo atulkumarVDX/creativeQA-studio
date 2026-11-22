@@ -30,7 +30,8 @@ type BridgeAsset = { durationSeconds?: number; name: string; compressedSize: num
 type Theme = "dark" | "light";
 type TeaserBytes = Record<Exclude<keyof TeaserMedia, "generatedFrame" | "generatedVideoTarget">, Uint8Array | null>;
 type PackageFile = readonly [string, Uint8Array];
-const MAPBOX_ACCESS_TOKEN = import.meta.env.DEV ? import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "" : "";
+// Vite embeds this public token at build time for both local and static builds.
+const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
 type ExportLayer = { name?: unknown; bounds?: { width?: number | { _value?: number }; height?: number | { _value?: number } } };
 type CtvOttFormat = "ctv" | "ott";
 type CtvOttVideos = Partial<Record<CtvOttFormat, string>>;
@@ -53,6 +54,84 @@ type FeedbackCapture = {
     theme: string | null;
   };
 };
+type CaseStatus = "Not started" | "In progress" | "Pass" | "Fail" | "Needs improvement" | "Blocked" | "Not applicable";
+type FeedbackTestCase = { id: string; area: string; priority: "High" | "Medium"; name: string; pass: string };
+const FEEDBACK_TYPE_OPTIONS: Array<{ value: FeedbackType; label: string }> = [
+  { value: "visual-mismatch", label: "Visual mismatch" },
+  { value: "finding-issue", label: "Finding looks incorrect" },
+  { value: "asset-validation", label: "Asset validation issue" },
+  { value: "package-loading", label: "Package loading issue" },
+  { value: "preview-interaction", label: "Preview interaction issue" },
+  { value: "screenshot-export", label: "Screenshot or report issue" },
+  { value: "app-ui", label: "App UI issue" },
+  { value: "suggestion", label: "Suggestion" },
+  { value: "other", label: "Other issue" },
+];
+const FEEDBACK_TYPE_AREAS: Partial<Record<FeedbackType, string[]>> = {
+  "visual-mismatch": ["Creative rendering"],
+  "finding-issue": ["QA findings"],
+  "asset-validation": ["Asset validation"],
+  "package-loading": ["Creative rendering", "User experience"],
+  "preview-interaction": ["Creative rendering", "User experience"],
+  "screenshot-export": ["Feedback", "User experience"],
+  "app-ui": ["User experience"],
+};
+const FEEDBACK_TYPE_LABELS = Object.fromEntries(FEEDBACK_TYPE_OPTIONS.map(option => [option.value, option.label])) as Record<FeedbackType, string>;
+const FEEDBACK_TEST_CASES: FeedbackTestCase[] = [
+  { id: "CR-01", area: "Creative rendering", priority: "High", name: "Upload a valid creative package", pass: "The package loads and the expected creative preview is available." },
+  { id: "CR-02", area: "Creative rendering", priority: "High", name: "Compare representative text with production", pass: "Fonts, size, weight, line breaks, wrapping, alignment, spacing, and position match, or differences are documented." },
+  { id: "CR-03", area: "Creative rendering", priority: "High", name: "Compare images and backgrounds", pass: "Image content, crop, placement, background, and visible treatment match the reference." },
+  { id: "CR-04", area: "Creative rendering", priority: "High", name: "Check creative dimensions and scale", pass: "Each reviewed size uses the expected source geometry and is presented according to its supported view mode." },
+  { id: "CR-05", area: "Creative rendering", priority: "High", name: "Activate a CTA or button", pass: "The supported action responds as expected for the package and review flow. Record the exact control and destination/state." },
+  { id: "CR-06", area: "Creative rendering", priority: "High", name: "Switch tabs and slides", pass: "The correct state appears and navigation follows the creative’s expected behavior." },
+  { id: "CR-07", area: "Creative rendering", priority: "High", name: "Exercise galleries, sliders, or carousels", pass: "Supported controls show the correct content and state without getting stuck or showing unrelated slides." },
+  { id: "CR-08", area: "Creative rendering", priority: "Medium", name: "Exercise hotspots or popups", pass: "The expected content appears and can be dismissed or navigated as intended." },
+  { id: "CR-09", area: "Creative rendering", priority: "Medium", name: "Exercise map or store-locator content", pass: "The map, pins, popups, and supported interactions appear as expected." },
+  { id: "CR-10", area: "Creative rendering", priority: "High", name: "Play video and review sound controls", pass: "Video displays and plays; sound, mute/unmute, and play/pause behavior are understandable and usable." },
+  { id: "CR-11", area: "Creative rendering", priority: "High", name: "Change creative state while video is playing", pass: "Playback follows the expected pause/resume and saved-state behavior; manually paused video does not unexpectedly resume." },
+  { id: "CR-12", area: "Creative rendering", priority: "High", name: "Compare multiple supported creative sizes", pass: "Each selected size renders its own expected content without size/state mix-ups." },
+  { id: "QF-01", area: "QA findings", priority: "High", name: "Review findings generated for the package", pass: "Findings relate to the supplied creative and applicable rules." },
+  { id: "QF-02", area: "QA findings", priority: "High", name: "Manually verify a reported issue", pass: "The issue is observable or supported by the relevant specification/reference." },
+  { id: "QF-03", area: "QA findings", priority: "High", name: "Check for false positives", pass: "Correct content or behavior is not reported as defective without a valid reason." },
+  { id: "QF-04", area: "QA findings", priority: "High", name: "Check a known issue against findings", pass: "The known issue is surfaced where the app is expected to detect it; otherwise record the missed issue and its evidence." },
+  { id: "QF-05", area: "QA findings", priority: "Medium", name: "Review finding descriptions and locations", pass: "The wording is clear and identifies the affected content or area well enough to investigate." },
+  { id: "QF-06", area: "QA findings", priority: "Medium", name: "Review suggested actions", pass: "Any suggested next step is relevant and practical; do not assume a fix suggestion exists for every finding." },
+  { id: "QF-07", area: "QA findings", priority: "Medium", name: "Review finding categories", pass: "The category fits the observed issue and helps the reviewer route it." },
+  { id: "QF-08", area: "QA findings", priority: "Medium", name: "Review finding severity/priority", pass: "The indicated urgency is proportionate to the impact; note cases where severity is absent or misleading." },
+  { id: "QF-09", area: "QA findings", priority: "Medium", name: "Review readability and accessibility of findings", pass: "Text, status cues, keyboard access, and actions are understandable; report barriers without implying the app automatically audits accessibility unless it explicitly says so." },
+  { id: "AV-01", area: "Asset validation", priority: "High", name: "Load a package with known-valid assets", pass: "Valid assets pass the applicable checks without misleading warnings." },
+  { id: "AV-02", area: "Asset validation", priority: "High", name: "Load a package with a known missing asset", pass: "The missing asset is identified clearly and does not appear as an unexplained blank." },
+  { id: "AV-03", area: "Asset validation", priority: "High", name: "Review an asset over an individual size limit", pass: "The limit violation is reported with enough detail to identify the file and rule." },
+  { id: "AV-04", area: "Asset validation", priority: "High", name: "Review package video against the creative-wide size rule", pass: "Total video size is checked against the documented limit; documented exemptions are handled as specified." },
+  { id: "AV-05", area: "Asset validation", priority: "High", name: "Review a ZIP against the package-size limit", pass: "A package over the applicable limit is flagged with a clear explanation." },
+  { id: "AV-06", area: "Asset validation", priority: "High", name: "Review a video within the duration limit", pass: "The video passes the duration check." },
+  { id: "AV-07", area: "Asset validation", priority: "High", name: "Review a video exceeding the duration limit", pass: "It is flagged and the applicable escalation guidance is shown." },
+  { id: "AV-08", area: "Asset validation", priority: "High", name: "Review first-view validation", pass: "The relevant first-view requirements and limits are evaluated against the applicable specification." },
+  { id: "AV-09", area: "Asset validation", priority: "Medium", name: "Review unsupported or invalid image formats", pass: "Unsupported content is identified clearly and handled without an unexplained crash." },
+  { id: "AV-10", area: "Asset validation", priority: "Medium", name: "Review an asset with incorrect constrained dimensions", pass: "The issue is flagged when the applicable rule requires it." },
+  { id: "AV-11", area: "Asset validation", priority: "High", name: "Review a known broken or incorrect asset reference", pass: "The affected reference/file is identified." },
+  { id: "AV-12", area: "Asset validation", priority: "Medium", name: "Review validation messages", pass: "Errors and warnings explain what failed and why in language a reviewer can act on." },
+  { id: "AV-13", area: "Asset validation", priority: "High", name: "Load a package with multiple known validation failures", pass: "Applicable failures are reported together without masking one another or adding unsupported claims." },
+  { id: "UX-01", area: "User experience", priority: "High", name: "Open the candidate app", pass: "The app loads without an unexplained error and shows the expected build." },
+  { id: "UX-02", area: "User experience", priority: "High", name: "Navigate between creative preview and findings", pass: "Reviewers can move between them and understand where they are." },
+  { id: "UX-03", area: "User experience", priority: "Medium", name: "Navigate relevant preview sections", pass: "Available sections are discoverable and return paths are clear." },
+  { id: "UX-04", area: "User experience", priority: "Medium", name: "Review the findings interface", pass: "Findings are readable, scannable, and understandable without relying on undocumented knowledge." },
+  { id: "UX-05", area: "User experience", priority: "Medium", name: "Review pass, warning, and error indicators", pass: "Different states are visually and textually distinguishable." },
+  { id: "UX-06", area: "User experience", priority: "High", name: "Use the app during normal interactions", pass: "The interface remains responsive and stable while switching states and sections." },
+  { id: "UX-07", area: "User experience", priority: "High", name: "Load a large representative package", pass: "The app remains usable or communicates a clear limit/error instead of failing silently." },
+  { id: "UX-08", area: "User experience", priority: "High", name: "Load an invalid package", pass: "The app explains the problem and gives a recoverable path." },
+  { id: "UX-09", area: "User experience", priority: "Medium", name: "Review incomplete or unsupported package content", pass: "The app identifies limitations and handles the content gracefully." },
+  { id: "UX-10", area: "User experience", priority: "Medium", name: "Assess the end-to-end review workflow", pass: "You can complete the review without unnecessary steps or unclear handoffs; note specific friction." },
+  { id: "FB-01", area: "Feedback", priority: "High", name: "Create a clearly labeled test bug report", pass: "The closest feedback type can be selected and the issue can be described." },
+  { id: "FB-02", area: "Feedback", priority: "Medium", name: "Create a suggestion for an improvement or capability", pass: "The suggestion is captured through the existing Suggestion type." },
+  { id: "FB-03", area: "Feedback", priority: "High", name: "Report an incorrect or missed QA finding", pass: "The finding issue type can be selected and the report can identify the relevant test case and creative state." },
+  { id: "FB-04", area: "Feedback", priority: "Medium", name: "Enter a description and reproduction steps", pass: "Text is retained in the downloaded bundle." },
+  { id: "FB-05", area: "Feedback", priority: "Medium", name: "Paste a screenshot or attach supporting evidence", pass: "Evidence appears in the form and is included in the bundle with its context." },
+  { id: "FB-06", area: "Feedback", priority: "Medium", name: "Check conditional reference validation", pass: "A visual mismatch requires a valid CCRV or Showcase reference; other report types can proceed without one." },
+  { id: "FB-07", area: "Feedback", priority: "High", name: "Download and inspect the feedback bundle", pass: "The bundle contains the report, current package/preview context, and selected evidence." },
+  { id: "FB-08", area: "Feedback", priority: "High", name: "Follow the displayed submission handoff", pass: "The reviewer can upload the downloaded ZIP to the approved Box File Request page and record the resulting reference." },
+];
+const CASE_STATUS_OPTIONS: CaseStatus[] = ["Not started", "In progress", "Pass", "Fail", "Needs improvement", "Blocked", "Not applicable"];
 const PREVIEW_VERSION = currentPreview.version;
 const previewSource = currentPreview.source;
 const BRIDGE_TOKEN = `turbo-qa-preview-${PREVIEW_VERSION}`;
@@ -175,12 +254,14 @@ const bridgeScript = (String.raw`
         popupStyle.dataset.tqaMapboxPopup = 'true';
         popupStyle.textContent = '.leaflet-container { font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
           '.leaflet-pane.leaflet-popup-pane { z-index:800 !important; } .leaflet-pane.leaflet-marker-pane { z-index:600 !important; }' +
-          '.leaflet-popup { margin-bottom:0; } .leaflet-popup-content-wrapper { position:relative; overflow:visible !important; border-radius:8px 8px 8px 0; background:#fff; padding:1px; box-shadow:none; }' +
-          '.leaflet-popup-content { box-sizing:border-box; width:251px !important; margin:0; padding:10px 10px 15px; color:#252525; font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
-          '.leaflet-popup-tip-container { display:none; } .leaflet-popup-content-wrapper::after { content:""; position:absolute; z-index:2; left:0; bottom:-10px; width:0; height:0; border-top:10px solid #fff; border-right:20px solid transparent; pointer-events:none; }' +
+          '.leaflet-popup { margin-bottom:0; } .leaflet-popup-content-wrapper { position:relative; overflow:visible !important; border-radius:8px 8px 8px 0; background:#fff; padding:1px; box-shadow:0 3px 14px rgba(0,0,0,.4); }' +
+          '.leaflet-popup-content { box-sizing:border-box; max-width:calc(var(--tqa-popup-width,253px) - 2px) !important; max-height:calc(var(--tqa-popup-height,115px) - 2px); margin:0; padding:10px 10px 15px; color:#252525; font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
+          '.theme-bubble .leaflet-popup { filter:drop-shadow(0 6px 12px rgba(0,0,0,.4)); }' +
+          '.theme-bubble .leaflet-popup-content-wrapper { border-radius:8px; box-shadow:none; }' +
+          '.theme-bubble .leaflet-popup-tip-container { position:absolute; width:32px; height:32px; transform:translate(-40%,-60%); background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xNCw0IEw0LDI4IEwyOCwxOCB6IiBmaWxsPSIjRkZGRkZGIi8+PC9zdmc+); }' +
+          '.theme-bubble .leaflet-popup-tip { display:none; }' +
           '.leaflet-popup-close-button { z-index:3; width:20px !important; height:20px !important; padding:0 !important; color:#33415b !important; font:18px/20px Arial,sans-serif !important; }' +
-          '.leaflet-popup-content a, .leaflet-marker-icon { cursor:pointer; } .tqa-leaflet-marker { background:transparent; border:0; }' +
-          '.tqa-map-fallback-pin { display:block; width:18px; height:18px; border-radius:50% 50% 50% 0; background:#d8323b; border:2px solid #fff; box-shadow:0 1px 4px #0006; transform:translateY(-2px) rotate(-45deg); }';
+          '.leaflet-popup-content a, .leaflet-marker-icon { cursor:pointer; } .tqa-leaflet-marker { background:transparent; border:0; }';
         document.head.appendChild(popupStyle);
       }
       const script = document.createElement('script');
@@ -224,14 +305,24 @@ const bridgeScript = (String.raw`
   }
   function addStorePopup(store, component) {
     const content = document.createElement('div');
-    content.style.cssText = 'box-sizing:border-box;width:231px;min-height:86px;padding:0;color:#252525;text-align:center;font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif';
-    const title = document.createElement('strong');
-    title.textContent = store.label || 'Store';
-    title.style.cssText = 'display:block;margin:0;font-size:12px;font-weight:400';
-    content.appendChild(title);
+    content.style.cssText = 'box-sizing:border-box;width:100%;height:auto;padding:0;color:#252525;text-align:center;font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif';
+    const logo = mapConfig.logoImages?.[String(component.rootLayerId)];
+    if (logo?.src) {
+      const image = document.createElement('img');
+      image.src = logo.src; image.alt = store.label || 'Store';
+      image.style.cssText = 'display:block;margin:0 auto 14px;max-width:100%;object-fit:contain;width:' + (logo.width || 60) + 'px;height:' + (logo.height || 30) + 'px';
+      content.appendChild(image);
+    } else {
+      const title = document.createElement('strong');
+      title.textContent = store.label || 'Store';
+      title.style.cssText = 'display:block;margin:0 0 14px;font-size:12px;font-weight:400';
+      content.appendChild(title);
+    }
     const address = document.createElement('div');
-    address.textContent = [store.address, [store.city, store.state, store.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-    address.style.cssText = 'color:#252525;font-size:12px;line-height:20px';
+    const firstAddressLine = [store.address, store.city].filter(Boolean).join(', ');
+    const secondAddressLine = [store.state, store.zip].filter(Boolean).join(' ');
+    address.textContent = [firstAddressLine ? firstAddressLine + (store.city ? ',' : '') : '', secondAddressLine].filter(Boolean).join('\n');
+    address.style.cssText = 'color:#252525;font-size:12px;line-height:20px;white-space:pre-line';
     content.appendChild(address);
     if (store.phone) {
       const phone = document.createElement('div');
@@ -247,15 +338,13 @@ const bridgeScript = (String.raw`
         link.rel = 'noopener noreferrer';
         link.style.cssText = 'display:inline-block;margin-top:5px;line-height:0;cursor:pointer';
         const buttonImage = mapConfig.buttonImages?.[String(component.rootLayerId)];
-        if (buttonImage) {
+        if (buttonImage?.src) {
           const image = document.createElement('img');
-          image.src = buttonImage; image.alt = 'Learn more'; image.style.cssText = 'display:block;width:100px;height:auto';
+          image.src = buttonImage.src; image.alt = '';
+          image.style.cssText = 'display:block;width:100px;height:21px';
           link.appendChild(image);
-        } else {
-          link.textContent = 'LEARN MORE';
-          link.style.cssText += ';padding:6px 17px;background:#f2cf37;color:#191919;font-size:11px;font-weight:700';
+          content.appendChild(link);
         }
-        content.appendChild(link);
       }
     } catch { /* Ignore malformed campaign links. */ }
     return content;
@@ -278,6 +367,7 @@ const bridgeScript = (String.raw`
       const parent = defaultElement.parentElement;
       if (!parent) continue;
       const mapElement = document.createElement('div');
+      mapElement.classList.add('theme-bubble');
       mapElement.dataset.tqaMapLayer = String(component.rootLayerId);
       mapElement.setAttribute('aria-label', 'Interactive store map');
       mapElement.style.position = 'absolute';
@@ -287,6 +377,10 @@ const bridgeScript = (String.raw`
       mapElement.style.zIndex = defaultElement.style.zIndex || String(target.itemIndex || 0);
       mapElement.style.pointerEvents = 'auto';
       mapElement.style.overflow = 'visible';
+      const popupWidth = component.popupWidth ?? mapConfig.settings?.popupWidth ?? 250;
+      const popupHeight = component.popupHeight ?? mapConfig.settings?.popupHeight ?? 180;
+      mapElement.style.setProperty('--tqa-popup-width', String(popupWidth) + 'px');
+      mapElement.style.setProperty('--tqa-popup-height', String(popupHeight) + 'px');
       parent.appendChild(mapElement);
       defaultElement.style.display = 'none';
       if (frameElement) frameElement.style.display = 'none';
@@ -296,7 +390,7 @@ const bridgeScript = (String.raw`
         if (layerElement) layerElement.style.display = 'none';
       }
       if (!mapConfig.accessToken) {
-        showMapFallback(mapElement, 'Map preview needs a Mapbox public token. Add VITE_MAPBOX_ACCESS_TOKEN to your local .env.local file.');
+        showMapFallback(mapElement, 'Map preview needs a Mapbox public token. Configure VITE_MAPBOX_ACCESS_TOKEN when building the site.');
         showMapStateImage(mapElement, mapConfig.defaultImages?.[String(component.rootLayerId)]);
         continue;
       }
@@ -304,7 +398,7 @@ const bridgeScript = (String.raw`
       loadLeaflet().then(L => {
         if (!mapElement.isConnected) return;
         L.mapbox.accessToken = mapConfig.accessToken;
-        const points = (mapConfig.stores || []).filter(store => Number.isFinite(store.lat) && Number.isFinite(store.long));
+        const points = (component.stores || mapConfig.stores || []).filter(store => Number.isFinite(store.lat) && Number.isFinite(store.long));
         if (!points.length) {
           showMapStateImage(mapElement, mapConfig.noDataImages?.[String(component.rootLayerId)] || mapConfig.defaultImages?.[String(component.rootLayerId)]);
           return;
@@ -318,11 +412,23 @@ const bridgeScript = (String.raw`
         }).setView([first.lat, first.long], mapConfig.settings?.zoomLevel ?? 12);
         // Leaflet projects a 256px world; 512px tiles need one lower URL zoom
         // so their geographic bounds match the markers (map zoom 12 => tile z11).
-        const tileLayer = L.tileLayer(mapConfig.tileUrl, { tileSize: 512, zoomOffset: -1, maxZoom: mapConfig.settings?.maxZoom ?? 19, attribution: '© Mapbox © OpenStreetMap' });
-        let tilesLoaded = false;
+        const tileLayer = L.mapbox.styleLayer(mapConfig.styleUrl, { tileSize: 512, zoomOffset: -1, maxZoom: mapConfig.settings?.maxZoom ?? 19, attribution: '© Mapbox © OpenStreetMap' });
+        let tileErrorCount = 0;
+        let loadingImage = null;
         tileLayer.once('load', () => {
-          tilesLoaded = true;
-          if (loadingImage?.isConnected) loadingImage.remove();
+          const hasLoadedTiles = Boolean(mapElement.querySelector('.leaflet-tile-loaded'));
+          if (hasLoadedTiles && loadingImage?.isConnected) loadingImage.remove();
+          if (tileErrorCount > 0 && !hasLoadedTiles && mapElement.isConnected) {
+            showMapFallback(mapElement, 'Map tiles failed to load. Check the configured Mapbox public token and its allowed website address.');
+          }
+        });
+        tileLayer.on('tileerror', () => {
+          tileErrorCount += 1;
+          window.setTimeout(() => {
+            if (mapElement.isConnected && !mapElement.querySelector('.leaflet-tile-loaded')) {
+              showMapFallback(mapElement, 'Map tiles failed to load. Check the configured Mapbox public token and its allowed website address.');
+            }
+          }, 1500);
         });
         tileLayer.addTo(map);
         const logoControl = L.control({ position: 'bottomleft' });
@@ -332,29 +438,24 @@ const bridgeScript = (String.raw`
           return logo;
         };
         logoControl.addTo(map);
-        const loadingImage = showMapStateImage(mapElement, loadingImageSource);
+        loadingImage = showMapStateImage(mapElement, loadingImageSource);
         mapInstances.set(mapElement, map);
         map.whenReady(() => {
           points.forEach((store, index) => {
             const pinImage = mapConfig.pinImages?.[String(component.pinLayerId)];
-            const iconWidth = Math.max(14, 22 * (entry.scale || 1));
-            const iconHeight = Math.max(20, 33 * (entry.scale || 1));
-            const iconOptions = { iconSize: [iconWidth, iconHeight], iconAnchor: [iconWidth / 2, iconHeight - 2], popupAnchor: [Math.round((mapConfig.settings?.popupWidth ?? 253) / 2), 2 - iconHeight - 10], className: 'tqa-leaflet-marker' };
-            const icon = pinImage
-              ? L.icon({ ...iconOptions, iconUrl: pinImage })
-              : L.divIcon({ ...iconOptions, html: '<span class="tqa-map-fallback-pin"></span>' });
+            const scale = entry.scale || 1;
+            const iconWidth = Math.max(1, (pinImage?.width || 24) * scale);
+            const iconHeight = Math.max(1, (pinImage?.height || 35) * scale);
+            const iconOptions = { iconSize: [iconWidth, iconHeight], iconAnchor: [iconWidth / 2, iconHeight], popupAnchor: [popupWidth / 2 + 9, -iconHeight], className: 'tqa-leaflet-marker' };
+            const icon = pinImage?.src
+              ? L.icon({ ...iconOptions, iconUrl: pinImage.src })
+              : L.divIcon({ ...iconOptions, iconSize: [1, 1], iconAnchor: [0, 0], html: '' });
+            if (!pinImage?.src) mapElement.dataset.tqaMissingPinArtwork = 'true';
             const storeMarker = L.marker([store.lat, store.long], { icon }).addTo(map);
-            storeMarker.bindPopup(addStorePopup(store, component), { maxWidth: mapConfig.settings?.popupWidth ?? 253, offset: [0, 0], closeButton: mapConfig.settings?.showCloseBtn !== false, autoClose: true, closeOnClick: false });
+            storeMarker.bindPopup(addStorePopup(store, component), { minWidth: popupWidth, maxWidth: popupWidth, maxHeight: popupHeight, offset: [0, 0], closeButton: mapConfig.settings?.showCloseBtn !== false, autoClose: true, closeOnClick: false });
             if (index === 0 && mapConfig.settings?.openPopByDefault !== false) storeMarker.openPopup();
           });
           map.invalidateSize();
-        });
-        tileLayer.on('tileerror', () => {
-          window.setTimeout(() => {
-            if (!tilesLoaded && mapElement.isConnected && !mapElement.querySelector('.leaflet-tile-loaded')) {
-              showMapFallback(mapElement, 'Mapbox could not load this map. Check the token and its localhost URL restrictions.');
-            }
-          }, 1500);
         });
       }).catch(error => { if (mapElement.isConnected) showMapFallback(mapElement, error?.message || 'Leaflet Mapbox could not be loaded.'); });
     }
@@ -604,9 +705,7 @@ async function readPackage(file: File) {
     peelLogo: pick(/^peelLogo(?:-\d+)?\.png$/i),
     peel: pick(/^peel-\d+\.png$/i),
   };
-  const mapPreviewConfig = import.meta.env.DEV
-    ? buildMapPreviewConfig(exportData.rawLayers, files as PackageFile[], MAPBOX_ACCESS_TOKEN)
-    : null;
+  const mapPreviewConfig = buildMapPreviewConfig(exportData.rawLayers, files as PackageFile[], MAPBOX_ACCESS_TOKEN, exportData.customAssets);
   return { exportData, assets, teaserBytes, packageFiles: files as PackageFile[], mapPreviewConfig };
 }
 
@@ -817,35 +916,20 @@ export default function Home() {
   const [findingTab, setFindingTab] = useState("all");
   const [findingSize, setFindingSize] = useState("all");
   const [activeTab, setActiveTabState] = useState("overview");
-  const pilotStartedAtRef = useRef(Date.now());
-  const pilotFirstResultAtRef = useRef<number | null>(null);
-  const pilotStepsRef = useRef(new Set<string>(["Overview"]));
-  const pilotToolsRef = useRef(new Set<string>());
-  const pilotPackageOpenedRef = useRef("No");
-  const [pilotOpen, setPilotOpen] = useState(false);
-  const [pilotSending, setPilotSending] = useState(false);
-  const [pilotSent, setPilotSent] = useState(false);
-  const [pilotError, setPilotError] = useState("");
-  const [pilotTesterCode, setPilotTesterCode] = useState(() => {
-    try {
-      const stored = window.localStorage.getItem("tqa-pilot-tester-code");
-      if (stored) return stored;
-      const code = `T${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-      window.localStorage.setItem("tqa-pilot-tester-code", code);
-      return code;
-    } catch { return "Tester"; }
-  });
-  const [pilotEaseRating, setPilotEaseRating] = useState("");
-  const [pilotBlocker, setPilotBlocker] = useState("");
-  const [pilotComments, setPilotComments] = useState("");
   const setActiveTab = (section: string) => {
     // Resume inside the navigation gesture so audible playback is permitted.
     setPreviewPlaybackActive(iframeRef.current, section === "preview");
     setActiveTabState(section);
     const step = ({ overview: "Overview", findings: "Findings", assets: "Assets", teasers: "Teasers", ctvOtt: "Teasers", preview: "Preview" } as Record<string, string>)[section];
-    if (step) pilotStepsRef.current.add(step);
   };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackReviewerName, setFeedbackReviewerName] = useState("");
+  const [feedbackCaseId, setFeedbackCaseId] = useState("");
+  const [feedbackCaseStatus, setFeedbackCaseStatus] = useState<CaseStatus>("Not started");
+  const [feedbackShareOpen, setFeedbackShareOpen] = useState(false);
+  const [feedbackBundleUrl, setFeedbackBundleUrl] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>("visual-mismatch");
   const [feedbackReferenceUrl, setFeedbackReferenceUrl] = useState("");
   const [feedbackSummary, setFeedbackSummary] = useState("");
@@ -866,7 +950,16 @@ export default function Home() {
   const requiresProductionReference = feedbackType === "visual-mismatch";
   const hasProductionReferenceInput = feedbackReferenceUrl.trim().length > 0;
   const productionReferenceInvalid = hasProductionReferenceInput && !productionReference;
-  const canCreateFeedbackBundle = !feedbackPreparing && !feedbackSuccess && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
+  const selectedFeedbackCase = FEEDBACK_TEST_CASES.find(testCase => testCase.id === feedbackCaseId) || null;
+  const relatedFeedbackCases = useMemo(() => {
+    const areas = FEEDBACK_TYPE_AREAS[feedbackType] || [];
+    return FEEDBACK_TEST_CASES.filter(testCase => areas.includes(testCase.area));
+  }, [feedbackType]);
+  const sortedFeedbackCases = useMemo(() => [...relatedFeedbackCases, ...FEEDBACK_TEST_CASES.filter(testCase => !relatedFeedbackCases.some(related => related.id === testCase.id))], [relatedFeedbackCases]);
+  const canCreateFeedbackBundle = !feedbackPreparing && !feedbackSuccess && Boolean(feedbackReviewerName.trim()) && (!feedbackCaseId || feedbackCaseStatus !== "Not started") && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
+  const parsedFeedbackBundleUrl = useMemo(() => {
+    try { const parsed = new URL(feedbackBundleUrl.trim()); return parsed.protocol === "https:" && (parsed.hostname === "box.com" || parsed.hostname.endsWith(".box.com")) ? parsed.href : ""; } catch { return ""; }
+  }, [feedbackBundleUrl]);
   const feedbackAffectedFiles = useMemo(() => affectedPackageFiles(summary, feedbackPackageData?.packageFiles || []), [summary, feedbackPackageData]);
   const feedbackDiagnosticsSize = useMemo(() => feedbackPackageData ? strToU8(JSON.stringify(feedbackPackageData.exportData)).byteLength + strToU8(JSON.stringify(feedbackPackageData.packageFiles.map(([name, data]) => ({ name, size: data.byteLength })))).byteLength : 0, [feedbackPackageData]);
   const feedbackEvidenceLevel: FeedbackEvidenceLevel = feedbackType === "package-loading" && sourcePackage
@@ -1046,7 +1139,7 @@ export default function Home() {
       setError("Finish or cancel screenshot capture before replacing the package.");
       return;
     }
-    if (!/\.zip$/i.test(file.name)) { pilotPackageOpenedRef.current = "Error"; setError("Choose a ZIP export package."); setStatus("error"); return; }
+    if (!/\.zip$/i.test(file.name)) { setError("Choose a ZIP export package."); setStatus("error"); return; }
     pendingFileRef.current = file;
     mapPreviewConfigRef.current = null;
     setFeedbackPackageData(null);
@@ -1094,11 +1187,8 @@ export default function Home() {
       setTeaserLayouts(nextLayouts.layouts);
       setSummary(analyzed);
       setStatus("ready"); setError("");
-      pilotPackageOpenedRef.current = "Yes";
-      if (pilotFirstResultAtRef.current === null) pilotFirstResultAtRef.current = Date.now();
       void renderCtvOttPackage(file, detectedCtvOttFormats, generationRequestRef.current);
     } catch (cause) {
-      pilotPackageOpenedRef.current = "Error";
       setStatus("error"); setError(cause instanceof Error ? cause.message : String(cause));
     }
   };
@@ -1154,8 +1244,6 @@ export default function Home() {
   const totalBytes = summary?.assets.reduce((sum, asset) => sum + asset.uncompressedSize, 0) || 0;
   const issueCount = summary ? count(summary.findings, "error") + count(summary.findings, "warning") : 0;
   const openScreenshots = () => {
-    pilotToolsRef.current.add("Screenshot capture");
-    pilotStepsRef.current.add("Screenshots");
     setActiveTab("preview");
     window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:open-screenshots", token: BRIDGE_TOKEN }, "*"), 0);
   };
@@ -1172,7 +1260,6 @@ export default function Home() {
     setSeverity("all"); setFindingCategory("Assets"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(assetPath); setActiveTab("findings");
   };
   const openCtvOtt = () => {
-    pilotToolsRef.current.add("CTV/OTT preview");
     setActiveTab("ctvOtt");
     if (ctvOttStatus === "error" && pendingFileRef.current && ctvOttFormats.length) {
       void renderCtvOttPackage(pendingFileRef.current, ctvOttFormats, generationRequestRef.current);
@@ -1180,48 +1267,12 @@ export default function Home() {
   };
 
   const openFeedback = () => {
-    pilotStepsRef.current.add("Feedback");
-    pilotToolsRef.current.add("Report feedback");
     setFeedbackError("");
     setFeedbackSuccess("");
+    setFeedbackShareOpen(false);
+    setFeedbackBundleUrl("");
+    setFeedbackSubmitted(false);
     setFeedbackOpen(true);
-  };
-
-  const openPilotCheckin = () => {
-    setPilotError("");
-    setPilotSent(false);
-    setPilotOpen(true);
-  };
-
-  const submitPilotSession = async () => {
-    setPilotSending(true);
-    setPilotError("");
-    try {
-      const response = await fetch("/api/ctv-ott/notion/pilot-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session: `Session ${new Date(pilotStartedAtRef.current).toISOString().replace(/[:.]/g, "-")}`,
-          testerCode: pilotTesterCode.trim() || "Anonymous",
-          startedAt: new Date(pilotStartedAtRef.current).toISOString(),
-          appVersion: PREVIEW_VERSION,
-          packageOpened: pilotPackageOpenedRef.current,
-          stepsReached: [...pilotStepsRef.current],
-          toolsUsed: [...pilotToolsRef.current],
-          timeToFirstResultMinutes: pilotFirstResultAtRef.current === null ? null : Math.round((pilotFirstResultAtRef.current - pilotStartedAtRef.current) / 60000 * 10) / 10,
-          mainBlocker: pilotBlocker,
-          easeRating: pilotEaseRating ? Number(pilotEaseRating) : null,
-          comments: pilotComments
-        })
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "The session summary could not be saved.");
-      setPilotSent(true);
-    } catch (cause) {
-      setPilotError(cause instanceof Error ? cause.message : "The session summary could not be saved.");
-    } finally {
-      setPilotSending(false);
-    }
   };
 
   const pasteFeedbackImages = (context: FeedbackImageContext, event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -1278,7 +1329,9 @@ export default function Home() {
         schemaVersion: 1,
         generatedAt,
         build: PREVIEW_VERSION,
+        reviewer: feedbackReviewerName.trim(),
         type: feedbackType,
+        testCase: selectedFeedbackCase ? { id: selectedFeedbackCase.id, area: selectedFeedbackCase.area, priority: selectedFeedbackCase.priority, name: selectedFeedbackCase.name, status: feedbackCaseStatus } : null,
         productionReference: reference,
         report: {
           description: feedbackSummary.trim() || null,
@@ -1363,6 +1416,41 @@ export default function Home() {
     }
   };
 
+  const submitFeedbackToNotion = async () => {
+    if (!feedbackSuccess) return;
+    if (!parsedFeedbackBundleUrl) {
+      setFeedbackError("Paste a valid HTTPS Box file link before sharing feedback.");
+      return;
+    }
+    setFeedbackSubmitting(true);
+    setFeedbackError("");
+    try {
+      const response = await fetch("/api/ctv-ott/notion/feedback-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewer: feedbackReviewerName.trim(), appVersion: PREVIEW_VERSION,
+          package: summary?.sourceFile || "Not recorded", feedbackType: FEEDBACK_TYPE_LABELS[feedbackType],
+          testCase: selectedFeedbackCase ? { ...selectedFeedbackCase, status: feedbackCaseStatus } : null,
+          productionReference: feedbackReferenceUrl.trim(), description: feedbackSummary.trim(),
+          actualResult: feedbackActual.trim(), expectedResult: feedbackExpected.trim(),
+          reproductionSteps: feedbackSteps.trim(), bundleFilename: feedbackSuccess,
+          bundleUrl: parsedFeedbackBundleUrl,
+          evidenceSummary: feedbackEvidenceSummary,
+          supportingFiles: feedbackAttachments.map(file => file.name),
+          pastedImages: feedbackInlineImages.map(image => `${image.context}: ${image.file.name}`),
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Feedback could not be shared to Notion.");
+      setFeedbackSubmitted(true);
+    } catch (cause) {
+      setFeedbackError(cause instanceof Error ? cause.message : "Feedback could not be shared to Notion.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   return (
     <main className="studio-shell">
       <input ref={fileInputRef} className="sr-only" disabled={captureBusy} type="file" accept=".zip,application/zip" onChange={event => openPackage(event.target.files?.[0])} />
@@ -1378,7 +1466,6 @@ export default function Home() {
                 <DropdownMenuItem onSelect={downloadReport}><Download /> Generate report</DropdownMenuItem>
                 <DropdownMenuItem disabled={captureBusy} onSelect={openScreenshots}><Camera /> Screenshots</DropdownMenuItem>
               </>}
-              <DropdownMenuItem onSelect={openPilotCheckin}><CheckCircle2 /> Finish testing session</DropdownMenuItem>
               <DropdownMenuItem onSelect={openFeedback}><MessageSquareWarning /> Report feedback</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Theme</DropdownMenuLabel>
@@ -1398,7 +1485,7 @@ export default function Home() {
             <h1>Preflight a Turbo package before production.</h1>
             <p>Inspect structure, copy consistency, asset references, typography risks, and the full interactive preview from one ZIP.</p>
             <Button size="lg" onClick={() => fileInputRef.current?.click()}><Archive /> Choose ZIP package</Button>
-            <div className="privacy-note"><ShieldCheck /> Creative files stay in your browser. A usage summary is sent to Notion only when you choose “Finish testing session”.</div>
+            <div className="privacy-note"><ShieldCheck /> Creative files stay in your browser. Review status and notes are saved locally and sent to Notion only when you save the review.</div>
           </div>
           {status === "error" && <div className="error-banner"><CircleAlert /> {error}</div>}
         </section>
@@ -1489,25 +1576,18 @@ export default function Home() {
       <Dialog open={feedbackOpen} onOpenChange={open => { if (!feedbackPreparing) setFeedbackOpen(open); }}>
         <DialogContent className="feedback-dialog" aria-describedby="feedback-description">
           <DialogHeader>
-            <span className="eyebrow">LOCAL DEBUG BUNDLE</span>
+            <span className="eyebrow">BUILD · {PREVIEW_VERSION}</span>
             <DialogTitle>Report feedback</DialogTitle>
             <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. The feedback ZIP is prepared locally and downloaded to your computer.</DialogDescription>
           </DialogHeader>
 
           <div className="feedback-form">
             <div className="feedback-grid feedback-grid-two">
+              <label className="feedback-field"><span>Reviewer name <b aria-hidden="true">*</b></span><input required value={feedbackReviewerName} onChange={event => setFeedbackReviewerName(event.target.value)} placeholder="Enter your name" /></label>
               <label className="feedback-field"><span>Feedback type</span>
                 <span className="feedback-select">
                   <select value={feedbackType} onChange={event => setFeedbackType(event.target.value as FeedbackType)}>
-                    <option value="visual-mismatch">Visual mismatch</option>
-                    <option value="finding-issue">Finding looks incorrect</option>
-                    <option value="asset-validation">Asset validation issue</option>
-                    <option value="package-loading">Package loading issue</option>
-                    <option value="preview-interaction">Preview interaction issue</option>
-                    <option value="screenshot-export">Screenshot or report issue</option>
-                    <option value="app-ui">App UI issue</option>
-                    <option value="suggestion">Suggestion</option>
-                    <option value="other">Other issue</option>
+                    {FEEDBACK_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                   <ChevronDown aria-hidden="true" />
                 </span>
@@ -1516,6 +1596,11 @@ export default function Home() {
                 <span className="feedback-input-icon"><Link2 /><input type="url" required={requiresProductionReference} aria-invalid={productionReferenceInvalid} value={feedbackReferenceUrl} onChange={event => setFeedbackReferenceUrl(event.target.value)} placeholder="https://showcase.vdx.tv/…/#creative-id" /></span>
                 {feedbackReferenceUrl && <small className={productionReference ? "valid" : "invalid"}>{productionReference ? `${productionReference.type === "ccrv" ? "CCRV" : "Showcase"} reference · ${productionReference.creativeId}${productionReference.variant ? ` / ${productionReference.variant}` : ""}` : "Use a showcase.vdx.tv CCRV or Showcase link with its # creative ID."}</small>}
               </label>
+            </div>
+
+            <div className="feedback-grid feedback-grid-two">
+              <label className="feedback-field"><span>Test case (optional)</span><span className="feedback-select"><select value={feedbackCaseId} onChange={event => { setFeedbackCaseId(event.target.value); setFeedbackCaseStatus(event.target.value ? "In progress" : "Not started"); }}><option value="">General feedback — no case</option><optgroup label="Suggested for this feedback type">{relatedFeedbackCases.map(testCase => <option key={testCase.id} value={testCase.id}>{testCase.id} · {testCase.name} · {testCase.priority.toUpperCase()}</option>)}</optgroup><optgroup label="All other test cases">{sortedFeedbackCases.filter(testCase => !relatedFeedbackCases.some(related => related.id === testCase.id)).map(testCase => <option key={testCase.id} value={testCase.id}>{testCase.id} · {testCase.name} · {testCase.priority.toUpperCase()}</option>)}</optgroup></select><ChevronDown aria-hidden="true" /></span>{selectedFeedbackCase && <small className={`feedback-priority feedback-priority-${selectedFeedbackCase.priority.toLowerCase()}`}>{selectedFeedbackCase.priority} priority · {selectedFeedbackCase.area}</small>}</label>
+              {selectedFeedbackCase && <label className="feedback-field"><span>Case status <b aria-hidden="true">*</b></span><span className="feedback-select"><select value={feedbackCaseStatus} onChange={event => setFeedbackCaseStatus(event.target.value as CaseStatus)}>{CASE_STATUS_OPTIONS.filter(status => status !== "Not started").map(status => <option key={status} value={status}>{status}</option>)}</select><ChevronDown aria-hidden="true" /></span></label>}
             </div>
 
             <div className="feedback-field"><label htmlFor="feedback-description-text">Description (optional)</label><div className="feedback-textarea-paste"><textarea id="feedback-description-text" value={feedbackSummary} onChange={event => setFeedbackSummary(event.target.value)} onPaste={event => pasteFeedbackImages("description", event)} placeholder="Describe the issue, or paste a screenshot…" />{feedbackInlineImages.some(image => image.context === "description") && <div className="feedback-pasted-images" aria-label="Screenshots pasted into description">{feedbackInlineImages.filter(image => image.context === "description").map(image => <div className="feedback-pasted-image" key={image.id}><span role="img" aria-label={image.file.name} style={{ backgroundImage: `url(${image.previewUrl})` }} /><div><b>{image.file.name}</b><small>{formatBytes(image.file.size)}</small></div><button type="button" aria-label={`Remove ${image.file.name}`} onClick={() => removeFeedbackImage(image.id)}>×</button></div>)}</div>}</div><small>Paste an image from the clipboard to attach it as general evidence.</small></div>
@@ -1537,52 +1622,25 @@ export default function Home() {
             {feedbackSuccess && <div className="feedback-success" role="status" aria-live="polite">
               <div className="feedback-success-icon"><CheckCircle2 aria-hidden="true" /></div>
               <div className="feedback-success-content">
-                <span className="feedback-success-kicker">One final step</span>
-                <strong>Feedback bundle downloaded</strong>
-                <p>Upload the downloaded ZIP to Box so the team can review your feedback.</p>
+                <span className="feedback-success-kicker">{feedbackSubmitted ? "Shared with the team" : "One final step"}</span>
+                <strong>{feedbackSubmitted ? "Review saved!" : "Feedback bundle downloaded"}</strong>
+                <p>{feedbackSubmitted ? "Your local draft remains available for edits." : "Upload the ZIP to Box, then share its file link."}</p>
                 <span className="feedback-success-filename">{feedbackSuccess}</span>
-                <Button asChild className="feedback-upload-button"><a href={FEEDBACK_BOX_UPLOAD_URL} target="_blank" rel="noreferrer">Upload bundle to Box <ExternalLink aria-hidden="true" /></a></Button>
+                {!feedbackSubmitted && <Button asChild className="feedback-upload-button"><a href={FEEDBACK_BOX_UPLOAD_URL} target="_blank" rel="noreferrer">Upload bundle to Box <ExternalLink aria-hidden="true" /></a></Button>}
               </div>
+            </div>}
+            {feedbackSuccess && !feedbackSubmitted && <div className="feedback-share-panel">
+              {!feedbackShareOpen ? <Button onClick={() => setFeedbackShareOpen(true)}>Share Feedback</Button> : <>
+                <label className="feedback-field"><span>Feedback bundle URL <b aria-hidden="true">*</b></span><input type="url" value={feedbackBundleUrl} onChange={event => setFeedbackBundleUrl(event.target.value)} placeholder="Paste the uploaded Box file link" /></label>
+                <small>{parsedFeedbackBundleUrl ? "Box link ready to share." : "Paste the shared file link from Box."}</small>
+              </>}
             </div>}
           </div>
 
           <DialogFooter className="feedback-footer">
-            <Button variant={feedbackSuccess ? "default" : "outline"} disabled={feedbackPreparing} onClick={() => setFeedbackOpen(false)}>{feedbackSuccess ? "Done" : "Cancel"}</Button>
+            <Button variant="outline" disabled={feedbackPreparing || feedbackSubmitting} onClick={() => setFeedbackOpen(false)}>{feedbackSubmitted ? "Close" : feedbackSuccess ? "Cancel" : "Cancel"}</Button>
             {!feedbackSuccess && <Button disabled={!canCreateFeedbackBundle} onClick={() => void downloadFeedbackBundle()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Preparing bundle…</> : <><Download /> Download feedback bundle</>}</Button>}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={pilotOpen} onOpenChange={open => { if (!pilotSending) setPilotOpen(open); }}>
-        <DialogContent className="feedback-dialog" aria-describedby="pilot-session-description">
-          <DialogHeader>
-            <span className="eyebrow">CREATIVE TEAM PILOT</span>
-            <DialogTitle>{pilotSent ? "Session recorded" : "Finish testing session"}</DialogTitle>
-            <DialogDescription id="pilot-session-description">
-              {pilotSent
-                ? "Your short usage summary and feedback were saved to the Pilot Sessions database. Package contents and screenshots were not sent."
-                : "We’ll save the sections you visited, tools you used, and your answers to the Pilot Sessions database. Package contents and screenshots are not included."}
-            </DialogDescription>
-          </DialogHeader>
-          {!pilotSent && <div className="feedback-form">
-            <label className="feedback-field"><span>Tester code</span><input value={pilotTesterCode} onChange={event => {
-              const value = event.target.value;
-              setPilotTesterCode(value);
-              try { window.localStorage.setItem("tqa-pilot-tester-code", value); } catch {}
-            }} /></label>
-            <label className="feedback-field"><span>How easy was the app to use? (optional)</span>
-              <select value={pilotEaseRating} onChange={event => setPilotEaseRating(event.target.value)}>
-                <option value="">Choose a rating</option><option value="1">1 — Very difficult</option><option value="2">2 — Difficult</option><option value="3">3 — Okay</option><option value="4">4 — Easy</option><option value="5">5 — Very easy</option>
-              </select>
-            </label>
-            <label className="feedback-field"><span>What was the main blocker? (optional)</span><textarea value={pilotBlocker} onChange={event => setPilotBlocker(event.target.value)} placeholder="What slowed you down or felt unclear?" /></label>
-            <label className="feedback-field"><span>Anything else you’d like us to know? (optional)</span><textarea value={pilotComments} onChange={event => setPilotComments(event.target.value)} placeholder="Suggestions or other feedback" /></label>
-            {pilotError && <div className="feedback-error" role="alert"><CircleAlert /> {pilotError}</div>}
-          </div>}
-          <DialogFooter className="feedback-footer">
-            {pilotSent
-              ? <Button onClick={() => setPilotOpen(false)}>Done</Button>
-              : <><Button variant="outline" disabled={pilotSending} onClick={() => setPilotOpen(false)}>Cancel</Button><Button disabled={pilotSending} onClick={() => void submitPilotSession()}>{pilotSending ? <><LoaderCircle className="spin" /> Saving…</> : "Save session"}</Button></>}
+            {feedbackSuccess && !feedbackSubmitted && feedbackShareOpen && <Button disabled={!parsedFeedbackBundleUrl || feedbackSubmitting} onClick={() => void submitFeedbackToNotion()}>{feedbackSubmitting ? <><LoaderCircle className="spin" /> Sharing…</> : "Submit to Notion"}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -65,6 +65,16 @@
   patch fix appears possible, stop and obtain the user's confirmation before
   implementing it, even when it seems to resolve the immediate case.
 
+## User-performed small fixes
+
+- When a fix is localized and can be completed in a few straightforward steps,
+  do not edit files or apply the fix. Inspect the current source, identify the
+  exact change, then give numbered steps with the file path, text to find,
+  replacement, and a simple way to verify it. Let the user make the change.
+- Only implement a small fix when the user explicitly asks you to. For fixes
+  that are not small or clear, explain why and ask how the user would like to
+  proceed.
+
 ## Testing
 
 - Run the relevant tests and validation checks for the requested change by

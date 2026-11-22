@@ -10,7 +10,12 @@ import { fileURLToPath } from "node:url";
 import { uploadFeedbackToBox } from "./box-feedback-upload.mjs";
 
 const BUILD_DIR = dirname(fileURLToPath(import.meta.url));
-const HTML_FILE = join(BUILD_DIR, "../preview/turbo-preview-7.12.4.html");
+const PREVIEW_POINTER_FILE = join(BUILD_DIR, "../preview/current-preview.ts");
+const previewPointer = await readFile(PREVIEW_POINTER_FILE, "utf8");
+const previewVersion = previewPointer.match(/version:\s*"(\d+\.\d+\.\d+)"/)?.[1];
+const previewHtml = previewPointer.match(/"\.\/(turbo-preview-\d+\.\d+\.\d+\.html)\?raw"/)?.[1];
+if (!previewVersion || !previewHtml) throw new Error(`Could not read the current preview from ${PREVIEW_POINTER_FILE}`);
+const HTML_FILE = join(BUILD_DIR, "../preview", previewHtml);
 // On the host this remains loopback-only. Container deployments set this to
 // 0.0.0.0 inside the container and publish the container port on host loopback.
 const HOST = process.env.TURBO_PREVIEW_HOST || "127.0.0.1";
@@ -887,10 +892,10 @@ async function notionRequest(path, token, options = {}) {
   return result;
 }
 
-async function findNotionPilotDataSource(databaseId, token) {
+async function findNotionDataSource(databaseId, token, databaseName = "Notion", propertyTypes = NOTION_PILOT_PROPERTY_TYPES) {
   const database = await notionRequest(`databases/${databaseId}`, token);
   const sources = Array.isArray(database.data_sources) ? database.data_sources : [];
-  if (!sources.length) throw new Error("Notion could not find a data source in the Pilot Sessions database.");
+  if (!sources.length) throw new Error(`Notion could not find a data source in the ${databaseName} database.`);
 
   const schemas = await Promise.all(sources.map(async source => {
     try {
@@ -901,9 +906,9 @@ async function findNotionPilotDataSource(databaseId, token) {
     }
   }));
   const compatible = schemas.filter(source => source && Object.values(source.properties).some(property => property.type === "title"));
-  if (!compatible.length) throw new Error("Notion could not read a title column in the Pilot Sessions database.");
+  if (!compatible.length) throw new Error(`Notion could not read a title column in the ${databaseName} database.`);
 
-  const score = source => Object.entries(NOTION_PILOT_PROPERTY_TYPES).reduce((total, [name, type]) => (
+  const score = source => Object.entries(propertyTypes).reduce((total, [name, type]) => (
     total + (source.properties[name]?.type === type ? 1 : 0)
   ), 0);
   compatible.sort((left, right) => score(right) - score(left));
@@ -941,7 +946,7 @@ async function handleNotionPilotSession(request, response) {
       "Tester comments": { rich_text: notionRichText(body.comments) }
     };
     const normalizedDatabaseId = databaseId.replace(/-/g, "");
-    const dataSource = await findNotionPilotDataSource(normalizedDatabaseId, token);
+    const dataSource = await findNotionDataSource(normalizedDatabaseId, token, "Pilot Sessions");
     const titleProperty = Object.entries(dataSource.properties).find(([, property]) => property.type === "title")?.[0];
     const compatibleFields = Object.fromEntries(Object.entries(fields).filter(([name]) => (
       name === "Session" || dataSource.properties[name]?.type === NOTION_PILOT_PROPERTY_TYPES[name]
@@ -959,6 +964,95 @@ async function handleNotionPilotSession(request, response) {
   } catch (error) {
     const message = error?.message || "Could not read the usage summary.";
     return jsonResponse(response, 502, { error: message });
+  }
+}
+
+async function handleNotionFeedbackSubmission(request, response) {
+  const token = process.env.NOTION_API_TOKEN;
+  const databaseId = process.env.NOTION_FEEDBACK_DATABASE_ID;
+  if (!token || !databaseId) return jsonResponse(response, 503, { error: "Notion feedback submissions are not configured." });
+  const origin = request.headers.origin;
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      const local = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+      const configured = String(process.env.TURBO_APP_ORIGIN || "").replace(/\/$/, "");
+      if (!local && (!configured || parsed.origin !== configured)) return jsonResponse(response, 403, { error: "Feedback records are accepted only from the QA Studio app." });
+    } catch { return jsonResponse(response, 403, { error: "Invalid app origin." }); }
+  }
+  try {
+    const body = await receiveJson(request);
+    const reviewer = String(body.reviewer || "").trim().slice(0, 100);
+    const bundleUrlInput = String(body.bundleUrl || "").trim();
+    let bundleUrl;
+    try {
+      const parsed = new URL(bundleUrlInput);
+      if (parsed.protocol !== "https:" || !(parsed.hostname === "box.com" || parsed.hostname.endsWith(".box.com"))) throw new Error();
+      bundleUrl = parsed.href.slice(0, 2000);
+    } catch { return jsonResponse(response, 400, { error: "Enter a valid HTTPS Box file link." }); }
+    if (!reviewer) return jsonResponse(response, 400, { error: "Reviewer name is required." });
+    const testCase = body.testCase && typeof body.testCase === "object" ? body.testCase : null;
+    if (testCase && !["In progress", "Pass", "Fail", "Needs improvement", "Blocked", "Not applicable"].includes(String(testCase.status))) return jsonResponse(response, 400, { error: "Choose a case status before sharing." });
+    const feedbackType = String(body.feedbackType || "Other").slice(0, 100);
+    const reference = String(body.productionReference || "").trim();
+    const packageName = String(body.package || "Not recorded").slice(0, 180);
+    const caseTitle = testCase ? `${testCase.id} · ${testCase.name}` : "General feedback";
+    const title = `${feedbackType} — ${caseTitle}`.slice(0, 100);
+    const schemaTypes = {
+      Reviewer: "rich_text", "Review date": "date", "App version": "rich_text", Package: "rich_text",
+      "Feedback type": "select", "Test case": "rich_text", "Test case priority": "select", "Case status": "select", "Feedback bundle URL": "url", "Bundle file": "rich_text", Reference: "url",
+      Description: "rich_text", "Actual result": "rich_text", "Expected result": "rich_text", "Steps to reproduce": "rich_text",
+      "Evidence included": "rich_text", "Supporting files": "rich_text", "Pasted evidence": "rich_text",
+    };
+    const properties = {
+      Review: { title: notionRichText(title, 100) },
+      Reviewer: { rich_text: notionRichText(reviewer, 100) },
+      "Review date": { date: { start: new Date().toISOString() } },
+      "App version": { rich_text: notionRichText(body.appVersion, 40) },
+      Package: { rich_text: notionRichText(packageName, 180) },
+      "Feedback type": notionSelect(feedbackType),
+      "Test case": { rich_text: notionRichText(caseTitle, 180) },
+      "Test case priority": notionSelect(testCase?.priority),
+      "Case status": notionSelect(testCase?.status),
+      "Feedback bundle URL": { url: bundleUrl },
+      "Bundle file": { rich_text: notionRichText(body.bundleFilename, 180) },
+      Reference: { url: /^https?:\/\//i.test(reference) ? reference.slice(0, 2000) : null },
+      Description: { rich_text: notionRichText(body.description, 1800) },
+      "Actual result": { rich_text: notionRichText(body.actualResult, 1800) },
+      "Expected result": { rich_text: notionRichText(body.expectedResult, 1800) },
+      "Steps to reproduce": { rich_text: notionRichText(body.reproductionSteps, 1800) },
+      "Evidence included": { rich_text: notionRichText(body.evidenceSummary, 1800) },
+      "Supporting files": { rich_text: notionRichText(Array.isArray(body.supportingFiles) ? body.supportingFiles.join(", ") : "", 1800) },
+      "Pasted evidence": { rich_text: notionRichText(Array.isArray(body.pastedImages) ? body.pastedImages.join(", ") : "", 1800) },
+    };
+    const dataSource = await findNotionDataSource(databaseId.replace(/-/g, ""), token, "Report feedback");
+    const titleProperty = Object.entries(dataSource.properties).find(([, property]) => property.type === "title")?.[0];
+    const compatible = Object.fromEntries(Object.entries(properties).filter(([name]) => name === "Review" || dataSource.properties[name]?.type === schemaTypes[name]));
+    for (const name of ["Feedback type", "Case status", "Test case priority"]) {
+      const select = compatible[name]?.select;
+      if (select && !dataSource.properties[name]?.select?.options?.some(option => option.name === select.name)) delete compatible[name];
+    }
+    compatible[titleProperty] = properties.Review;
+    delete compatible.Review;
+    const blocks = [
+      `Reviewer: ${reviewer}`, `Build: ${String(body.appVersion || "").slice(0, 40)}`,
+      `Package: ${packageName}`, `Feedback type: ${feedbackType}`, `Test case: ${caseTitle}`,
+      ...(testCase ? [`Case status: ${testCase.status}`, `Area: ${testCase.area || ""}`, `Priority: ${testCase.priority || ""}`] : []),
+      `Feedback bundle: ${bundleUrl}`, `Bundle file: ${String(body.bundleFilename || "").slice(0, 180)}`,
+      ...(reference ? [`CCRV or Showcase URL: ${reference}`] : []),
+      ...(body.description ? [`Description: ${String(body.description)}`] : []),
+      ...(body.actualResult ? [`Actual result: ${String(body.actualResult)}`] : []),
+      ...(body.expectedResult ? [`Expected result: ${String(body.expectedResult)}`] : []),
+      ...(body.reproductionSteps ? [`Steps to reproduce: ${String(body.reproductionSteps)}`] : []),
+      ...(body.evidenceSummary ? [`Evidence in bundle: ${String(body.evidenceSummary)}`] : []),
+      ...(Array.isArray(body.supportingFiles) && body.supportingFiles.length ? [`Supporting files: ${body.supportingFiles.slice(0, 20).map(name => String(name).slice(0, 180)).join(", ")}`] : []),
+      ...(Array.isArray(body.pastedImages) && body.pastedImages.length ? [`Pasted evidence: ${body.pastedImages.slice(0, 20).map(name => String(name).slice(0, 180)).join(", ")}`] : []),
+    ];
+    const children = blocks.map(text => ({ object: "block", type: "paragraph", paragraph: { rich_text: notionRichText(text, 1800) } }));
+    const result = await notionRequest("pages", token, { method: "POST", body: JSON.stringify({ parent: { type: "data_source_id", data_source_id: dataSource.id }, properties: compatible, children: children.slice(0, 100) }) });
+    return jsonResponse(response, 201, { ok: true, id: result.id });
+  } catch (error) {
+    return jsonResponse(response, 502, { error: error?.message || "Could not share feedback to Notion." });
   }
 }
 
@@ -1063,18 +1157,19 @@ async function startServer() {
       });
       return response.end();
     }
-    if (request.method === "GET" && url.pathname === "/health") return jsonResponse(response, 200, { ok: true, build: "7.12.4", renderer: "ffmpeg", boxFeedbackConfigured: Boolean(process.env.BOX_CLIENT_ID && process.env.BOX_CLIENT_SECRET && process.env.BOX_ENTERPRISE_ID && process.env.BOX_FEEDBACK_FOLDER_ID) });
+    if (request.method === "GET" && url.pathname === "/health") return jsonResponse(response, 200, { ok: true, build: previewVersion, renderer: "ffmpeg", boxFeedbackConfigured: Boolean(process.env.BOX_CLIENT_ID && process.env.BOX_CLIENT_SECRET && process.env.BOX_ENTERPRISE_ID && process.env.BOX_FEEDBACK_FOLDER_ID) });
     if (request.method === "POST" && url.pathname === "/render") return handleRender(request, response, url);
     if (request.method === "POST" && url.pathname === "/feedback/upload") return handleFeedbackUpload(request, response);
     if (request.method === "POST" && url.pathname === "/notion/pilot-session") return handleNotionPilotSession(request, response);
-    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/turbo-preview-7.12.4.html")) {
+    if (request.method === "POST" && url.pathname === "/notion/feedback-submission") return handleNotionFeedbackSubmission(request, response);
+    if (request.method === "GET" && (url.pathname === "/" || url.pathname === `/${previewHtml}`)) {
       response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
       return createReadStream(HTML_FILE).pipe(response);
     }
     jsonResponse(response, 404, { error: "Not found" });
   });
   server.listen(PORT, HOST, () => {
-    console.log(`Turbo Preview 7.12.4: http://${HOST}:${PORT}/`);
+    console.log(`Turbo Preview ${previewVersion}: http://${HOST}:${PORT}/`);
     console.log("Press Ctrl+C to stop the local renderer.");
   });
 }
