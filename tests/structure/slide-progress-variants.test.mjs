@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const html = readFileSync('preview/turbo-preview-7.13.7.html', 'utf8');
+const html = readFileSync('preview/archive/turbo-preview-7.13.7.html', 'utf8');
 const script = html.match(/<script>\s*(const PREVIEW_BUILD[\s\S]*?)<\/script>/)[1];
 const context = vm.createContext({ window: {}, console: { log() {} } });
 vm.runInContext(script, context);
@@ -90,5 +90,5 @@ if (process.env.SLIDE_PROGRESS_PACKAGES_JSON) {
 }
 
 test("7.13.7 preserves the retained 7.13.6 source exactly", () => {
-  assert.equal(createHash("sha256").update(readFileSync("preview/turbo-preview-7.13.6.html")).digest("hex"), "9831985fba1bee88eaae72ceca35e90288d06a68fc023e8c07120748a55bd904");
+  assert.equal(createHash("sha256").update(readFileSync("preview/archive/turbo-preview-7.13.6.html")).digest("hex"), "9831985fba1bee88eaae72ceca35e90288d06a68fc023e8c07120748a55bd904");
 });

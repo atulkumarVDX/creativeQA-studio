@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
 
-const preview = readFileSync("preview/turbo-preview-7.9.11.html", "utf8");
+const preview = readFileSync("preview/archive/turbo-preview-7.9.11.html", "utf8");
 const start = preview.indexOf("function mobileExpandableSiblingFrame");
 const end = preview.indexOf("function buildArtboardEl", start);
 assert.ok(start >= 0 && end > start, "responsive positioning functions must be present");

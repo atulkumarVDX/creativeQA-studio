@@ -8,11 +8,11 @@ The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec]
 
 ## Runtime and archive policy
 
-QA Studio imports only the source named by `preview/current-preview.ts`. The current HTML is directly under `preview/`. Older 7.11.2–7.11.15 HTML files are **also still present directly under `preview/`** as retained history, although they are not runtime imports; 7.11.0-feedback and 7.11.1 are archived. Do not describe the intended archive policy as already completed, or delete/move retained builds without approval. Regression tests may read historical files directly; app code must not import the archive.
+QA Studio imports only the source named by `preview/current-preview.ts`. The active folder retains the current release (`7.15.5`) plus the two immediately preceding releases (`7.15.4` and `7.15.3`) for quick comparison. All older HTML builds are stored under `preview/archive/`. Regression tests may read historical files directly from that archive; app code must not import the archive.
 
 “Unique” below means the complete HTML has a content hash not shared by another inventoried build after normalizing only the `const PREVIEW_BUILD = "…"` declaration. It is a byte-level implementation distinction, not a claim that every difference is behaviorally meaningful.
 
-## Current release and retained CTV/OTT patch series
+## Current release and archived CTV/OTT patch series
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
@@ -100,8 +100,8 @@ The groups above were compared across the full file after normalizing only the b
 
 ## Cleanup disposition
 
-- **Current/runtime-retained:** `preview/turbo-preview-7.11.16.html`, `preview/current-preview.ts`, and the 7.11.16 renderer.
-- **Older 7.11 patch files:** 7.11.2–7.11.15 remain under `preview/` and are not runtime imports. Archival cleanup has not been performed.
+- **Current/runtime-retained:** `preview/turbo-preview-7.15.5.html`, `preview/turbo-preview-7.15.4.html`, `preview/turbo-preview-7.15.3.html`, and `preview/current-preview.ts`.
+- **Older patch files:** all builds through 7.15.2 are stored under `preview/archive/` and are not runtime imports.
 - **Archived:** historical releases, including the preserved 7.11.1 baseline.
 - **Removed:** none.
 - **Retained duplicate baselines:** 7.8.1/7.8.2, 7.8.15/7.8.16, and 7.9.7/7.9.8 remain because documentation or regression tests distinguish their release identities.
@@ -124,7 +124,7 @@ The post-change JavaScript contains one `preview.js loaded:` renderer marker. It
 - Lint: 0 errors, 11 warnings (existing image-optimization and unused-function findings; no new loader error).
 - Production build: passed. Vite retained its standard chunk-size warning because the current 7.9.11 single-file renderer is still embedded.
 - Runtime isolation: application code has no `import.meta.glob` and no `preview/archive` import.
-- Current renderer integrity: `preview/turbo-preview-7.9.11.html` was not edited; SHA-256 after validation is `b49541bfc3c8beb0ae6f0dca438128453d3e3da63c90be543438f3a5292b0c3c`.
+- Historical renderer integrity: `preview/archive/turbo-preview-7.9.11.html` was not edited; SHA-256 after validation is `b49541bfc3c8beb0ae6f0dca438128453d3e3da63c90be543438f3a5292b0c3c`.
 
 ## Maintenance checklist
 
@@ -157,7 +157,7 @@ The arrow contract is shared across the supported direct-slide gallery families 
 
 ## 7.13.6
 
-Current pointer: `preview/turbo-preview-7.13.6.html`. slideProgress and its progressBar/circularBar groups require explicit enabled visibility, overriding their dot marker (D083). Other controls retain existing visibility rules. 7.13.5 is retained unchanged.
+Historical source: `preview/archive/turbo-preview-7.13.6.html`. slideProgress and its progressBar/circularBar groups require explicit enabled visibility, overriding their dot marker (D083). Other controls retain existing visibility rules.
 
 7.13.6 follow-up (D084): circularBar rendering now reads authored stroke styling and no-effects icon bounds. Validated against 19 sample archives and the live loaded artboard; no creative-specific runtime overrides.
 

@@ -9,7 +9,7 @@
 **Last updated:** 2026-11-19
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
-**Current screenshot release:** `preview/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe the current capture line.
+**Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
 
 ---
 
@@ -161,7 +161,7 @@ After each artboard render, the host marks numbered `buttonN` groups with one di
 
 ## 5. Feature / fix matrix across the three files
 
-| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/turbo-preview-7.9.11.html` (v7.9.11, current source) |
+| Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/archive/turbo-preview-7.9.11.html` (v7.9.11, historical source) |
 |---|:---:|:---:|:---:|
 | Package input | Single `export.json`, same-folder assets | `.zip` via JSZip, blob URLs | `.zip` via bundled JSZip, blob URLs |
 | Theming | None | Dark/Light | Dark/Light |
