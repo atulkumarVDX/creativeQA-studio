@@ -1,10 +1,10 @@
 # 03 — UI/UX Guidelines — Turbo Export Preview
 
-> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
+> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Video duration checks allow timestamp/frame rounding (D105).
 
-**Doc version:** 1.8.8
-**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
-**Last updated:** 2026-11-10
+**Doc version:** 1.9.3
+**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
+**Last updated:** 2026-11-19
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
@@ -75,6 +75,10 @@ Corner "printer's registration mark" brackets (`.reg-corner.tl/tr/bl/br`, 9×9px
 ### 4.1 Build tag visibility
 
 The build tag (`#buildVersionTag`, e.g. "build 7.7.0") is always visible as a subdued mono badge so QA screenshots and defect reports retain build traceability. It is populated from `PREVIEW_BUILD`; do not hard-code its text separately.
+
+### 4.2 Teaser gallery layout (7.15.7)
+
+Keep every available teaser card inside one max-width gallery parent centered in the window. Center the 970×250 Desktop Expandable and Desktop in-frame cards within that parent. In the lower mosaic, place 160×600, 300×600, 300×250, and Mobile instream cards in that order when present. Place 728×90 in a left-aligned row below the mosaic, then 320×50 in a left-aligned row below 728×90. Render only available sizes; omit empty groups so missing artboards do not leave reserved gaps. At narrow widths, stack the mosaic cards while keeping every row inside the centered parent. Preserve each stage's authored dimensions and aspect ratio as the window narrows; scroll the gallery horizontally instead of shrinking the stages. Mobile instream retains its existing 0.5× presentation viewport. Show one generation-status banner directly beneath the Mobile In-stream card: display the rendering message while generating and switch to the existing ready message after generation completes.
 
 ## 5. Controls (redesigned in v7.6.0)
 

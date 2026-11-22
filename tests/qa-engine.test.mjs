@@ -403,8 +403,8 @@ test("primary video size follows the v1 marker without a 30-second duration fail
 });
 
 
-test("video duration boundaries use warnings above 30 seconds and errors above 270", () => {
-  for (const [durationSeconds, expected] of [[30, null], [30.01, "warning"], [270, "warning"], [270.01, "error"]]) {
+test("video duration boundaries tolerate 30-second timestamp rounding and keep 270-second escalation strict", () => {
+  for (const [durationSeconds, expected] of [[30, null], [30.03, null], [30.05, null], [30.051, "warning"], [270, "warning"], [270.01, "error"]]) {
     const summary = analyzePackage({rawLayers: []}, [{name: "video1.mp4", uncompressedSize: 2621441, durationSeconds}], "test.zip");
     assert.equal(summary.findings.find(f => f.ruleId === "assets.primary-video-duration")?.severity || null, expected);
     assert.equal(summary.findings.find(f => f.ruleId === "assets.primary-video-size").severity, "warning");
@@ -415,7 +415,7 @@ test("video duration boundaries use warnings above 30 seconds and errors above 2
 });
 
 test("the dedicated CTV/OTT video is excluded from the 2.5 MB limit but keeps duration validation", () => {
-  const summary = analyzePackage({ rawLayers: [] }, [{ name: "media/video_ctvott.mp4", uncompressedSize: 2621441, durationSeconds: 30.01 }], "test.zip");
+  const summary = analyzePackage({ rawLayers: [] }, [{ name: "media/video_ctvott.mp4", uncompressedSize: 2621441, durationSeconds: 30.06 }], "test.zip");
   const asset = summary.assets[0];
   assert.equal(asset.validationWarnings.includes("CTV/OTT video exceeds 2.5 MB."), false);
   assert.ok(asset.validationWarnings.includes("CTV/OTT video exceeds 30 seconds; confirm long-form handling."));

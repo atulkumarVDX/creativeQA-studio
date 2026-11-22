@@ -1,10 +1,10 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-> **Current release: 7.15.5** — `preview/turbo-preview-7.15.5.html`. Adds package-wide video and ZIP validation limits with AdEx escalation guidance.
+> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Nominal video duration checks allow timestamp/frame rounding (D105).
 
-**Doc version:** 1.8.8
-**Reflects build:** `preview/turbo-preview-7.15.5.html` @ **v7.15.5** (current); historical baselines are described below.
-**Last updated:** 2026-11-10
+**Doc version:** 1.9.3
+**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
+**Last updated:** 2026-11-19
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; historical capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
@@ -832,7 +832,7 @@ Update the current preview pointer and regression tests. Preserve 7.13.5 unchang
 
 **Evidence:** the Overview's CTA total did not state what was counted, Package Size presented file count as its primary value, video warning badges did not lead to their validation results, and Main Unit opened in a focused mode despite compare being the primary multi-size review task.
 
-**Decision:** label the CTA metric as recognized CTA/button groups; lead the Package Size card with uploaded ZIP size and show file count beneath it; make oversize-video warning badges open Findings filtered to the exact asset path; and start Main Unit in Compare with all available artboards selected. Rename the focused alternative from **Preview** to **Single view**. Compare retains the D096/D097 forced-mute policy.
+**Decision:** label the CTA metric as recognized CTA/button groups; lead the Package Size card with uploaded ZIP size and show file count beneath it; make oversize-video warning badges open Findings filtered to the exact asset path; and start Main Unit in Compare with all available artboards selected. Rename the focused alternative from **Preview** to **Single view**. At 7.15.0, Compare retained the D096/D097 forced-mute policy; D103 supersedes that audio behavior.
 
 **Versioning:** create backward-compatible MINOR build 7.15.0 from user-confirmed 7.14.3 and promote `preview/current-preview.ts`. The Overview host keeps full asset paths in its video summary solely for exact findings navigation.
 
@@ -867,3 +867,43 @@ Update the current preview pointer and regression tests. Preserve 7.13.5 unchang
 **Decision:** retain the existing ordering by matching teaser destinations to the package's Main Unit artboard sequence. Group wide cards across the full row, pair the banner and adhesion formats, then place tall and square formats together in a responsive bento layout. Stack the groups on narrow screens.
 
 **Versioning:** create patch build 7.15.4 from user-confirmed 7.15.3 and promote `preview/current-preview.ts`.
+
+## D103 — [Main Unit] Scope Compare audio to one ad size (7.15.6)
+
+**Evidence:** Compare is the default review mode. Its visible sound button called Unmute, but the D096/D097 gate overrode the action, so reviewers could not enable sound. Reviewers need to listen to one size while keeping the remaining sizes quiet.
+
+**Decision:** Compare starts muted. Explicitly unmuting a video selects its ad-size group as the only audible group; videos on other sizes stay muted. Muting the selected group silences all sizes. The selection survives native video-surface replacement and Compare/Single mode changes.
+
+**Versioning:** create patch build 7.15.6 from user-confirmed 7.15.5 and promote `preview/current-preview.ts`. Keep the shared lifecycle in `lib/preview-media.js` and embed it in the current standalone HTML.
+
+## D104 — [Teasers] Center the responsive mosaic and place compact sizes below (7.15.7)
+
+**Evidence:** the gallery's centered flex rows left uneven whitespace and scattered the compact formats. The user approved one centered parent, the main mosaic, then 728×90 and 320×50 left-aligned beneath it in sequence.
+
+**Decision:** wrap every available teaser card in one max-width parent centered in the window. Keep the two 970×250 cards centered; place 160×600, 300×600, 300×250, and mobile instream together in that order when present; place 728×90 below the mosaic and 320×50 below 728×90, both left-aligned inside the parent. Omit absent sizes and empty groups so packages with missing artboards do not leave blank slots. Stack the mosaic at narrow widths.
+
+**Versioning:** create patch build 7.15.7 from user-confirmed 7.15.6 and promote `preview/current-preview.ts`. The change is in the QA Studio host gallery; the standalone renderer is carried forward with its build identity updated.
+
+**7.15.7 follow-up:** teaser stages previously shrank because of host CSS `max-width: 100%`. Keep the gallery content-sized up to its 1318px maximum and center it when it fits; preserve each stage's intrinsic size and aspect ratio, and horizontally scroll the gallery viewport when the window is narrower. Mobile instream remains at its established 0.5× presentation viewport. This follow-up is applied to current build 7.15.7 per the user's selection; it does not create a new build number.
+
+**7.15.7 placement follow-up:** show one generation-status banner in a stack immediately below the Mobile In-stream card. It displays the existing rendering message while generating, then switches to the existing “Generated from export.json” content when ready. Preserve both states' content and styling; the error notice retains its existing placement.
+
+## D105 — [Assets] Allow nominal video duration rounding (7.15.8)
+
+**Evidence:** feedback AV-07 reports that a nominal 30-second primary video is still flagged as long-form. Both supplied videos contain 720 frames at 24000/1001 fps and report 30.03 seconds; the duration comparison used a strict `>30` check.
+
+**Decision:** apply a 0.05-second allowance to the shared 30-second long-form warning threshold to account for container timestamp/frame rounding. This keeps nominal boundary clips clear while preserving warnings for real overages. The rule applies globally to supported video assets; the 270-second escalation threshold remains unchanged.
+
+**Versioning:** create patch build 7.15.8 from user-confirmed 7.15.7 and promote `preview/current-preview.ts`. The embedded renderer behavior is unchanged apart from its build identity.
+
+## D106 — [Map preview] Use the Streets style layer and bind feeds to their maps (7.15.10)
+
+**Evidence:** the user-provided Popeyes archive contains two `locationMap` components, two `data.json` layer markers, and one packaged feed with three Miami locations. The previous host code selected the first file whose basename was `data.json` for every map and constructed the Streets v11 raster URL itself. Production references include the Mapbox.js 3.3.1 assets and Streets v11 Styles API resource.
+
+**Decision:** globally render Streets v11 through Mapbox.js `L.mapbox.styleLayer` using the style URL, preserving the 512px tile sizing and zoom offset already used to align markers with basemap geography. Resolve each location map's feed from its declared custom asset reference when multiple feeds exist; use an unambiguous single feed for packages with one file, and show the no-data state rather than guessing when several files are ambiguous. Keep the change independent of brand, package name, and store coordinates.
+
+The supplied archive's feed coordinates are all in Miami, so an Oakland basemap is not explained by the package data. The package is a regression reference; other location-map packages still need browser comparison.
+
+Validation and remaining limitations are recorded with the 7.15.10 build inventory entry.
+
+**Versioning:** create patch build 7.15.10 from current 7.15.9 and promote `preview/current-preview.ts`. The embedded renderer is carried forward with its build identity updated.

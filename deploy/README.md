@@ -9,11 +9,11 @@ npm run build
 node deploy/build-static-server.mjs
 ```
 
-The archive is written to `outputs/turbo-qa-studio-<current-version>-static-server.tar.gz`. The builder reads the version from `preview/current-preview.ts`, verifies that the renderer and preview HTML match it, and includes both modules imported by the renderer. Do not upload the source workspace, `node_modules`, sample packages, or historical preview files to a public web root.
+The archive is written to `outputs/turbo-qa-studio-<current-version>-static-server.tar.gz`. The builder reads the version from `preview/current-preview.ts`, then includes that pointer with the matching preview HTML. The renderer reads the pointer when it starts, so it automatically uses the promoted preview version. Do not upload the source workspace, `node_modules`, sample packages, or historical preview files to a public web root.
 
 ## Docker renderer on a separate VM
 
-This deployment suits the setup where the static app remains on its existing host and the VM provides only the rendering API. It requires Docker Engine and the Compose plugin on the VM. The app's HTTPS host or its approved gateway must route `/api/ctv-ott/health`, `/api/ctv-ott/render`, and `/api/ctv-ott/feedback/upload` to the VM. The renderer itself listens inside the container, while Compose publishes it only on host loopback at `127.0.0.1:4177`. Do not expose port 4177 directly to the network.
+This deployment suits the setup where the static app remains on its existing host and the VM provides only the rendering API. It requires Docker Engine and the Compose plugin on the VM. The app's HTTPS host or its approved gateway must route `/api/ctv-ott/health`, `/api/ctv-ott/render`, `/api/ctv-ott/feedback/upload`, and `/api/ctv-ott/notion/feedback-submission` to the VM. Route `/api/ctv-ott/notion/pilot-session` only when pilot-session tracking is enabled. The renderer itself listens inside the container, while Compose publishes it only on host loopback at `127.0.0.1:4177`. Do not expose port 4177 directly to the network.
 
 1. Copy the release archive to the VM and extract it to a versioned directory, for example:
 
@@ -25,20 +25,13 @@ This deployment suits the setup where the static app remains on its existing hos
 
 2. Build and start the renderer using the engineer-approved Docker access:
 
+   Copy your existing `.env.local` from the source workspace to this release directory using your approved secure transfer method, then restrict it to the administrator:
+
    ```sh
-   sudo install -m 600 /dev/null .env
-   sudoedit .env
+   sudo chmod 600 .env.local
    ```
 
-   Add the app's exact HTTPS origin, and add Box credentials only if feedback upload should be enabled:
-
-   ```dotenv
-   TURBO_APP_ORIGIN=https://creative.exponential.com
-   BOX_CLIENT_ID=
-   BOX_CLIENT_SECRET=
-   BOX_ENTERPRISE_ID=
-   BOX_FEEDBACK_FOLDER_ID=
-   ```
+   The file must contain `TURBO_APP_ORIGIN`, `NOTION_API_TOKEN`, and `NOTION_FEEDBACK_DATABASE_ID`. Include `NOTION_PILOT_DATABASE_ID` only when pilot-session tracking is enabled, and the Box values only when feedback-upload is enabled. Do not include `.env.local` in the release archive or commit it to Git.
 
    Then build and start the container:
 
@@ -47,7 +40,7 @@ This deployment suits the setup where the static app remains on its existing hos
    sudo docker compose -f deploy/docker/compose.yaml ps
    ```
 
-   The image uses Node.js 22, FFmpeg/ffprobe, and unzip on Debian. The renderer runs as the unprivileged `node` user. Keep `.env` readable only by the administrator and do not commit secrets to the release directory.
+   The image uses Node.js 22, FFmpeg/ffprobe, and unzip on Debian. The renderer runs as the unprivileged `node` user. Keep `.env.local` readable only by the administrator and do not commit secrets to the release directory.
 
 3. Verify on the VM:
 
@@ -64,7 +57,7 @@ The renderer accepts packages up to 1 GiB and source videos up to 270 seconds. T
 
 ## Nginx example
 
-`nginx/turbo-qa-site.conf` is an example for a VM that also serves the static site. If the static site remains on another host, do not copy that site's `root`/`try_files` setup to the renderer VM. Instead, configure the existing HTTPS host or company gateway to proxy the three API routes above to the VM's private HTTPS endpoint. Preserve authentication, the 1 GiB request limit, bounded render concurrency, and the 20-minute render timeout. Protect the health endpoint behind the same approved access control.
+`nginx/turbo-qa-site.conf` is an example for a VM that also serves the static site. If the static site remains on another host, do not copy that site's `root`/`try_files` setup to the renderer VM. Instead, configure the existing HTTPS host or company gateway to proxy the listed API routes to the VM's private HTTPS endpoint. Preserve authentication, the 1 GiB request limit, bounded render concurrency, and the 20-minute render timeout. Protect the health endpoint behind the same approved access control.
 
 The existing Nginx examples keep TCP 4177 private, require HTTPS, and show Basic authentication as a placeholder; replace it with the company-approved authentication gateway. The app calls `/api/ctv-ott/...` at the domain root, so that route must work on the app's domain even when static files are served from a subdirectory.
 

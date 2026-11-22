@@ -13,10 +13,8 @@ if (!versionMatch) throw new Error("Could not read the current preview version f
 const version = versionMatch[1];
 const archive = join(root, "outputs", `turbo-qa-studio-${version}-static-server.tar.gz`);
 const html = `turbo-preview-${version}.html`;
-const renderer = await readFile(join(root, "scripts/ctv-ott-renderer.mjs"), "utf8");
 
-if (!pointer.includes(html) || !pointer.includes(version) ||
-    !renderer.includes(`build: "${version}"`) || !renderer.includes(html)) {
+if (!pointer.includes(html) || !pointer.includes(version)) {
   throw new Error(`Build identity is not consistently ${version}; update the deployment package before building.`);
 }
 
@@ -34,6 +32,7 @@ try {
   await cp(join(root, "scripts/ctv-ott-renderer.mjs"), join(release, "scripts/ctv-ott-renderer.mjs"));
   await cp(join(root, "scripts/box-feedback-upload.mjs"), join(release, "scripts/box-feedback-upload.mjs"));
   await cp(join(root, "preview", html), join(release, "preview", html));
+  await cp(join(root, "preview/current-preview.ts"), join(release, "preview/current-preview.ts"));
   await cp(join(root, "deploy/README.md"), join(release, "DEPLOY.md"));
   await cp(join(root, "deploy/nginx"), join(release, "nginx"), { recursive: true });
   await cp(join(root, "deploy/turbo-qa-renderer.service"), join(release, "turbo-qa-renderer.service"));

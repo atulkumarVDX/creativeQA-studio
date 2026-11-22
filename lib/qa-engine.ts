@@ -770,6 +770,10 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
   }
   if (packageSizeBytes != null && packageSizeBytes > 600 * 1024 * 1024)
     budgetFinding("assets.package-size", "ZIP/package exceeds 600 MB.", `ZIP/package is ${formatBytes(packageSizeBytes)}; maximum 600 MB.`);
+  // Container timestamps can place a nominal 30-second clip a few frames
+  // beyond the boundary (for example, 720 frames at 24000/1001 fps is 30.03s).
+  // Keep a small allowance for metadata/frame rounding at the long-form limit.
+  const videoDurationRoundingToleranceSeconds = 0.05;
   for (const asset of assets) {
     const base = asset.name.split("/").pop() || asset.name;
     if (/^(?:teaserLogo|peelLogo)(?:-\d+)?\.[a-z0-9]+$/i.test(base) && asset.uncompressedSize > 10 * 1024) {
@@ -794,7 +798,7 @@ export function analyzePackage(data: Record<string, any>, zipAssets: ZipAsset[],
         addVideoFinding(`assets.${videoValidation.rulePrefix}-size`, `${videoValidation.label} exceeds 2.5 MB.`, "warning");
       if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
         if (duration > 270) addVideoFinding(`assets.${videoValidation.rulePrefix}-duration`, `${videoValidation.label} exceeds 4 minutes 30 seconds. Escalate to the AdEx team.`, "error");
-        else if (duration > 30) addVideoFinding(`assets.${videoValidation.rulePrefix}-duration`, `${videoValidation.label} exceeds 30 seconds; confirm long-form handling.`, "warning");
+        else if (duration > 30 + videoDurationRoundingToleranceSeconds) addVideoFinding(`assets.${videoValidation.rulePrefix}-duration`, `${videoValidation.label} exceeds 30 seconds; confirm long-form handling.`, "warning");
       } else {
         addVideoFinding(`assets.${videoValidation.rulePrefix}-duration-unavailable`, "Video duration could not be verified.", "warning");
       }

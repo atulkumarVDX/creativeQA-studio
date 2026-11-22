@@ -28,7 +28,7 @@ npm run dev
 
 For direct feedback submission, copy `.env.example` to `.env.local` and provide the Box Client Credentials Grant values and destination folder ID. Never commit `.env.local` or place the client secret in browser code.
 
-For the creative-team pilot, add `NOTION_API_TOKEN` and `NOTION_PILOT_DATABASE_ID` to `.env.local`. The app submits a session summary to that database only when a tester chooses **Finish testing session**. Package contents and screenshots are not included. For a deployed app, set `TURBO_APP_ORIGIN` to the app's exact HTTPS origin and route `/api/ctv-ott/notion/pilot-session` to the companion renderer service.
+For **Report feedback** submission, set `NOTION_API_TOKEN` and `NOTION_FEEDBACK_DATABASE_ID` in `.env.local`, share that database with the integration, and include a title property. Run `npm run notion:rewire-feedback` to add the fields used by Report feedback and backfill feedback entries. The submission records reviewer, date, app version, package, feedback type, test case and priority, case status, production reference, description, actual/expected results, reproduction steps, evidence names, bundle filename, and Box URL. Creative package contents and screenshots are not sent to Notion. For a deployed app, set `TURBO_APP_ORIGIN` to the app's exact HTTPS origin and route `/api/ctv-ott/notion/feedback-submission` to the companion renderer service.
 
 Open the local URL shown in the terminal, then select a Turbo ZIP package.
 
