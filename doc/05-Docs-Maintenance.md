@@ -61,12 +61,12 @@ When one release bundles more than one change type, use the highest required inc
 | `preview/archive/turbo-preview-7.16.3.html` | Turbo Preview Artifact | **7.16.3** | Historical patch: host map popup position accounts for popup width and rendered pin height. |
 | `preview/archive/turbo-preview-7.16.2.html` | Turbo Preview Artifact | **7.16.2** | Historical patch: Teaser media is extracted on demand (D117). |
 | `preview/archive/turbo-preview-7.16.1.html` | Turbo Preview Artifact | **7.16.1** | Historical patch: package assets are expanded only in Preview (D116). |
-| `preview/turbo-preview-7.15.10.html` | Turbo Preview Artifact | **7.15.10** | Retained patch: host map setup uses Mapbox.js Streets styleLayer and resolves location feeds per map (D106). |
-| `preview/turbo-preview-7.15.9.html` | Turbo Preview Artifact | **7.15.9** | Retained patch: host map tile failure handling. |
-| `preview/turbo-preview-7.15.8.html` | Turbo Preview Artifact | **7.15.8** | Retained patch: nominal video durations allow timestamp/frame rounding (D105). |
-| `preview/turbo-preview-7.15.7.html` | Turbo Preview Artifact | **7.15.7** | Retained patch: teaser cards share a centered parent and follow D104. |
-| `preview/turbo-preview-7.15.6.html` | Turbo Preview Artifact | **7.15.6** | Retained patch: Compare audio can be explicitly enabled for one ad size at a time (D103). |
-| `preview/turbo-preview-7.15.5.html` | Turbo Preview Artifact | **7.15.5** | Retained patch: creative-wide video/package limits and AdEx escalation guidance. |
+| `preview/archive/turbo-preview-7.15.10.html` | Turbo Preview Artifact | **7.15.10** | Retained patch: host map setup uses Mapbox.js Streets styleLayer and resolves location feeds per map (D106). |
+| `preview/archive/turbo-preview-7.15.9.html` | Turbo Preview Artifact | **7.15.9** | Retained patch: host map tile failure handling. |
+| `preview/archive/turbo-preview-7.15.8.html` | Turbo Preview Artifact | **7.15.8** | Retained patch: nominal video durations allow timestamp/frame rounding (D105). |
+| `preview/archive/turbo-preview-7.15.7.html` | Turbo Preview Artifact | **7.15.7** | Retained patch: teaser cards share a centered parent and follow D104. |
+| `preview/archive/turbo-preview-7.15.6.html` | Turbo Preview Artifact | **7.15.6** | Retained patch: Compare audio can be explicitly enabled for one ad size at a time (D103). |
+| `preview/archive/turbo-preview-7.15.5.html` | Turbo Preview Artifact | **7.15.5** | Retained patch: creative-wide video/package limits and AdEx escalation guidance. |
 | `preview/turbo-preview-7.15.3.html` | Turbo Preview Artifact | **7.15.3** | Retained patch: promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
 | `preview/turbo-preview-7.15.2.html` | Turbo Preview Artifact | **7.15.2** | Retained patch: hides the technical analysis-complete label while retaining all package checks and findings (D100). |
 | `preview/turbo-preview-7.15.1.html` | Turbo Preview Artifact | **7.15.1** | Retained patch: CTAs are counted across Desktop Expandable tabs and slides only, excluding repeated groups in other ad sizes (D099). |

@@ -34,4 +34,3 @@ test("affected package evidence selects only files tied to package findings or a
   assert.deepEqual(affectedPackageFiles(summary, files).map(([name]) => name), ["creative/bad.png", "warn.mp4", "unused.jpg"]);
   assert.deepEqual(affectedPackageFiles(null, files), []);
 });
-

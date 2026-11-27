@@ -38,4 +38,3 @@ export function affectedPackageAssetNames(summary: PackageSummary | null) {
     return asset.validationErrors.length > 0 || asset.validationWarnings.length > 0 || asset.status === "unreferenced" || findingText.includes(normalized) || findingText.includes(basename);
   }).map(asset => asset.name);
 }
-

@@ -38,4 +38,3 @@ test("teaser workflow owns blob cleanup and generated mobile instream coordinati
   assert.match(pageSource, /teaserWorkflow\.applyPreparedPackage\(/);
   assert.match(pageSource, /teaserWorkflow\.beginPackage\(\)/);
 });
-

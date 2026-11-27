@@ -1,7 +1,7 @@
 # Turbo QA Studio — Structured Release Review Plan
 
 **Purpose:** repeatable pre-release review of QA Studio and its embedded Turbo Preview Artifact  
-**Repository pointer at drafting:** `preview/turbo-preview-7.15.7.html`  
+**Repository pointer at drafting:** `preview/archive/turbo-preview-7.15.7.html`
 **Status:** ready to configure; source and review-package confirmation still required
 
 ## 1. Review outcomes
@@ -51,7 +51,7 @@ Assign named people in the Notion review cycle before execution.
 
 Do not start execution until the review lead records these inputs:
 
-- **Confirmed source:** exact HTML path, build/version, and confirmation date. The repo currently points to `preview/turbo-preview-7.15.7.html`; verify it is still the latest approved source.
+- **Confirmed source:** exact HTML path, build/version, and confirmation date. This historical drafting reference is `preview/archive/turbo-preview-7.15.7.html`; verify the current pointer before release.
 - **Candidate app:** deployed/local QA Studio build or commit to review.
 - **Creative package:** exact archive/name/version and a stable copy for all reviewers.
 - **Reference:** production URL, approved screenshots, or explicitly “no production reference.” Record which claims cannot be checked without it.
@@ -278,7 +278,7 @@ Next owner actions:
 
 ## 12. Inputs still needed to start this cycle
 
-1. Confirm whether `preview/turbo-preview-7.15.7.html` is the latest approved source, or provide the newer source file.
+1. Confirm whether the current runtime pointer is the latest approved source, or provide the newer source file.
 2. Identify the creative package and production reference to review (or explicitly state that this is a product-flow review without creative parity checks).
 3. Name the review lead/reviewers and the candidate build/environment.
 4. Share the Notion workspace/page to use if you want this structure created directly there; no Notion connection is currently available in this session, so this document provides the setup schema and workflow.

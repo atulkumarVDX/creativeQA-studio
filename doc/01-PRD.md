@@ -35,7 +35,7 @@ Creative QA / production coordinators reviewing an export package across:
 | **Form factor** | `index.html` + `preview.js`, opened via `file://` next to the unzipped export folder | Single self-contained `.html` file (works as a Claude artifact or any static host) |
 | **Input** | Pick `export.json`; PNGs/fonts/video must already sit alongside it on disk | Drop/pick a `.zip` of the whole package; unzipped and resolved to blob URLs entirely in-browser |
 | **Best for** | Local, filesystem-based QC workflows | Sharing a preview without asking someone to unzip anything locally; artifact/chat-embedded workflows |
-| **Current version** | v1.0.0 | v7.15.5 (current source: `preview/turbo-preview-7.15.5.html`) |
+| **Current version** | v1.0.0 | v7.16.13 (current source: `preview/turbo-preview-7.16.13.html`) |
 
 Both exist because they serve different delivery contexts, not because one is meant to replace the other — but see `02-Technical-Spec.md` §7: they currently share **duplicated**, not shared, engine code, and have drifted in capability (§6 below).
 
