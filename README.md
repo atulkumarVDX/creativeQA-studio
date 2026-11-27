@@ -1,6 +1,6 @@
 # Turbo QA Studio
 
-Turbo QA Studio validates and reviews VDX Turbo export packages. The QA dashboard and current Turbo Preview 7.12.3 run in one interface. Main-unit QA remains browser-based; CTV/OTT video previews and Box feedback submission use a separate local service.
+Turbo QA Studio validates and reviews VDX Turbo export packages. The QA dashboard and current Turbo Preview 7.16.13 run in one interface. Main-unit QA remains browser-based; CTV/OTT video previews and Box feedback submission use a separate local service. Package analysis, review filtering, preview bridge code, workspace sections, teaser lifecycle, CTV/OTT workflow state, and feedback service responsibilities are organized into focused modules behind their existing interfaces.
 
 ## What is included
 
@@ -80,7 +80,7 @@ retain previous hashed assets during release transitions for existing tabs.
 
 The build uses relative asset paths, so the static files work at a domain root or inside a subdirectory. CTV/OTT API calls use `/api/ctv-ott` at the domain root and must be routed there even if the static files live under a subdirectory.
 
-For a single Linux server that serves static files and renders CTV/OTT without requiring software on each viewer's computer, use the [static-server deployment guide](deploy/README.md). It packages the current 7.12.3 build, keeps the local service on server loopback, and routes the browser's same-origin API through authenticated HTTPS.
+For a single Linux server that serves static files and renders CTV/OTT without requiring software on each viewer's computer, use the [static-server deployment guide](deploy/README.md). It packages the current 7.16.13 build, keeps the local service on server loopback, and routes the browser's same-origin API through authenticated HTTPS.
 
 ## Validation
 

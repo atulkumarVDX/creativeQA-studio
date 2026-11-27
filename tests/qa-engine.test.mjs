@@ -7,8 +7,26 @@ const source = readFileSync("lib/qa-engine.ts", "utf8");
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText;
+const configSource = readFileSync("config/package.ts", "utf8");
+const compiledConfig = ts.transpileModule(configSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const configModule = { exports: {} };
+new Function("exports", "module", compiledConfig)(configModule.exports, configModule);
+const loadedModules = new Map([["@/config/package", configModule]]);
+function loadModule(specifier, sourceText) {
+  if (loadedModules.has(specifier)) return loadedModules.get(specifier).exports;
+  const loaded = { exports: {} };
+  loadedModules.set(specifier, loaded);
+  const output = ts.transpileModule(sourceText ?? readFileSync(`${specifier.slice(2)}.ts`, "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  new Function("exports", "module", "require", output)(loaded.exports, loaded, imported => loadModule(imported));
+  return loaded.exports;
+}
 const compiledModule = { exports: {} };
-new Function("exports", "module", compiled)(compiledModule.exports, compiledModule);
+loadedModules.set("@/lib/qa-engine", compiledModule);
+new Function("exports", "module", "require", compiled)(compiledModule.exports, compiledModule, imported => loadModule(imported));
 const { analyzePackage } = compiledModule.exports;
 
 const group = (layerID, name, parentLayerID = -1, artboard = false) => ({
@@ -40,6 +58,17 @@ test("reports artboards in the same document order used by Main Unit preview", (
   ];
   const summary = analyzePackage({ rawLayers, document: { artboards: [20, 30, 10] } }, [], "fixture.psd.zip");
   assert.deepEqual(summary.artboards, ["300x250", "300x600", "970x546"]);
+});
+
+test("preserves tab-wide element and copy consistency findings", () => {
+  const rawLayers = [
+    group(1, "300x250", -1, true), group(2, "tab1", 1), group(3, "cta", 2), text(4, "Shop now", 3),
+    group(5, "300x600", -1, true), group(6, "tab1", 5), group(7, "cta", 6), text(8, "Shop now", 7),
+    group(9, "970x250", -1, true), group(10, "tab1", 9),
+  ];
+  const summary = analyze(rawLayers);
+  assert.ok(summary.findings.some(item => item.ruleId === "consistency.element-presence" && item.artboard === "970x250"));
+  assert.ok(summary.findings.some(item => item.ruleId === "consistency.copy-presence" && item.artboard === "970x250"));
 });
 
 test("CTA total uses Desktop Expandable only and preserves tab and slide instances", () => {

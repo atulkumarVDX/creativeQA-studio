@@ -5,12 +5,27 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const source = readFileSync("lib/map-preview.ts", "utf8");
+const mapBridgeSource = readFileSync("features/preview-bridge/map-preview-bridge.ts", "utf8");
+const bridgeSource = readFileSync("features/preview-bridge/preview-document.ts", "utf8") + mapBridgeSource;
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText;
 const compiledModule = { exports: {} };
 new Function("exports", "module", compiled)(compiledModule.exports, compiledModule);
-const { buildMapPreviewConfig } = compiledModule.exports;
+const { buildMapPreviewConfig, getMapPreviewAssetNames } = compiledModule.exports;
+const compiledMapBridge = ts.transpileModule(mapBridgeSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const mapBridgeModule = { exports: {} };
+new Function("exports", "module", compiledMapBridge)(mapBridgeModule.exports, mapBridgeModule);
+const compiledPreviewBridge = ts.transpileModule(readFileSync("features/preview-bridge/preview-document.ts", "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const previewBridgeModule = { exports: {} };
+new Function("exports", "module", "require", compiledPreviewBridge)(previewBridgeModule.exports, previewBridgeModule, specifier => {
+  if (specifier === "@/features/preview-bridge/map-preview-bridge") return mapBridgeModule.exports;
+  throw new Error(`Unexpected preview bridge import: ${specifier}`);
+});
 
 function bytes(text) { return new TextEncoder().encode(text); }
 function png(width, height) {
@@ -97,6 +112,19 @@ test("keeps valid location maps available for an empty feed so the no-data state
   assert.equal(buildMapPreviewConfig([{ layerID: 1, name: "locationMapExtra" }], [], "pk.test"), null);
 });
 
+test("extracts only referenced map feeds and artwork from the ZIP inventory", () => {
+  const layers = [
+    { layerID: 1, name: "locationMap1" },
+    { layerID: 2, parentLayerID: 1, name: "default" },
+    { layerID: 3, parentLayerID: 1, name: "pin" },
+    { layerID: 4, parentLayerID: 1, name: "data" },
+    { layerID: 5, parentLayerID: 4, name: "data.json" },
+  ];
+  const archiveNames = ["export.json", "map/data.json", "default-2.png", "pin-3-2x.png", "logo-99.png", "video1.mp4"];
+  assert.deepEqual(getMapPreviewAssetNames(layers, archiveNames), ["map/data.json", "default-2.png", "pin-3-2x.png"]);
+  assert.deepEqual(getMapPreviewAssetNames([], archiveNames), []);
+});
+
 test("associates each map with its declared data feed instead of the first data.json", () => {
   const layers = [
     { layerID: 10, name: "locationMap1" },
@@ -137,7 +165,7 @@ test("does not guess between multiple feeds when a map has no file reference", (
 });
 
 test("512px tile requests cover the same geography as markers at map zoom 12", () => {
-  const page = readFileSync("app/page.tsx", "utf8");
+  const page = bridgeSource;
   const tileOptions = page.match(/const tileLayer = L\.mapbox\.styleLayer\(mapConfig\.styleUrl, (\{[^;]+\})\);/)[1];
   const options = new Function("mapConfig", `return (${tileOptions});`)({ settings: { maxZoom: 19 } });
   const zoom = buildMapPreviewConfig([
@@ -158,7 +186,7 @@ test("512px tile requests cover the same geography as markers at map zoom 12", (
 });
 
 test("uses the production Mapbox Streets style layer and layers popups above pins", () => {
-  const page = readFileSync("app/page.tsx", "utf8");
+  const page = bridgeSource;
   assert.match(page, /mapbox\.js\/v3\.3\.1\/mapbox\.js/);
   assert.match(page, /mapbox\.js\/v3\.3\.1\/mapbox\.css/);
   assert.match(page, /L\.mapbox\.styleLayer\(mapConfig\.styleUrl, \{ tileSize: 512, zoomOffset: -1/);
@@ -166,12 +194,17 @@ test("uses the production Mapbox Streets style layer and layers popups above pin
   assert.match(page, /leaflet-pane\.leaflet-popup-pane \{ z-index:800/);
   assert.match(page, /leaflet-pane\.leaflet-marker-pane \{ z-index:600/);
   assert.match(page, /border-radius:8px/);
-  assert.match(page, /popupAnchor: \[Math\.round\(popupWidth \/ 2\), 2 - iconHeight - 10\]/);
+  const anchorExpression = page.match(/popupAnchor: \[([^\]]+)\]/)?.[1];
+  assert.ok(anchorExpression, "Mapbox marker must define a popup anchor");
+  const popupAnchor = new Function("popupWidth", "iconHeight", `return [${anchorExpression}]`);
+  assert.deepEqual(popupAnchor(250, 35), [134, -35]);
+  assert.deepEqual(popupAnchor(250, 52.5), [134, -52.5]);
   assert.match(page, /storeMarker\.bindPopup\(addStorePopup\(store, component\), \{ minWidth: popupWidth, maxWidth: popupWidth, maxHeight: popupHeight, offset: \[0, 0\], closeButton: mapConfig\.settings\?\.showCloseBtn !== false, autoClose: true/);
   assert.match(page, /max-width:calc\(var\(--tqa-popup-width,253px\) - 2px\) !important; max-height:calc\(var\(--tqa-popup-height,115px\) - 2px\)/);
   assert.doesNotMatch(page, /width:calc\(var\(--tqa-popup-width,253px\) - 2px\) !important; height:calc\(var\(--tqa-popup-height,115px\) - 2px\)/);
   assert.match(page, /image\.style\.cssText = 'display:block;width:100px;height:21px'/);
-  assert.match(page, /leaflet-popup-content-wrapper::after/);
+  assert.match(page, /\.theme-bubble \.leaflet-popup-tip-container/);
+  assert.match(page, /\.theme-bubble \.leaflet-popup-tip \{ display:none; \}/);
   assert.match(page, /L\.icon\(\{ \.\.\.iconOptions, iconUrl: pinImage\.src \}\)/);
   assert.match(page, /buttonImage\.src/);
   assert.match(page, /logoImages\?\.\[String\(component\.rootLayerId\)\]/);
@@ -182,17 +215,13 @@ test("uses the production Mapbox Streets style layer and layers popups above pin
 });
 
 test("the injected preview bridge remains valid plain JavaScript", () => {
-  const page = readFileSync("app/page.tsx", "utf8");
-  const start = page.indexOf("const bridgeScript = ") + "const bridgeScript = ".length;
-  const end = page.indexOf("\n\nfunction buildPreviewDocument", start);
-  const expression = page.slice(start, end).trim().replace(/;$/, "");
-  const document = new Function("BRIDGE_TOKEN", `return ${expression}`)("test-token");
+  const document = previewBridgeModule.exports.buildPreviewBridgeScript("test-token");
   const script = document.slice(document.indexOf(">") + 1, document.lastIndexOf("</script>"));
   assert.doesNotThrow(() => new vm.Script(script));
 });
 
 test("shows a failure state when every basemap tile request fails", () => {
-  const page = readFileSync("app/page.tsx", "utf8");
+  const page = bridgeSource;
   const tileBlock = page.slice(page.indexOf("const tileLayer = L.mapbox.styleLayer"), page.indexOf("const logoControl", page.indexOf("const tileLayer = L.mapbox.styleLayer")));
   assert.match(tileBlock, /let tileErrorCount = 0/);
   assert.ok(tileBlock.indexOf("tileLayer.on('tileerror'") < tileBlock.indexOf("tileLayer.addTo(map)"));

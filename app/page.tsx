@@ -1,221 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
-import { strFromU8, strToU8, unzip, zipSync } from "fflate";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, ExternalLink, Play,
-  Camera, Download, FileSearch, Files, ImageIcon, Info, LoaderCircle,
-  Link2, MessageSquareWarning, Moon, MoreVertical, PackageOpen, Paperclip,
-  Search, ShieldCheck, Sparkles, Sun, Upload,
+  Archive, CircleAlert, Play, Camera, Download, FileSearch, Files, ImageIcon, LoaderCircle,
+  MessageSquareWarning, Moon, MoreVertical, PackageOpen,
+  ShieldCheck, Sparkles, Sun, Upload,
 } from "lucide-react";
 import { currentPreview } from "../preview/current-preview";
-import { TeaserPreview, type TeaserMedia, type TeaserPackageLayouts } from "@/components/teaser-preview";
-import { Badge } from "@/components/ui/badge";
+import { readPackage, type PackageContents } from "@/features/package-loading/read-package";
+import { MAX_PACKAGE_SIZE_BYTES } from "@/config/package";
+import { buildPreviewDocument } from "@/features/preview-bridge/preview-document";
+import { usePreviewMessages } from "@/features/preview-bridge/use-preview-messages";
+import type { CtvOttFormat } from "@/features/ctv-ott/render-package";
+import { useCtvOttWorkflow } from "@/features/ctv-ott/use-ctv-ott-workflow";
+import { preparePackageReview } from "@/features/package-workflow/prepare-package-review";
+import { captureFeedbackPreview } from "@/features/feedback/capture-preview";
+import type { FeedbackPackageData } from "@/features/feedback/types";
+import { TeaserPreview } from "@/components/teaser-preview";
+import { useTeaserWorkflow } from "@/features/teasers/use-teaser-workflow";
+import { FeedbackDialog } from "@/features/feedback/feedback-dialog";
+import { OverviewSection } from "@/features/overview/overview-section";
+import { FindingsSection } from "@/features/findings/findings-section";
+import { AssetsSection } from "@/features/assets/assets-section";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { analyzePackage, formatBytes, type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
-import { deriveTeaserGeometry } from "@/lib/teaser-layout";
-import { buildMapPreviewConfig } from "@/lib/map-preview";
+import { type Finding, type PackageSummary, type Severity } from "@/lib/qa-engine";
 import { setPreviewPlaybackActive } from "@/lib/preview-playback";
+import { countFindings, filterAssets, filterFindings, getFindingFacets, groupFindings } from "@/features/findings/finding-view-model";
 
-type BridgeAsset = { durationSeconds?: number; name: string; compressedSize: number; uncompressedSize: number };
 type Theme = "dark" | "light";
-type TeaserBytes = Record<Exclude<keyof TeaserMedia, "generatedFrame" | "generatedVideoTarget">, Uint8Array | null>;
-type PackageFile = readonly [string, Uint8Array];
 // Vite embeds this public token at build time for both local and static builds.
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
-type ExportLayer = { name?: unknown; bounds?: { width?: number | { _value?: number }; height?: number | { _value?: number } } };
-type CtvOttFormat = "ctv" | "ott";
-type CtvOttVideos = Partial<Record<CtvOttFormat, string>>;
-type CtvOttArtboardLayer = { layerID?: number; name?: unknown; visible?: boolean };
-type CtvOttExportData = Record<string, unknown> & { document?: { artboards?: unknown } };
-type FeedbackType = "visual-mismatch" | "finding-issue" | "asset-validation" | "package-loading" | "preview-interaction" | "screenshot-export" | "app-ui" | "suggestion" | "other";
-type FeedbackEvidenceLevel = "diagnostics" | "affected-assets" | "complete-package";
-type FeedbackImageContext = "description" | "actual" | "expected";
-type FeedbackInlineImage = { id: string; context: FeedbackImageContext; file: File; previewUrl: string };
-type ProductionReference = { type: "ccrv" | "showcase"; url: string; creativeId: string; variant: string | null };
-type FeedbackCapture = {
-  dataUrl: string;
-  state: {
-    artboard: string;
-    selectedSizes: string[];
-    tab: string | null;
-    slide: string | null;
-    viewMode: "preview" | "compare";
-    scale: string | null;
-    theme: string | null;
-  };
-};
-type CaseStatus = "Not started" | "In progress" | "Pass" | "Fail" | "Needs improvement" | "Blocked" | "Not applicable";
-type FeedbackTestCase = { id: string; area: string; priority: "High" | "Medium"; name: string; pass: string };
-const FEEDBACK_TYPE_OPTIONS: Array<{ value: FeedbackType; label: string }> = [
-  { value: "visual-mismatch", label: "Visual mismatch" },
-  { value: "finding-issue", label: "Finding looks incorrect" },
-  { value: "asset-validation", label: "Asset validation issue" },
-  { value: "package-loading", label: "Package loading issue" },
-  { value: "preview-interaction", label: "Preview interaction issue" },
-  { value: "screenshot-export", label: "Screenshot or report issue" },
-  { value: "app-ui", label: "App UI issue" },
-  { value: "suggestion", label: "Suggestion" },
-  { value: "other", label: "Other issue" },
-];
-const FEEDBACK_TYPE_AREAS: Partial<Record<FeedbackType, string[]>> = {
-  "visual-mismatch": ["Creative rendering"],
-  "finding-issue": ["QA findings"],
-  "asset-validation": ["Asset validation"],
-  "package-loading": ["Creative rendering", "User experience"],
-  "preview-interaction": ["Creative rendering", "User experience"],
-  "screenshot-export": ["Feedback", "User experience"],
-  "app-ui": ["User experience"],
-};
-const FEEDBACK_TYPE_LABELS = Object.fromEntries(FEEDBACK_TYPE_OPTIONS.map(option => [option.value, option.label])) as Record<FeedbackType, string>;
-const FEEDBACK_TEST_CASES: FeedbackTestCase[] = [
-  { id: "CR-01", area: "Creative rendering", priority: "High", name: "Upload a valid creative package", pass: "The package loads and the expected creative preview is available." },
-  { id: "CR-02", area: "Creative rendering", priority: "High", name: "Compare representative text with production", pass: "Fonts, size, weight, line breaks, wrapping, alignment, spacing, and position match, or differences are documented." },
-  { id: "CR-03", area: "Creative rendering", priority: "High", name: "Compare images and backgrounds", pass: "Image content, crop, placement, background, and visible treatment match the reference." },
-  { id: "CR-04", area: "Creative rendering", priority: "High", name: "Check creative dimensions and scale", pass: "Each reviewed size uses the expected source geometry and is presented according to its supported view mode." },
-  { id: "CR-05", area: "Creative rendering", priority: "High", name: "Activate a CTA or button", pass: "The supported action responds as expected for the package and review flow. Record the exact control and destination/state." },
-  { id: "CR-06", area: "Creative rendering", priority: "High", name: "Switch tabs and slides", pass: "The correct state appears and navigation follows the creative’s expected behavior." },
-  { id: "CR-07", area: "Creative rendering", priority: "High", name: "Exercise galleries, sliders, or carousels", pass: "Supported controls show the correct content and state without getting stuck or showing unrelated slides." },
-  { id: "CR-08", area: "Creative rendering", priority: "Medium", name: "Exercise hotspots or popups", pass: "The expected content appears and can be dismissed or navigated as intended." },
-  { id: "CR-09", area: "Creative rendering", priority: "Medium", name: "Exercise map or store-locator content", pass: "The map, pins, popups, and supported interactions appear as expected." },
-  { id: "CR-10", area: "Creative rendering", priority: "High", name: "Play video and review sound controls", pass: "Video displays and plays; sound, mute/unmute, and play/pause behavior are understandable and usable." },
-  { id: "CR-11", area: "Creative rendering", priority: "High", name: "Change creative state while video is playing", pass: "Playback follows the expected pause/resume and saved-state behavior; manually paused video does not unexpectedly resume." },
-  { id: "CR-12", area: "Creative rendering", priority: "High", name: "Compare multiple supported creative sizes", pass: "Each selected size renders its own expected content without size/state mix-ups." },
-  { id: "QF-01", area: "QA findings", priority: "High", name: "Review findings generated for the package", pass: "Findings relate to the supplied creative and applicable rules." },
-  { id: "QF-02", area: "QA findings", priority: "High", name: "Manually verify a reported issue", pass: "The issue is observable or supported by the relevant specification/reference." },
-  { id: "QF-03", area: "QA findings", priority: "High", name: "Check for false positives", pass: "Correct content or behavior is not reported as defective without a valid reason." },
-  { id: "QF-04", area: "QA findings", priority: "High", name: "Check a known issue against findings", pass: "The known issue is surfaced where the app is expected to detect it; otherwise record the missed issue and its evidence." },
-  { id: "QF-05", area: "QA findings", priority: "Medium", name: "Review finding descriptions and locations", pass: "The wording is clear and identifies the affected content or area well enough to investigate." },
-  { id: "QF-06", area: "QA findings", priority: "Medium", name: "Review suggested actions", pass: "Any suggested next step is relevant and practical; do not assume a fix suggestion exists for every finding." },
-  { id: "QF-07", area: "QA findings", priority: "Medium", name: "Review finding categories", pass: "The category fits the observed issue and helps the reviewer route it." },
-  { id: "QF-08", area: "QA findings", priority: "Medium", name: "Review finding severity/priority", pass: "The indicated urgency is proportionate to the impact; note cases where severity is absent or misleading." },
-  { id: "QF-09", area: "QA findings", priority: "Medium", name: "Review readability and accessibility of findings", pass: "Text, status cues, keyboard access, and actions are understandable; report barriers without implying the app automatically audits accessibility unless it explicitly says so." },
-  { id: "AV-01", area: "Asset validation", priority: "High", name: "Load a package with known-valid assets", pass: "Valid assets pass the applicable checks without misleading warnings." },
-  { id: "AV-02", area: "Asset validation", priority: "High", name: "Load a package with a known missing asset", pass: "The missing asset is identified clearly and does not appear as an unexplained blank." },
-  { id: "AV-03", area: "Asset validation", priority: "High", name: "Review an asset over an individual size limit", pass: "The limit violation is reported with enough detail to identify the file and rule." },
-  { id: "AV-04", area: "Asset validation", priority: "High", name: "Review package video against the creative-wide size rule", pass: "Total video size is checked against the documented limit; documented exemptions are handled as specified." },
-  { id: "AV-05", area: "Asset validation", priority: "High", name: "Review a ZIP against the package-size limit", pass: "A package over the applicable limit is flagged with a clear explanation." },
-  { id: "AV-06", area: "Asset validation", priority: "High", name: "Review a video within the duration limit", pass: "The video passes the duration check." },
-  { id: "AV-07", area: "Asset validation", priority: "High", name: "Review a video exceeding the duration limit", pass: "It is flagged and the applicable escalation guidance is shown." },
-  { id: "AV-08", area: "Asset validation", priority: "High", name: "Review first-view validation", pass: "The relevant first-view requirements and limits are evaluated against the applicable specification." },
-  { id: "AV-09", area: "Asset validation", priority: "Medium", name: "Review unsupported or invalid image formats", pass: "Unsupported content is identified clearly and handled without an unexplained crash." },
-  { id: "AV-10", area: "Asset validation", priority: "Medium", name: "Review an asset with incorrect constrained dimensions", pass: "The issue is flagged when the applicable rule requires it." },
-  { id: "AV-11", area: "Asset validation", priority: "High", name: "Review a known broken or incorrect asset reference", pass: "The affected reference/file is identified." },
-  { id: "AV-12", area: "Asset validation", priority: "Medium", name: "Review validation messages", pass: "Errors and warnings explain what failed and why in language a reviewer can act on." },
-  { id: "AV-13", area: "Asset validation", priority: "High", name: "Load a package with multiple known validation failures", pass: "Applicable failures are reported together without masking one another or adding unsupported claims." },
-  { id: "UX-01", area: "User experience", priority: "High", name: "Open the candidate app", pass: "The app loads without an unexplained error and shows the expected build." },
-  { id: "UX-02", area: "User experience", priority: "High", name: "Navigate between creative preview and findings", pass: "Reviewers can move between them and understand where they are." },
-  { id: "UX-03", area: "User experience", priority: "Medium", name: "Navigate relevant preview sections", pass: "Available sections are discoverable and return paths are clear." },
-  { id: "UX-04", area: "User experience", priority: "Medium", name: "Review the findings interface", pass: "Findings are readable, scannable, and understandable without relying on undocumented knowledge." },
-  { id: "UX-05", area: "User experience", priority: "Medium", name: "Review pass, warning, and error indicators", pass: "Different states are visually and textually distinguishable." },
-  { id: "UX-06", area: "User experience", priority: "High", name: "Use the app during normal interactions", pass: "The interface remains responsive and stable while switching states and sections." },
-  { id: "UX-07", area: "User experience", priority: "High", name: "Load a large representative package", pass: "The app remains usable or communicates a clear limit/error instead of failing silently." },
-  { id: "UX-08", area: "User experience", priority: "High", name: "Load an invalid package", pass: "The app explains the problem and gives a recoverable path." },
-  { id: "UX-09", area: "User experience", priority: "Medium", name: "Review incomplete or unsupported package content", pass: "The app identifies limitations and handles the content gracefully." },
-  { id: "UX-10", area: "User experience", priority: "Medium", name: "Assess the end-to-end review workflow", pass: "You can complete the review without unnecessary steps or unclear handoffs; note specific friction." },
-  { id: "FB-01", area: "Feedback", priority: "High", name: "Create a clearly labeled test bug report", pass: "The closest feedback type can be selected and the issue can be described." },
-  { id: "FB-02", area: "Feedback", priority: "Medium", name: "Create a suggestion for an improvement or capability", pass: "The suggestion is captured through the existing Suggestion type." },
-  { id: "FB-03", area: "Feedback", priority: "High", name: "Report an incorrect or missed QA finding", pass: "The finding issue type can be selected and the report can identify the relevant test case and creative state." },
-  { id: "FB-04", area: "Feedback", priority: "Medium", name: "Enter a description and reproduction steps", pass: "Text is retained in the downloaded bundle." },
-  { id: "FB-05", area: "Feedback", priority: "Medium", name: "Paste a screenshot or attach supporting evidence", pass: "Evidence appears in the form and is included in the bundle with its context." },
-  { id: "FB-06", area: "Feedback", priority: "Medium", name: "Check conditional reference validation", pass: "A visual mismatch requires a valid CCRV or Showcase reference; other report types can proceed without one." },
-  { id: "FB-07", area: "Feedback", priority: "High", name: "Download and inspect the feedback bundle", pass: "The bundle contains the report, current package/preview context, and selected evidence." },
-  { id: "FB-08", area: "Feedback", priority: "High", name: "Follow the displayed submission handoff", pass: "The reviewer can upload the downloaded ZIP to the approved Box File Request page and record the resulting reference." },
-];
-const CASE_STATUS_OPTIONS: CaseStatus[] = ["Not started", "In progress", "Pass", "Fail", "Needs improvement", "Blocked", "Not applicable"];
 const PREVIEW_VERSION = currentPreview.version;
 const previewSource = currentPreview.source;
 const BRIDGE_TOKEN = `turbo-qa-preview-${PREVIEW_VERSION}`;
 const THEME_STORAGE_KEY = "turbo-qa-studio-theme";
-const FEEDBACK_BOX_UPLOAD_URL = "https://exponential.box.com/s/5plrgb9ogbk7m7cyztho4yfnu8orf37s";
-
-function parseProductionReference(raw: string): ProductionReference | null {
-  try {
-    const url = new URL(raw.trim());
-    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-    const hashParts = url.hash.slice(1).split("/").filter(Boolean);
-    if (url.protocol !== "https:" || hostname !== "showcase.vdx.tv" || !hashParts[0]) return null;
-    const type = /^\/cc(?:\/|$)/i.test(url.pathname) ? "ccrv" : "showcase";
-    if (type === "showcase" && url.pathname === "/") return null;
-    return {
-      type,
-      url: url.href,
-      creativeId: hashParts[0],
-      variant: hashParts[1] || null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function safeFilePart(value: string, fallback: string) {
-  return value.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 100) || fallback;
-}
-
-function safeArchivePath(value: string) {
-  return value.split(/[\\/]+/).filter(Boolean).map(part => safeFilePart(part, "file")).join("/");
-}
-
-function affectedPackageFiles(summary: PackageSummary | null, files: PackageFile[]) {
-  if (!summary) return [];
-  const findingText = summary.findings.map(finding => JSON.stringify(finding).toLowerCase()).join("\n");
-  const affectedNames = new Set(summary.assets.filter(asset => {
-    const normalized = asset.name.toLowerCase();
-    const basename = normalized.split("/").pop() || normalized;
-    return asset.validationErrors.length > 0
-      || asset.validationWarnings.length > 0
-      || asset.status === "unreferenced"
-      || findingText.includes(normalized)
-      || findingText.includes(basename);
-  }).map(asset => asset.name.toLowerCase()));
-  return files.filter(([name]) => {
-    const normalized = name.replaceAll("\\", "/").toLowerCase();
-    return Array.from(affectedNames).some(asset => normalized === asset || normalized.endsWith(`/${asset}`));
-  });
-}
-
-function dataUrlToBytes(dataUrl: string) {
-  const encoded = dataUrl.split(",", 2)[1];
-  if (!encoded) throw new Error("The preview screenshot was empty.");
-  const binary = window.atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return bytes;
-}
-
-function captureFeedbackPreview(frame: HTMLIFrameElement | null): Promise<FeedbackCapture> {
-  return new Promise((resolve, reject) => {
-    if (!frame?.contentWindow) { reject(new Error("The active preview is unavailable.")); return; }
-    const requestId = crypto.randomUUID();
-    const timer = window.setTimeout(() => {
-      window.removeEventListener("message", receive);
-      reject(new Error("The active preview did not finish capturing."));
-    }, 15000);
-    function receive(event: MessageEvent) {
-      if (event.data?.token !== BRIDGE_TOKEN || event.data?.requestId !== requestId) return;
-      if (event.data.type !== "tqa:feedback-capture" && event.data.type !== "tqa:feedback-capture-error") return;
-      window.clearTimeout(timer);
-      window.removeEventListener("message", receive);
-      if (event.data.type === "tqa:feedback-capture-error") {
-        reject(new Error(event.data.message || "The active preview could not be captured."));
-        return;
-      }
-      resolve({ dataUrl: event.data.dataUrl, state: event.data.state } as FeedbackCapture);
-    }
-    window.addEventListener("message", receive);
-    frame.contentWindow.postMessage({ type: "tqa:capture-feedback", token: BRIDGE_TOKEN, requestId }, "*");
-  });
-}
-
 function savedTheme(): Theme {
   try {
     return window.localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
@@ -228,607 +51,10 @@ function setPreviewTheme(frame: HTMLIFrameElement | null, theme: Theme) {
   frame?.contentWindow?.postMessage({ type: "tqa:set-theme", token: BRIDGE_TOKEN, theme }, "*");
 }
 
-const bridgeScript = (String.raw`
-<script>
-(() => {
-  // Playback lifecycle is controlled by the host, including live-update recovery.
-  document.documentElement.dataset.tqaBridge = "ready";
-  const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
-  let mapConfig = null;
-  let leafletLoadPromise = null;
-  const mapPaints = new Map();
-  const mapInstances = new WeakMap();
-  function loadLeaflet() {
-    if (window.L && window.L.mapbox) return Promise.resolve(window.L);
-    if (leafletLoadPromise) return leafletLoadPromise;
-    leafletLoadPromise = new Promise((resolve, reject) => {
-      if (!document.querySelector('link[data-tqa-leaflet-css]')) {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = 'https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css';
-        css.dataset.tqaLeafletCss = 'true';
-        document.head.appendChild(css);
-      }
-      if (!document.querySelector('style[data-tqa-mapbox-popup]')) {
-        const popupStyle = document.createElement('style');
-        popupStyle.dataset.tqaMapboxPopup = 'true';
-        popupStyle.textContent = '.leaflet-container { font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
-          '.leaflet-pane.leaflet-popup-pane { z-index:800 !important; } .leaflet-pane.leaflet-marker-pane { z-index:600 !important; }' +
-          '.leaflet-popup { margin-bottom:0; } .leaflet-popup-content-wrapper { position:relative; overflow:visible !important; border-radius:8px 8px 8px 0; background:#fff; padding:1px; box-shadow:0 3px 14px rgba(0,0,0,.4); }' +
-          '.leaflet-popup-content { box-sizing:border-box; max-width:calc(var(--tqa-popup-width,253px) - 2px) !important; max-height:calc(var(--tqa-popup-height,115px) - 2px); margin:0; padding:10px 10px 15px; color:#252525; font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif; }' +
-          '.theme-bubble .leaflet-popup { filter:drop-shadow(0 6px 12px rgba(0,0,0,.4)); }' +
-          '.theme-bubble .leaflet-popup-content-wrapper { border-radius:8px; box-shadow:none; }' +
-          '.theme-bubble .leaflet-popup-tip-container { position:absolute; width:32px; height:32px; transform:translate(-40%,-60%); background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xNCw0IEw0LDI4IEwyOCwxOCB6IiBmaWxsPSIjRkZGRkZGIi8+PC9zdmc+); }' +
-          '.theme-bubble .leaflet-popup-tip { display:none; }' +
-          '.leaflet-popup-close-button { z-index:3; width:20px !important; height:20px !important; padding:0 !important; color:#33415b !important; font:18px/20px Arial,sans-serif !important; }' +
-          '.leaflet-popup-content a, .leaflet-marker-icon { cursor:pointer; } .tqa-leaflet-marker { background:transparent; border:0; }';
-        document.head.appendChild(popupStyle);
-      }
-      const script = document.createElement('script');
-      script.src = 'https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js';
-      script.async = true;
-      script.onload = () => window.L && window.L.mapbox ? resolve(window.L) : reject(new Error('Leaflet Mapbox did not initialize.'));
-      script.onerror = () => reject(new Error('Leaflet Mapbox could not be loaded. Check your internet connection.'));
-      document.head.appendChild(script);
-    });
-    return leafletLoadPromise;
-  }
-  function showMapFallback(container, message) {
-    container.replaceChildren();
-    container.style.display = 'grid';
-    container.style.placeItems = 'center';
-    container.style.background = '#eef1f4';
-    container.style.color = '#364152';
-    container.style.padding = '12px';
-    container.style.boxSizing = 'border-box';
-    container.style.font = '12px/1.4 Arial, sans-serif';
-    container.style.textAlign = 'center';
-    container.textContent = message;
-  }
-  function showMapStateImage(container, source) {
-    if (!source) return null;
-    const image = document.createElement('img');
-    image.src = source;
-    image.alt = '';
-    image.dataset.tqaMapState = 'true';
-    image.style.cssText = 'position:absolute;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;object-fit:contain;pointer-events:none';
-    container.appendChild(image);
-    return image;
-  }
-  function clearMapOverlays(stage) {
-    if (!stage) return;
-    stage.querySelectorAll('[data-tqa-map-layer]').forEach(node => {
-      const map = mapInstances.get(node);
-      if (map) map.remove();
-      node.remove();
-    });
-  }
-  function addStorePopup(store, component) {
-    const content = document.createElement('div');
-    content.style.cssText = 'box-sizing:border-box;width:100%;height:auto;padding:0;color:#252525;text-align:center;font:12px/20px "Helvetica Neue",Arial,Helvetica,sans-serif';
-    const logo = mapConfig.logoImages?.[String(component.rootLayerId)];
-    if (logo?.src) {
-      const image = document.createElement('img');
-      image.src = logo.src; image.alt = store.label || 'Store';
-      image.style.cssText = 'display:block;margin:0 auto 14px;max-width:100%;object-fit:contain;width:' + (logo.width || 60) + 'px;height:' + (logo.height || 30) + 'px';
-      content.appendChild(image);
-    } else {
-      const title = document.createElement('strong');
-      title.textContent = store.label || 'Store';
-      title.style.cssText = 'display:block;margin:0 0 14px;font-size:12px;font-weight:400';
-      content.appendChild(title);
-    }
-    const address = document.createElement('div');
-    const firstAddressLine = [store.address, store.city].filter(Boolean).join(', ');
-    const secondAddressLine = [store.state, store.zip].filter(Boolean).join(' ');
-    address.textContent = [firstAddressLine ? firstAddressLine + (store.city ? ',' : '') : '', secondAddressLine].filter(Boolean).join('\n');
-    address.style.cssText = 'color:#252525;font-size:12px;line-height:20px;white-space:pre-line';
-    content.appendChild(address);
-    if (store.phone) {
-      const phone = document.createElement('div');
-      phone.textContent = store.phone;
-      content.appendChild(phone);
-    }
-    try {
-      const cta = new URL(store.cta || '');
-      if (cta.protocol === 'https:') {
-        const link = document.createElement('a');
-        link.href = cta.href;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.style.cssText = 'display:inline-block;margin-top:5px;line-height:0;cursor:pointer';
-        const buttonImage = mapConfig.buttonImages?.[String(component.rootLayerId)];
-        if (buttonImage?.src) {
-          const image = document.createElement('img');
-          image.src = buttonImage.src; image.alt = '';
-          image.style.cssText = 'display:block;width:100px;height:21px';
-          link.appendChild(image);
-          content.appendChild(link);
-        }
-      }
-    } catch { /* Ignore malformed campaign links. */ }
-    return content;
-  }
-  function renderMapOverlays(entry, activeTab, activeSlide) {
-    if (!mapConfig || !entry?.stageEl || !entry?.byId || !entry?.childrenOf) return;
-    const stage = entry.stageEl;
-    if (!stage.isConnected) return;
-    clearMapOverlays(stage);
-    for (const component of mapConfig.components || []) {
-      const root = entry.byId.get(component.rootLayerId);
-      const target = entry.byId.get(component.defaultLayerId);
-      const frameTarget = component.frameLayerId == null ? null : entry.byId.get(component.frameLayerId);
-      if (!root || !target) continue;
-      const defaultElement = stage.querySelector('[data-structure-layer-id="' + component.defaultLayerId + '"]');
-      if (!defaultElement) continue;
-      const frameElement = component.frameLayerId == null ? null : stage.querySelector('[data-structure-layer-id="' + component.frameLayerId + '"]');
-      const geometryElement = frameElement || defaultElement;
-      const geometryTarget = frameTarget || target;
-      const parent = defaultElement.parentElement;
-      if (!parent) continue;
-      const mapElement = document.createElement('div');
-      mapElement.classList.add('theme-bubble');
-      mapElement.dataset.tqaMapLayer = String(component.rootLayerId);
-      mapElement.setAttribute('aria-label', 'Interactive store map');
-      mapElement.style.position = 'absolute';
-      for (const property of ['left', 'top', 'right', 'bottom', 'width', 'height', 'transform', 'transformOrigin', 'clipPath', 'borderRadius']) {
-        if (geometryElement.style[property]) mapElement.style[property] = geometryElement.style[property];
-      }
-      mapElement.style.zIndex = defaultElement.style.zIndex || String(target.itemIndex || 0);
-      mapElement.style.pointerEvents = 'auto';
-      mapElement.style.overflow = 'visible';
-      const popupWidth = component.popupWidth ?? mapConfig.settings?.popupWidth ?? 250;
-      const popupHeight = component.popupHeight ?? mapConfig.settings?.popupHeight ?? 180;
-      mapElement.style.setProperty('--tqa-popup-width', String(popupWidth) + 'px');
-      mapElement.style.setProperty('--tqa-popup-height', String(popupHeight) + 'px');
-      parent.appendChild(mapElement);
-      defaultElement.style.display = 'none';
-      if (frameElement) frameElement.style.display = 'none';
-      for (const layerId of [component.pinLayerId, component.loadingLayerId, component.noDataLayerId, component.popupLayerId, component.buttonLayerId, component.logoLayerId, component.dataMarkerLayerId]) {
-        if (layerId == null) continue;
-        const layerElement = stage.querySelector('[data-structure-layer-id="' + layerId + '"]');
-        if (layerElement) layerElement.style.display = 'none';
-      }
-      if (!mapConfig.accessToken) {
-        showMapFallback(mapElement, 'Map preview needs a Mapbox public token. Configure VITE_MAPBOX_ACCESS_TOKEN when building the site.');
-        showMapStateImage(mapElement, mapConfig.defaultImages?.[String(component.rootLayerId)]);
-        continue;
-      }
-      const loadingImageSource = mapConfig.loadingImages?.[String(component.rootLayerId)];
-      loadLeaflet().then(L => {
-        if (!mapElement.isConnected) return;
-        L.mapbox.accessToken = mapConfig.accessToken;
-        const points = (component.stores || mapConfig.stores || []).filter(store => Number.isFinite(store.lat) && Number.isFinite(store.long));
-        if (!points.length) {
-          showMapStateImage(mapElement, mapConfig.noDataImages?.[String(component.rootLayerId)] || mapConfig.defaultImages?.[String(component.rootLayerId)]);
-          return;
-        }
-        const first = points[0];
-        const map = L.map(mapElement, {
-          zoomControl: mapConfig.settings?.zoomControl === true,
-          attributionControl: mapConfig.settings?.attributionControl === true,
-          minZoom: mapConfig.settings?.minZoom ?? 2, maxZoom: mapConfig.settings?.maxZoom ?? 19,
-          tap: mapConfig.settings?.twoFingersEnabled !== false,
-        }).setView([first.lat, first.long], mapConfig.settings?.zoomLevel ?? 12);
-        // Leaflet projects a 256px world; 512px tiles need one lower URL zoom
-        // so their geographic bounds match the markers (map zoom 12 => tile z11).
-        const tileLayer = L.mapbox.styleLayer(mapConfig.styleUrl, { tileSize: 512, zoomOffset: -1, maxZoom: mapConfig.settings?.maxZoom ?? 19, attribution: '© Mapbox © OpenStreetMap' });
-        let tileErrorCount = 0;
-        let loadingImage = null;
-        tileLayer.once('load', () => {
-          const hasLoadedTiles = Boolean(mapElement.querySelector('.leaflet-tile-loaded'));
-          if (hasLoadedTiles && loadingImage?.isConnected) loadingImage.remove();
-          if (tileErrorCount > 0 && !hasLoadedTiles && mapElement.isConnected) {
-            showMapFallback(mapElement, 'Map tiles failed to load. Check the configured Mapbox public token and its allowed website address.');
-          }
-        });
-        tileLayer.on('tileerror', () => {
-          tileErrorCount += 1;
-          window.setTimeout(() => {
-            if (mapElement.isConnected && !mapElement.querySelector('.leaflet-tile-loaded')) {
-              showMapFallback(mapElement, 'Map tiles failed to load. Check the configured Mapbox public token and its allowed website address.');
-            }
-          }, 1500);
-        });
-        tileLayer.addTo(map);
-        const logoControl = L.control({ position: 'bottomleft' });
-        logoControl.onAdd = () => {
-          const logo = L.DomUtil.create('div', 'mapbox-logo leaflet-control mapbox-logo-true');
-          logo.setAttribute('aria-label', 'Mapbox');
-          return logo;
-        };
-        logoControl.addTo(map);
-        loadingImage = showMapStateImage(mapElement, loadingImageSource);
-        mapInstances.set(mapElement, map);
-        map.whenReady(() => {
-          points.forEach((store, index) => {
-            const pinImage = mapConfig.pinImages?.[String(component.pinLayerId)];
-            const scale = entry.scale || 1;
-            const iconWidth = Math.max(1, (pinImage?.width || 24) * scale);
-            const iconHeight = Math.max(1, (pinImage?.height || 35) * scale);
-            const iconOptions = { iconSize: [iconWidth, iconHeight], iconAnchor: [iconWidth / 2, iconHeight], popupAnchor: [popupWidth / 2 + 9, -iconHeight], className: 'tqa-leaflet-marker' };
-            const icon = pinImage?.src
-              ? L.icon({ ...iconOptions, iconUrl: pinImage.src })
-              : L.divIcon({ ...iconOptions, iconSize: [1, 1], iconAnchor: [0, 0], html: '' });
-            if (!pinImage?.src) mapElement.dataset.tqaMissingPinArtwork = 'true';
-            const storeMarker = L.marker([store.lat, store.long], { icon }).addTo(map);
-            storeMarker.bindPopup(addStorePopup(store, component), { minWidth: popupWidth, maxWidth: popupWidth, maxHeight: popupHeight, offset: [0, 0], closeButton: mapConfig.settings?.showCloseBtn !== false, autoClose: true, closeOnClick: false });
-            if (index === 0 && mapConfig.settings?.openPopByDefault !== false) storeMarker.openPopup();
-          });
-          map.invalidateSize();
-        });
-      }).catch(error => { if (mapElement.isConnected) showMapFallback(mapElement, error?.message || 'Leaflet Mapbox could not be loaded.'); });
-    }
-  }
-  const previewApi = window.CSM_PREVIEW;
-  if (previewApi && typeof previewApi.paintArtboard === 'function') {
-    const paintArtboard = previewApi.paintArtboard;
-    previewApi.paintArtboard = function(entry, activeTab, activeSlide, activeCategory) {
-      clearMapOverlays(entry?.stageEl);
-      const result = paintArtboard.call(this, entry, activeTab, activeSlide, activeCategory);
-      mapPaints.set(entry.stageEl, { entry, activeTab, activeSlide });
-      mapPaints.forEach((paint, stage) => { if (!stage.isConnected) mapPaints.delete(stage); });
-      requestAnimationFrame(() => renderMapOverlays(entry, activeTab, activeSlide));
-      return result;
-    };
-  }
-  window.addEventListener("message", async (event) => {
-    if (!event.data || event.data.token !== "__TQA_BRIDGE_TOKEN__") return;
-    if (event.data.type === "tqa:map-config") {
-      mapConfig = event.data.config || null;
-      if (mapConfig) {
-        loadLeaflet().then(() => mapPaints.forEach(paint => renderMapOverlays(paint.entry, paint.activeTab, paint.activeSlide))).catch(() => {
-          mapPaints.forEach(paint => renderMapOverlays(paint.entry, paint.activeTab, paint.activeSlide));
-        });
-      }
-      return;
-    }
-    if (event.data.type === "tqa:ping") {
-      window.parent.postMessage({ type: "tqa:preview-ready", token: "__TQA_BRIDGE_TOKEN__" }, "*");
-      return;
-    }
-    if (event.data.type === "tqa:open-screenshots") {
-      document.getElementById("screenshotsBtn")?.click();
-      return;
-    }
-    if (event.data.type === "tqa:set-theme") {
-      if (event.data.theme === "dark" || event.data.theme === "light") {
-        document.getElementById(event.data.theme === "dark" ? "darkModeBtn" : "lightModeBtn")?.click();
-      }
-      return;
-    }
-    if (event.data.type === "tqa:focus-finding") {
-      if (event.data.finding && typeof window.openQaFinding === "function") window.openQaFinding(event.data.finding);
-      return;
-    }
-    if (event.data.type === "tqa:select-size") {
-      const target = String(event.data.size || "").toLowerCase();
-      if (document.querySelector('#sizePicker input[type="checkbox"]')) document.getElementById("previewModeBtn")?.click();
-      const chip = Array.from(document.querySelectorAll("#sizePicker .chip")).find(node => node.textContent.trim().toLowerCase() === target);
-      chip?.querySelector("input")?.click();
-      return;
-    }
-    if (event.data.type === "tqa:capture-mobile-instream") {
-      const requestId = String(event.data.requestId || "");
-      const selectedSize = Array.from(document.querySelectorAll("#sizePicker .chip"))
-        .find(node => node.querySelector("input")?.checked)
-        ?.textContent.trim().toLowerCase() || "";
-      try {
-        const chip = Array.from(document.querySelectorAll("#sizePicker .chip")).find(node => node.textContent.trim().toLowerCase() === "mobile-instream");
-        if (!chip) throw new Error("The package has no mobile-instream artboard.");
-        const input = chip.querySelector('input[type="checkbox"], input[type="radio"]');
-        if (input && !input.checked) input.click();
-        await nextFrame(); await nextFrame();
-        await new Promise(resolve => setTimeout(resolve, 120));
-        const card = Array.from(document.querySelectorAll(".cp-artboard-card")).find(node => node.querySelector(".cp-artboard-label")?.textContent.trim().toLowerCase().startsWith("mobile-instream"));
-        const stage = card?.querySelector(".cp-stage");
-        if (!stage || !window.htmlToImage) throw new Error("The mobile-instream canvas could not be rendered.");
-        // Main Unit presents this authored 970x546 stage at 50% through a CSS
-        // transform. Capturing that transform would bake the half-size preview
-        // into the generated frame, then Teasers would scale it a second time.
-        // Capture the authored stage at full size and let Teasers own the only
-        // presentation-scale transform.
-        const previousTransform = stage.style.transform;
-        stage.style.transform = "none";
-        await nextFrame();
-        const stageRect = stage.getBoundingClientRect();
-        const videoLayer = Array.from(stage.querySelectorAll(".cp-video")).find(node => node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
-        const videoRect = videoLayer?.getBoundingClientRect();
-        const videoTarget = videoRect ? {
-          left: videoRect.left - stageRect.left,
-          top: videoRect.top - stageRect.top,
-          width: videoRect.width,
-          height: videoRect.height,
-        } : null;
-        let source;
-        try {
-          source = await window.htmlToImage.toCanvas(stage, { pixelRatio: 1, skipAutoScale: true, width: stage.offsetWidth, height: stage.offsetHeight });
-        } finally {
-          stage.style.transform = previousTransform;
-        }
-        const output = document.createElement("canvas");
-        output.width = 970; output.height = 546;
-        output.getContext("2d").drawImage(source, 0, 0, output.width, output.height);
-        window.parent.postMessage({ type: "tqa:mobile-instream-frame", token: "__TQA_BRIDGE_TOKEN__", requestId, dataUrl: output.toDataURL("image/jpeg", .86), videoTarget }, "*");
-      } catch (error) {
-        window.parent.postMessage({ type: "tqa:mobile-instream-frame-error", token: "__TQA_BRIDGE_TOKEN__", requestId, message: error && error.message ? error.message : String(error) }, "*");
-      } finally {
-        // Teaser generation temporarily selects mobile-instream because the
-        // renderer captures the live artboard. Restore the user's visible
-        // size so background generation cannot change Main Unit selection.
-        if (selectedSize && selectedSize !== "mobile-instream") {
-          const restore = Array.from(document.querySelectorAll("#sizePicker .chip"))
-            .find(node => node.textContent.trim().toLowerCase() === selectedSize);
-          const input = restore?.querySelector("input");
-          if (input && !input.checked) input.click();
-        }
-      }
-      return;
-    }
-    if (event.data.type === "tqa:capture-feedback") {
-      const requestId = String(event.data.requestId || "");
-      try {
-        const selectedSizes = Array.from(document.querySelectorAll('#sizePicker .chip'))
-          .filter(node => node.querySelector('input')?.checked)
-          .map(node => node.textContent.trim());
-        const cards = Array.from(document.querySelectorAll('.cp-artboard-card'));
-        const selectedName = selectedSizes[0]?.toLowerCase() || "";
-        const card = cards.find(node => node.querySelector('.cp-artboard-label')?.textContent.trim().toLowerCase().startsWith(selectedName)) || cards[0];
-        const stage = card?.querySelector('.cp-stage');
-        if (!stage || !window.htmlToImage) throw new Error("No rendered artboard is available to capture.");
-        await nextFrame(); await nextFrame();
-        const source = await window.htmlToImage.toCanvas(stage, {
-          pixelRatio: 1,
-          skipAutoScale: true,
-          width: stage.offsetWidth,
-          height: stage.offsetHeight,
-        });
-        const activeText = selector => document.querySelector(selector)?.textContent?.trim() || null;
-        const label = card.querySelector('.cp-artboard-label');
-        const scale = label?.querySelector('.seg-btn.active')?.textContent?.trim() || null;
-        window.parent.postMessage({
-          type: "tqa:feedback-capture",
-          token: "__TQA_BRIDGE_TOKEN__",
-          requestId,
-          dataUrl: source.toDataURL("image/png"),
-          state: {
-            artboard: selectedSizes[0] || label?.firstChild?.textContent?.trim() || "unknown",
-            selectedSizes,
-            tab: activeText('#tabButtons .active'),
-            slide: activeText('#slideButtons .active'),
-            viewMode: document.getElementById('previewModeBtn')?.classList.contains('active') ? "preview" : "compare",
-            scale,
-            theme: document.documentElement.dataset.theme || null,
-          },
-        }, "*");
-      } catch (error) {
-        window.parent.postMessage({ type: "tqa:feedback-capture-error", token: "__TQA_BRIDGE_TOKEN__", requestId, message: error && error.message ? error.message : String(error) }, "*");
-      }
-      return;
-    }
-    if (event.data.type !== "tqa:load-package" || !event.data.buffer) return;
-    const file = new File([event.data.buffer], event.data.name || "package.zip", { type: event.data.mimeType || "application/zip" });
-    try {
-      document.documentElement.dataset.tqaBridge = "received";
-      const input = document.getElementById("fileInputZip");
-      if (input) {
-        const transfer = new DataTransfer();
-        transfer.items.add(file);
-        input.files = transfer.files;
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-        document.documentElement.dataset.tqaBridge = "dispatched";
-      }
-    } catch (error) {
-      document.documentElement.dataset.tqaBridge = "error";
-      window.parent.postMessage({ type: "tqa:preview-error", token: "__TQA_BRIDGE_TOKEN__", message: error && error.message ? error.message : String(error) }, "*");
-    }
-  });
-  window.addEventListener("csm:capture-state", (event) => {
-  window.parent.postMessage({ type: "tqa:capture-state", token: "__TQA_BRIDGE_TOKEN__", busy: Boolean(event.detail && event.detail.busy) }, "*");
-  });
-  const packageMeta = document.getElementById("pkgMeta");
-  if (packageMeta && typeof MutationObserver !== "undefined") {
-    new MutationObserver(() => {
-      const sizeCount = Number.parseInt(packageMeta.textContent || "", 10);
-      if (Number.isFinite(sizeCount)) window.parent.postMessage({ type: "tqa:package-meta", token: "__TQA_BRIDGE_TOKEN__", sizeCount }, "*");
-    }).observe(packageMeta, { childList: true, characterData: true, subtree: true });
-  }
-  window.parent.postMessage({ type: "tqa:preview-ready", token: "__TQA_BRIDGE_TOKEN__" }, "*");
-})();
-</scr` + `ipt>`).replaceAll("__TQA_BRIDGE_TOKEN__", BRIDGE_TOKEN);
-
-function buildPreviewDocument() {
-  // The legacy source discusses literal </body> tags inside JavaScript
-  // comments. Replacing the first match injects markup into that script and
-  // breaks the srcdoc parser. Insert only before the document's final tag.
-  // JSZip's bundled Promise fallback can select a MutationObserver from a
-  // different srcdoc realm. Force its MessageChannel fallback instead.
-  const observerProbe = "var r,n,e=t.MutationObserver||t.WebKitMutationObserver;if(e){";
-  const compatibleSource = previewSource.replace(observerProbe, "var r,n,e=null;if(e){");
-  const bodyEnd = compatibleSource.lastIndexOf("</body>");
-  const embeddedStyle = '<style id="tqa-embedded-shell">#topBar,.theme-toggle{display:none!important}#controlPanel{top:0!important}</style>';
-  return bodyEnd >= 0
-    ? `${compatibleSource.slice(0, bodyEnd)}${embeddedStyle}${bridgeScript}${compatibleSource.slice(bodyEnd)}`
-    : `${compatibleSource}${embeddedStyle}${bridgeScript}`;
-}
-
-async function readVideoDuration(data: Uint8Array): Promise<number | undefined> {
-  return new Promise(resolve => {
-    const video = document.createElement("video");
-    const url = URL.createObjectURL(new Blob([new Uint8Array(data)], { type: "video/mp4" }));
-    const finish = (value?: number) => {
-      clearTimeout(timer);
-      video.onloadedmetadata = null;
-      video.onerror = null;
-      video.removeAttribute("src");
-      video.load();
-      URL.revokeObjectURL(url);
-      resolve(value);
-    };
-    const timer = setTimeout(() => finish(), 8000);
-    video.preload = "metadata";
-    video.onloadedmetadata = () => finish(Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined);
-    video.onerror = () => finish();
-    video.src = url;
-  });
-}
-
-async function readPackage(file: File) {
-  if (file.size > 600 * 1024 * 1024) throw new Error("ZIP/package exceeds the maximum 600 MB size.");
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const entries = await new Promise<Record<string, Uint8Array>>((resolve, reject) => {
-    unzip(bytes, (cause, result) => cause ? reject(cause) : resolve(result));
-  });
-  const files = Object.entries(entries).filter(([name]) => !name.endsWith("/"));
-  const exportEntry = files.find(([name]) => name.split("/").pop()?.toLowerCase() === "export.json");
-  if (!exportEntry) throw new Error("No export.json found inside this ZIP.");
-  const exportData = JSON.parse(strFromU8(exportEntry[1]));
-  const assets: BridgeAsset[] = files.map(([name, data]) => ({
-    name,
-    compressedSize: data.byteLength,
-    uncompressedSize: data.byteLength,
-  }));
-  await Promise.all(assets.filter(asset => /\.(?:mp4|webm|mov|m4v)$/i.test(asset.name)).map(async asset => {
-    const data = files.find(([name]) => name === asset.name)?.[1];
-    if (data) asset.durationSeconds = await readVideoDuration(data);
-  }));
-  const pick = (pattern: RegExp) => files.filter(([name]) => pattern.test(name.split("/").pop() || ""))
-    .sort(([a], [b]) => a.length - b.length)[0]?.[1] || null;
-  // Turbo exports use peel-<id>.png; older custom packages may only have teaserLogo.png.
-  const teaserLogo = pick(/^teaserLogo\.png$/i) || pick(/^teaserLogo-\d+\.png$/i);
-  const teaserBytes: TeaserBytes = {
-    video: pick(/^video1\.mp4$/i),
-    instreamVideo: pick(/^teaserVideo\.mp4$/i),
-    poster: pick(/^video1\.jpe?g$/i),
-    instreamPoster: pick(/^teaserVideo\.jpe?g$/i),
-    logo: teaserLogo,
-    peelLogo: pick(/^peelLogo(?:-\d+)?\.png$/i),
-    peel: pick(/^peel-\d+\.png$/i),
-  };
-  const mapPreviewConfig = buildMapPreviewConfig(exportData.rawLayers, files as PackageFile[], MAPBOX_ACCESS_TOKEN, exportData.customAssets);
-  return { exportData, assets, teaserBytes, packageFiles: files as PackageFile[], mapPreviewConfig };
-}
-
-function teaserDisclaimerDocument(raw: string, size: string, files: PackageFile[], assetUrls: string[], disclaimerPath = "disclaimer.html") {
-  const doc = new DOMParser().parseFromString(raw, "text/html");
-  doc.querySelectorAll("script, base").forEach(node => node.remove());
-  const titleSource = doc.body.querySelector("#titleHtml, .title");
-  const titleText = titleSource?.textContent?.trim() || "Important Safety Information and Prescribing Information";
-  titleSource?.remove();
-  const byPath = new Map(files.map(([name, data]) => [name.replace(/^.*?export\.json\/?/i, "").toLowerCase(), data]));
-  const disclaimerDirectory = disclaimerPath.replace(/[^/]*$/, "");
-  const resolvePackageAsset = (source: string) => {
-    const rawPath = source.replace(/^\$LOC\$/i, "").replace(/^\/+/, "");
-    const resolvedPath = new URL(rawPath, `https://package.invalid/${disclaimerDirectory}`).pathname.slice(1).toLowerCase();
-    const candidates = [resolvedPath, resolvedPath.replace(/^assets\//, ""), rawPath.toLowerCase()];
-    for (const candidate of candidates) {
-      const exact = byPath.get(candidate);
-      if (exact) return exact;
-    }
-    const basename = resolvedPath.split("/").pop() || "";
-    const matches = files.filter(([name]) => name.split("/").pop()?.toLowerCase() === basename);
-    return matches.length === 1 ? matches[0][1] : null;
-  };
-  const packageUrl = (source: string) => {
-    const bytes = resolvePackageAsset(source);
-    if (!bytes) return null;
-    const extension = source.split(/[?#]/)[0].split(".").pop()?.toLowerCase();
-    const mime = extension === "woff2" ? "font/woff2" : extension === "woff" ? "font/woff" : extension === "ttf" ? "font/ttf" : extension === "otf" ? "font/otf" : extension === "svg" ? "image/svg+xml" : extension === "jpg" || extension === "jpeg" ? "image/jpeg" : extension === "gif" ? "image/gif" : "image/png";
-    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime }));
-    assetUrls.push(url);
-    return url;
-  };
-  for (const image of doc.body.querySelectorAll("img")) {
-    const source = image.getAttribute("src") || "";
-    image.removeAttribute("srcset");
-    if (/^(?:data:|blob:)/i.test(source)) continue;
-    const url = packageUrl(source);
-    if (!url) { image.remove(); continue; }
-    image.src = url;
-  }
-  for (const style of doc.head.querySelectorAll("style")) {
-    style.textContent = style.textContent.replace(/url\((['\"]?)([^)'\"]+)\1\)/gi, (match, quote, rawSource) => {
-      const source = String(rawSource).trim();
-      if (/^(?:data:|blob:|https?:|\/\/|#)/i.test(source)) return match;
-      const url = packageUrl(source);
-      return url ? `url("${url}")` : match;
-    });
-  }
-  const content = doc.createElement("div");
-  content.className = "content";
-  content.append(...Array.from(doc.body.childNodes));
-  const title = doc.createElement("div");
-  title.className = "title";
-  title.textContent = titleText;
-  const notice = doc.createElement("div");
-  notice.className = `notice size_${size}`;
-  notice.append(title, content);
-  doc.body.className = "pVdxDesktopExpandable";
-  doc.body.replaceChildren(notice);
-  const override = doc.createElement("style");
-  override.textContent = "html,body{margin:0!important;width:100%;height:100%;overflow:hidden;background:#fff;color:#231f20}body>.notice{position:absolute!important;inset:0!important;display:flex!important;flex-direction:column-reverse!important;width:100%!important;height:100%!important;box-sizing:border-box!important;background:#fff!important}.notice>.content{display:block!important;flex:1 1 auto!important;min-height:0!important;box-sizing:border-box!important;overflow-x:hidden!important;overflow-y:auto!important}.notice>.title{display:flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:16px!important;box-sizing:border-box!important}img{max-width:100%}";
-  doc.head.append(override);
-  return "<!doctype html>" + doc.documentElement.outerHTML;
-}
-
-function createTeaserPackageLayouts(exportData: Record<string, unknown>, files: PackageFile[]) {
-  const urls: string[] = [];
-  const layouts: TeaserPackageLayouts = {};
-  const boundValue = (value: number | { _value?: number } | undefined) => Number(typeof value === "number" ? value : value?._value ?? 0);
-  const layers = Array.isArray(exportData.rawLayers) ? exportData.rawLayers as ExportLayer[] : [];
-  const disclaimerEntry = files.find(([name]) => /(^|\/)disclaimer\.html$/i.test(name));
-  const disclaimer = disclaimerEntry ? strFromU8(disclaimerEntry[1]) : null;
-  const fileByName = new Map(files.map(([name, data]) => [name.split("/").pop()?.toLowerCase() || "", data]));
-  const candidates = layers.flatMap(layer => {
-    const match = /^(ISI_)?preQual_(\d+x\d+)\.png$/i.exec(String(layer.name || ""));
-    if (!match) return [];
-    const bytes = fileByName.get(String(layer.name).toLowerCase());
-    if (!bytes) return [];
-    const width = boundValue(layer.bounds?.width);
-    const height = boundValue(layer.bounds?.height);
-    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "image/png" }));
-    urls.push(url);
-    return [{ size: match[2].toLowerCase(), withIsi: Boolean(match[1]), width, height, url }];
-  });
-  for (const size of new Set(candidates.map(candidate => candidate.size))) {
-    const [fullWidth, fullHeight] = size.split("x").map(Number);
-    const plain = candidates.find(candidate => candidate.size === size && !candidate.withIsi);
-    const withIsi = candidates.find(candidate => candidate.size === size && candidate.withIsi);
-    const geometry = withIsi && disclaimer
-      ? deriveTeaserGeometry(fullWidth, fullHeight, withIsi.width, withIsi.height)
-      : deriveTeaserGeometry(fullWidth, fullHeight, fullWidth, fullHeight);
-    const { creative, isi } = geometry;
-    layouts[size] = {
-      isi,
-      creative,
-      disclaimerSrcDoc: isi && disclaimer ? teaserDisclaimerDocument(disclaimer, size, files, urls, disclaimerEntry?.[0] || "disclaimer.html") : null,
-      prequal: plain?.url || null,
-      prequalWithIsi: withIsi?.url || null,
-    };
-  }
-  return { layouts, urls };
-}
-
-function createTeaserMedia(bytes: TeaserBytes): TeaserMedia {
-  const url = (data: Uint8Array | null, type: string) => data ? URL.createObjectURL(new Blob([new Uint8Array(data)], { type })) : null;
-  return {
-    video: url(bytes.video, "video/mp4"),
-    instreamVideo: url(bytes.instreamVideo, "video/mp4"),
-    poster: url(bytes.poster, "image/jpeg"),
-    instreamPoster: url(bytes.instreamPoster, "image/jpeg"),
-    generatedFrame: null,
-    generatedVideoTarget: null,
-    logo: url(bytes.logo, "image/png"),
-    peelLogo: url(bytes.peelLogo, "image/png"),
-    peel: url(bytes.peel, "image/png"),
-  };
-}
-
-async function loadPreviewFile(frame: HTMLIFrameElement | null, file: File) {
+async function loadPreviewFile(frame: HTMLIFrameElement | null, file: File, buffer: ArrayBuffer) {
   if (!frame) return;
   // Construct the File and input event inside the preview's own realm.
   // Direct foreign-realm file/event assignment can silently miss its handler.
-  const buffer = await file.arrayBuffer();
   frame.contentWindow?.postMessage({
     type: "tqa:load-package",
     token: BRIDGE_TOKEN,
@@ -838,52 +64,15 @@ async function loadPreviewFile(frame: HTMLIFrameElement | null, file: File) {
   }, "*", [buffer]);
 }
 
-function SeverityIcon({ level }: { level: Severity }) {
-  if (level === "error") return <CircleAlert aria-hidden="true" />;
-  if (level === "warning") return <AlertTriangle aria-hidden="true" />;
-  return <Info aria-hidden="true" />;
-}
-
-function SpacingHighlight({ finding }: { finding: Finding }) {
-  if (!finding.highlight) return <p>{finding.message}</p>;
-  return <p className="finding-highlight-copy"><span className="finding-highlight-label">Affected copy</span><span>{finding.highlight.prefix}</span><mark>{finding.highlight.value}</mark><span>{finding.highlight.suffix}</span></p>;
-}
-
-function count(findings: Finding[], level: Severity) {
-  return findings.filter(finding => finding.severity === level).length;
-}
-
-function findingContextLabel(value: string) {
-  return value
-    .replace(/^tab(?:component)?[-_ ]?(\d+)$/i, "Tab $1")
-    .replace(/^slide[-_ ]?(\d+)$/i, "Slide $1");
-}
-
-function detectCtvOttFormats(exportData: CtvOttExportData): CtvOttFormat[] {
-  const layers = Array.isArray(exportData.rawLayers) ? exportData.rawLayers as CtvOttArtboardLayer[] : [];
-  const byId = new Map(layers.map(layer => [layer.layerID, layer]));
-  const names: string[] = (Array.isArray(exportData.document?.artboards) ? exportData.document.artboards : [])
-    .map((id: unknown) => byId.get(Number(id)))
-    .filter((layer: CtvOttArtboardLayer | undefined): layer is CtvOttArtboardLayer => layer != null && layer.visible !== false)
-    .map((layer: CtvOttArtboardLayer) => String(layer.name || "").trim());
-  return [...new Set<CtvOttFormat>(names
-    .filter(name => /^(ctv|ott|ctvott)(?:_|$)/i.test(name))
-    .map(name => /^ctv/i.test(name) ? "ctv" : "ott") as CtvOttFormat[])];
-}
-
 function ctvOttViewLabel(formats: CtvOttFormat[]) {
   return formats.length === 2 ? "View CTV/OTT" : `View ${formats[0]?.toUpperCase() || "CTV/OTT"}`;
-}
-
-function Stat({ label, value, detail }: { label: string; value: string | number; detail: string }) {
-  return <article className="stat-card reg-card"><span className="reg-corner tl" /><span className="reg-corner br" /><p>{label}</p><strong>{value}</strong><span>{detail}</span></article>;
 }
 
 export default function Home() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingFileRef = useRef<File | null>(null);
-  const mapPreviewConfigRef = useRef<ReturnType<typeof buildMapPreviewConfig>>(null);
+  const mapPreviewConfigRef = useRef<PackageContents["mapPreviewConfig"]>(null);
   const summaryRef = useRef<PackageSummary | null>(null);
   const captureBusyRef = useRef(false);
   const [theme, setTheme] = useState<Theme>(savedTheme);
@@ -892,22 +81,11 @@ export default function Home() {
   const [previewSizeCount, setPreviewSizeCount] = useState<number | null>(null);
   const [summary, setSummary] = useState<PackageSummary | null>(null);
   const [sourcePackage, setSourcePackage] = useState<File | null>(null);
-  const [teaserMedia, setTeaserMedia] = useState<TeaserMedia | null>(null);
-  const teaserMediaRef = useRef<TeaserMedia | null>(null);
-  const [teaserLayouts, setTeaserLayouts] = useState<TeaserPackageLayouts>({});
-  const teaserLayoutUrlsRef = useRef<string[]>([]);
   const generationRequestRef = useRef("");
-  const generationNeededRef = useRef(false);
-  const targetRefreshRequestRef = useRef("");
-  const pendingGeneratedFrameRef = useRef<{ requestId: string; dataUrl: string; videoTarget: TeaserMedia["generatedVideoTarget"] } | null>(null);
-  const [teaserGenerationStatus, setTeaserGenerationStatus] = useState<"idle" | "rendering" | "ready" | "error">("idle");
-  const [ctvOttFormats, setCtvOttFormats] = useState<CtvOttFormat[]>([]);
-  const [ctvOttVideos, setCtvOttVideos] = useState<CtvOttVideos>({});
-  const [ctvOttStatus, setCtvOttStatus] = useState<"idle" | "rendering" | "ready" | "error" | "missing">("idle");
-  const [ctvOttError, setCtvOttError] = useState("");
-  const ctvOttObjectUrlsRef = useRef<string[]>([]);
+  const ctvOttWorkflow = useCtvOttWorkflow({ generationRequestRef });
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState("");
+  const teaserWorkflow = useTeaserWorkflow({ bridgeToken: BRIDGE_TOKEN, iframeRef, sourcePackage, generationRequestRef, setError });
   const [findingQuery, setFindingQuery] = useState("");
   const [assetQuery, setAssetQuery] = useState("");
   const [assetScope, setAssetScope] = useState("all");
@@ -920,73 +98,15 @@ export default function Home() {
     // Resume inside the navigation gesture so audible playback is permitted.
     setPreviewPlaybackActive(iframeRef.current, section === "preview");
     setActiveTabState(section);
-    const step = ({ overview: "Overview", findings: "Findings", assets: "Assets", teasers: "Teasers", ctvOtt: "Teasers", preview: "Preview" } as Record<string, string>)[section];
+    if (section === "teasers") void teaserWorkflow.loadTeaserAssets();
   };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackReviewerName, setFeedbackReviewerName] = useState("");
-  const [feedbackCaseId, setFeedbackCaseId] = useState("");
-  const [feedbackCaseStatus, setFeedbackCaseStatus] = useState<CaseStatus>("Not started");
-  const [feedbackShareOpen, setFeedbackShareOpen] = useState(false);
-  const [feedbackBundleUrl, setFeedbackBundleUrl] = useState("");
-  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>("visual-mismatch");
-  const [feedbackReferenceUrl, setFeedbackReferenceUrl] = useState("");
-  const [feedbackSummary, setFeedbackSummary] = useState("");
-  const [feedbackActual, setFeedbackActual] = useState("");
-  const [feedbackExpected, setFeedbackExpected] = useState("");
-  const [feedbackSteps, setFeedbackSteps] = useState("");
-  const [feedbackIncludeScreenshot, setFeedbackIncludeScreenshot] = useState(true);
-  const [feedbackPackageData, setFeedbackPackageData] = useState<{ exportData: Record<string, unknown>; packageFiles: PackageFile[] } | null>(null);
-  const [feedbackAttachments, setFeedbackAttachments] = useState<File[]>([]);
-  const [feedbackInlineImages, setFeedbackInlineImages] = useState<FeedbackInlineImage[]>([]);
-  const feedbackInlineImagesRef = useRef<FeedbackInlineImage[]>([]);
-  const [feedbackError, setFeedbackError] = useState("");
-  const [feedbackSuccess, setFeedbackSuccess] = useState("");
-  const [feedbackPreparing, setFeedbackPreparing] = useState(false);
-  const srcDoc = useMemo(() => buildPreviewDocument(), []);
-  const productionReference = useMemo(() => parseProductionReference(feedbackReferenceUrl), [feedbackReferenceUrl]);
-  const showComparisonFields = feedbackType === "visual-mismatch";
-  const requiresProductionReference = feedbackType === "visual-mismatch";
-  const hasProductionReferenceInput = feedbackReferenceUrl.trim().length > 0;
-  const productionReferenceInvalid = hasProductionReferenceInput && !productionReference;
-  const selectedFeedbackCase = FEEDBACK_TEST_CASES.find(testCase => testCase.id === feedbackCaseId) || null;
-  const relatedFeedbackCases = useMemo(() => {
-    const areas = FEEDBACK_TYPE_AREAS[feedbackType] || [];
-    return FEEDBACK_TEST_CASES.filter(testCase => areas.includes(testCase.area));
-  }, [feedbackType]);
-  const sortedFeedbackCases = useMemo(() => [...relatedFeedbackCases, ...FEEDBACK_TEST_CASES.filter(testCase => !relatedFeedbackCases.some(related => related.id === testCase.id))], [relatedFeedbackCases]);
-  const canCreateFeedbackBundle = !feedbackPreparing && !feedbackSuccess && Boolean(feedbackReviewerName.trim()) && (!feedbackCaseId || feedbackCaseStatus !== "Not started") && !productionReferenceInvalid && (!requiresProductionReference || Boolean(productionReference));
-  const parsedFeedbackBundleUrl = useMemo(() => {
-    try { const parsed = new URL(feedbackBundleUrl.trim()); return parsed.protocol === "https:" && (parsed.hostname === "box.com" || parsed.hostname.endsWith(".box.com")) ? parsed.href : ""; } catch { return ""; }
-  }, [feedbackBundleUrl]);
-  const feedbackAffectedFiles = useMemo(() => affectedPackageFiles(summary, feedbackPackageData?.packageFiles || []), [summary, feedbackPackageData]);
-  const feedbackDiagnosticsSize = useMemo(() => feedbackPackageData ? strToU8(JSON.stringify(feedbackPackageData.exportData)).byteLength + strToU8(JSON.stringify(feedbackPackageData.packageFiles.map(([name, data]) => ({ name, size: data.byteLength })))).byteLength : 0, [feedbackPackageData]);
-  const feedbackEvidenceLevel: FeedbackEvidenceLevel = feedbackType === "package-loading" && sourcePackage
-    ? "complete-package"
-    : feedbackType === "asset-validation" && feedbackAffectedFiles.length > 0
-      ? "affected-assets"
-      : "diagnostics";
-  const feedbackEvidenceSummary = !sourcePackage
-    ? "No package evidence available"
-    : feedbackEvidenceLevel === "complete-package"
-      ? `Complete package · ${formatBytes(sourcePackage.size)}`
-      : feedbackEvidenceLevel === "affected-assets"
-        ? `Package diagnostics + ${feedbackAffectedFiles.length} flagged ${feedbackAffectedFiles.length === 1 ? "file" : "files"}`
-        : `Package diagnostics · about ${formatBytes(feedbackDiagnosticsSize)}`;
-
+  const [feedbackPackageData, setFeedbackPackageData] = useState<FeedbackPackageData>(null);
+  const srcDoc = useMemo(() => buildPreviewDocument(previewSource, BRIDGE_TOKEN), []);
   useEffect(() => { summaryRef.current = summary; }, [summary]);
   useEffect(() => {
     setPreviewPlaybackActive(iframeRef.current, Boolean(summary) && activeTab === "preview");
   }, [activeTab, summary]);
-  useEffect(() => { feedbackInlineImagesRef.current = feedbackInlineImages; }, [feedbackInlineImages]);
-
-  useEffect(() => () => {
-    if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (typeof url === "string" && url.startsWith("blob:")) URL.revokeObjectURL(url); });
-    teaserLayoutUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    ctvOttObjectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    feedbackInlineImagesRef.current.forEach(image => URL.revokeObjectURL(image.previewUrl));
-  }, []);
 
   useEffect(() => {
     themeRef.current = theme;
@@ -1023,115 +143,23 @@ export default function Home() {
     return () => lifecycle.abort();
   }, []);
 
-  const clearCtvOttVideos = () => {
-    ctvOttObjectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    ctvOttObjectUrlsRef.current = [];
-    setCtvOttVideos({});
-  };
-
-  const renderCtvOttPackage = async (file: File, formats: CtvOttFormat[], requestId: string) => {
-    clearCtvOttVideos();
-    setCtvOttFormats(formats);
-    setCtvOttError("");
-    if (!formats.length) {
-      setCtvOttStatus("missing");
-      setCtvOttError("No supported CTV/OTT artboard was found in this package.");
-      return;
-    }
-    setCtvOttStatus("rendering");
-    try {
-      const rendererBase = "/api/ctv-ott";
-      const health = await fetch(`${rendererBase}/health`, { cache: "no-store" });
-      if (!health.ok) throw new Error("The local FFmpeg renderer is unavailable.");
-      const rendered = await Promise.all(formats.map(async format => {
-        const response = await fetch(`${rendererBase}/render?format=${format}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/zip", "X-Package-Name": file.name },
-          body: file,
-        });
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(`${format.toUpperCase()} render failed: ${body.error || "the package did not contain the required CTV/OTT assets."}`);
-        }
-        return [format, URL.createObjectURL(await response.blob())] as const;
-      }));
-      if (requestId !== generationRequestRef.current) {
-        rendered.forEach(([, url]) => URL.revokeObjectURL(url));
-        return;
-      }
-      const nextVideos = Object.fromEntries(rendered) as CtvOttVideos;
-      ctvOttObjectUrlsRef.current = Object.values(nextVideos).filter((url): url is string => Boolean(url));
-      setCtvOttVideos(nextVideos);
-      setCtvOttStatus("ready");
-    } catch (cause) {
-      if (requestId !== generationRequestRef.current) return;
-      setCtvOttStatus("error");
-      const message = cause instanceof TypeError || /NetworkError|Failed to fetch/i.test(String(cause))
-        ? "The local FFmpeg renderer is unavailable. Start QA Studio with npm run dev, then reopen the package."
-        : cause instanceof Error ? cause.message : String(cause);
-      setCtvOttError(message);
-    }
-  };
-
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      if (event.data?.token !== BRIDGE_TOKEN) return;
-      if (event.data.type === "tqa:capture-state") {
-        captureBusyRef.current = Boolean(event.data.busy);
-        setCaptureBusy(captureBusyRef.current);
-        return;
-      }
-      if (event.data.type === "tqa:package-meta") {
-        setPreviewSizeCount(Number.isFinite(event.data.sizeCount) ? event.data.sizeCount : null);
-        const requestId = generationRequestRef.current;
-        if (requestId) window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:capture-mobile-instream", token: BRIDGE_TOKEN, requestId }, "*"), 0);
-        return;
-      }
-      if (event.data.type === "tqa:mobile-instream-frame") {
-        const requestId = String(event.data.requestId || "");
-        if (requestId !== generationRequestRef.current || typeof event.data.dataUrl !== "string") return;
-        const videoTarget = event.data.videoTarget && ["left", "top", "width", "height"].every(key => Number.isFinite(event.data.videoTarget[key]))
-          ? event.data.videoTarget as TeaserMedia["generatedVideoTarget"]
-          : null;
-        pendingGeneratedFrameRef.current = { requestId, dataUrl: event.data.dataUrl, videoTarget };
-        if (generationNeededRef.current) {
-          setTeaserMedia(current => {
-            if (!current) return current;
-            const next = { ...current, generatedFrame: event.data.dataUrl, generatedVideoTarget: videoTarget };
-            teaserMediaRef.current = next;
-            return next;
-          });
-          setTeaserGenerationStatus("ready");
-        }
-        return;
-      }
-      if (event.data.type === "tqa:mobile-instream-frame-error") {
-        if (String(event.data.requestId || "") === generationRequestRef.current && generationNeededRef.current) setTeaserGenerationStatus("error");
-        return;
-      }
-      if (event.data?.type === "tqa:preview-ready") {
-        setPreviewTheme(iframeRef.current, themeRef.current);
-        iframeRef.current?.contentWindow?.postMessage({
-          type: "tqa:map-config",
-          token: BRIDGE_TOKEN,
-          config: mapPreviewConfigRef.current,
-        }, "*");
-        if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
-      } else if (event.data?.type === "tqa:preview-error") {
-        setError(event.data.message || "The package could not be opened in Preview.");
-      }
-    };
-    window.addEventListener("message", listener);
-    iframeRef.current?.contentWindow?.postMessage({ type: "tqa:ping", token: BRIDGE_TOKEN }, "*");
-    return () => window.removeEventListener("message", listener);
-  }, []);
-
-  useEffect(() => {
-    const requestId = generationRequestRef.current;
-    if (!sourcePackage || !generationNeededRef.current || !teaserMedia?.generatedFrame || teaserMedia.generatedVideoTarget || targetRefreshRequestRef.current === requestId) return;
-    targetRefreshRequestRef.current = requestId;
-    iframeRef.current?.contentWindow?.postMessage({ type: "tqa:capture-mobile-instream", token: BRIDGE_TOKEN, requestId }, "*");
-  }, [sourcePackage, teaserMedia?.generatedFrame, teaserMedia?.generatedVideoTarget]);
+  usePreviewMessages({
+    bridgeToken: BRIDGE_TOKEN,
+    iframeRef,
+    mapPreviewConfigRef,
+    captureBusyRef,
+    themeRef,
+    generationRequestRef,
+    generationNeededRef: teaserWorkflow.generationNeededRef,
+    pendingGeneratedFrameRef: teaserWorkflow.pendingGeneratedFrameRef,
+    teaserMediaRef: teaserWorkflow.teaserMediaRef,
+    setCaptureBusy,
+    setPreviewSizeCount,
+    setTeaserMedia: teaserWorkflow.setTeaserMedia,
+    setTeaserGenerationStatus: teaserWorkflow.setTeaserGenerationStatus,
+    setError,
+    setPreviewTheme,
+  });
 
   const openPackage = async (file?: File) => {
     if (!file) return;
@@ -1145,91 +173,47 @@ export default function Home() {
     setFeedbackPackageData(null);
     setSourcePackage(file);
     generationRequestRef.current = `${file.name}:${file.size}:${file.lastModified}`;
-    generationNeededRef.current = false;
-    targetRefreshRequestRef.current = "";
-    pendingGeneratedFrameRef.current = null;
-    clearCtvOttVideos();
-    setCtvOttFormats([]);
-    setCtvOttStatus("idle");
-    setCtvOttError("");
-    setTeaserGenerationStatus("idle");
+    teaserWorkflow.beginPackage();
+    ctvOttWorkflow.beginPackage();
     setSummary(null); setPreviewSizeCount(null); setStatus("loading"); setError(""); setActiveTab("overview");
-    if (file.size > 600 * 1024 * 1024) {
+    if (file.size > MAX_PACKAGE_SIZE_BYTES) {
       setStatus("error"); setError("ZIP/package exceeds the maximum 600 MB size."); return;
     }
-    void loadPreviewFile(iframeRef.current, file);
     try {
-      const packageData = await readPackage(file);
-      setFeedbackPackageData({ exportData: packageData.exportData, packageFiles: packageData.packageFiles });
+      const packageData = await readPackage(file, MAPBOX_ACCESS_TOKEN);
+      teaserWorkflow.setPackageSource({ file, exportData: packageData.exportData, assets: packageData.assets });
+      setFeedbackPackageData({ exportData: packageData.exportData, assets: packageData.assets });
       mapPreviewConfigRef.current = packageData.mapPreviewConfig;
       iframeRef.current?.contentWindow?.postMessage({
         type: "tqa:map-config",
         token: BRIDGE_TOKEN,
         config: packageData.mapPreviewConfig,
       }, "*");
-      const analyzed = analyzePackage(packageData.exportData, packageData.assets, file.name, file.size);
-      const detectedCtvOttFormats = detectCtvOttFormats(packageData.exportData);
-      if (teaserMediaRef.current) Object.values(teaserMediaRef.current).forEach(url => { if (typeof url === "string" && url.startsWith("blob:")) URL.revokeObjectURL(url); });
-      teaserLayoutUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-      const nextMedia = createTeaserMedia(packageData.teaserBytes);
-      const needsGeneration = analyzed.artboards.some(name => name.toLowerCase() === "mobile-instream") && !packageData.teaserBytes.instreamVideo;
-      generationNeededRef.current = Boolean(needsGeneration && packageData.teaserBytes.video);
-      const pendingFrame = pendingGeneratedFrameRef.current as { requestId: string; dataUrl: string; videoTarget: TeaserMedia["generatedVideoTarget"] } | null;
-      if (generationNeededRef.current && pendingFrame?.requestId === generationRequestRef.current) {
-        nextMedia.generatedFrame = pendingFrame.dataUrl;
-        nextMedia.generatedVideoTarget = pendingFrame.videoTarget;
-      }
-      const nextLayouts = createTeaserPackageLayouts(packageData.exportData, packageData.packageFiles);
-      teaserMediaRef.current = nextMedia;
-      teaserLayoutUrlsRef.current = nextLayouts.urls;
-      setTeaserMedia(nextMedia);
-      setTeaserGenerationStatus(!needsGeneration ? "idle" : !packageData.teaserBytes.video ? "error" : nextMedia.generatedFrame ? "ready" : "rendering");
-      setTeaserLayouts(nextLayouts.layouts);
+      const prepared = preparePackageReview(packageData, file.name, file.size);
+      const { summary: analyzed, ctvOttFormats: detectedCtvOttFormats, teaserMedia: nextMedia, teaserLayouts: nextLayouts, teaserLayoutUrls: nextLayoutUrls, needsTeaserGeneration: needsGeneration } = prepared;
+      teaserWorkflow.applyPreparedPackage({
+        media: nextMedia,
+        layouts: nextLayouts,
+        layoutUrls: nextLayoutUrls,
+        needsGeneration,
+        hasVideo: Boolean(packageData.teaserBytes.video),
+      });
       setSummary(analyzed);
       setStatus("ready"); setError("");
-      void renderCtvOttPackage(file, detectedCtvOttFormats, generationRequestRef.current);
+      void loadPreviewFile(iframeRef.current, file, packageData.previewBuffer);
+      void ctvOttWorkflow.renderPackage(file, detectedCtvOttFormats, generationRequestRef.current);
     } catch (cause) {
       setStatus("error"); setError(cause instanceof Error ? cause.message : String(cause));
     }
   };
 
-  const filteredFindings = useMemo(() => {
-    if (!summary) return [];
-    const query = findingQuery.trim().toLowerCase();
-    return summary.findings.filter(finding =>
-      (severity === "all" || finding.severity === severity)
-      && (findingCategory === "all" || finding.category === findingCategory)
-      && (findingTab === "all" || finding.tab === findingTab)
-      && (findingSize === "all" || finding.artboard === findingSize)
-      && (!query || [finding.title, finding.message, finding.suggestedFix, finding.artboard, finding.tab, finding.slide, finding.layerName, finding.category].some(value => String(value || "").toLowerCase().includes(query))),
-    );
-  }, [summary, findingQuery, severity, findingCategory, findingTab, findingSize]);
-
-  const findingGroups = useMemo(() => {
-    const groups = new Map<string, { label: string; findings: Finding[] }>();
-    filteredFindings.forEach(finding => {
-      const itemKey = finding.layerId != null
-        ? `layer:${finding.tab || ""}:${finding.artboard || ""}:${finding.slide || ""}:${finding.layerId}`
-        : finding.artboard || finding.tab || finding.slide
-          ? `context:${finding.tab || ""}:${finding.artboard || ""}:${finding.slide || ""}:${finding.layerName || finding.title}`
-          : `package:${finding.ruleId}:${finding.message}`;
-      const label = finding.layerName || finding.artboard || finding.title;
-      const current = groups.get(itemKey) || { label, findings: [] };
-      current.findings.push(finding);
-      groups.set(itemKey, current);
-    });
-    return Array.from(groups.entries()).map(([id, group]) => ({ id, ...group }));
-  }, [filteredFindings]);
-
-  const findingCategories = useMemo(() => Array.from(new Set(summary?.findings.map(finding => finding.category) || [])).sort(), [summary]);
-  const findingTabs = useMemo(() => Array.from(new Set(summary?.findings.map(finding => finding.tab).filter((value): value is string => Boolean(value)) || [])).sort(), [summary]);
-  const findingSizes = useMemo(() => Array.from(new Set(summary?.findings.map(finding => finding.artboard).filter((value): value is string => Boolean(value)) || [])).sort(), [summary]);
-
-  const filteredAssets = useMemo(() => {
-    if (!summary) return [];
-    const query = assetQuery.trim().toLowerCase();
-    return summary.assets.filter(asset => (assetScope === "all" || (assetScope === "first-view" ? asset.firstViewScopes.length > 0 : asset.firstViewScopes.includes(assetScope))) && (!query || [asset.name, asset.extension, asset.status].some(value => value.toLowerCase().includes(query))));
-  }, [summary, assetQuery, assetScope]);
+  const filteredFindings = useMemo(() => filterFindings(summary?.findings || [], {
+    query: findingQuery, severity, category: findingCategory, tab: findingTab, size: findingSize,
+  }), [summary, findingQuery, severity, findingCategory, findingTab, findingSize]);
+  const findingGroups = useMemo(() => groupFindings(filteredFindings), [filteredFindings]);
+  const findingFacets = useMemo(() => getFindingFacets(summary?.findings || []), [summary]);
+  const { categories: findingCategories, tabs: findingTabs, sizes: findingSizes } = findingFacets;
+  const filteredAssets = useMemo(() => filterAssets(summary?.assets || [], assetQuery, assetScope), [summary, assetQuery, assetScope]);
 
   const downloadReport = () => {
     if (!summary) return;
@@ -1242,7 +226,7 @@ export default function Home() {
   };
 
   const totalBytes = summary?.assets.reduce((sum, asset) => sum + asset.uncompressedSize, 0) || 0;
-  const issueCount = summary ? count(summary.findings, "error") + count(summary.findings, "warning") : 0;
+  const issueCount = summary ? countFindings(summary.findings, "error") + countFindings(summary.findings, "warning") : 0;
   const openScreenshots = () => {
     setActiveTab("preview");
     window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:open-screenshots", token: BRIDGE_TOKEN }, "*"), 0);
@@ -1256,200 +240,23 @@ export default function Home() {
     setActiveTab("preview");
     window.setTimeout(() => iframeRef.current?.contentWindow?.postMessage({ type: "tqa:focus-finding", token: BRIDGE_TOKEN, finding }, "*"), 0);
   };
+  const showSeverityFindings = (nextSeverity: Severity | "all") => {
+    setSeverity(nextSeverity);
+    setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery("");
+    setActiveTab("findings");
+  };
+  const toggleFindingSeverity = (target: Severity) => {
+    showSeverityFindings(severity === target ? "all" : target);
+  };
   const openAssetFindings = (assetPath: string) => {
     setSeverity("all"); setFindingCategory("Assets"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(assetPath); setActiveTab("findings");
   };
   const openCtvOtt = () => {
     setActiveTab("ctvOtt");
-    if (ctvOttStatus === "error" && pendingFileRef.current && ctvOttFormats.length) {
-      void renderCtvOttPackage(pendingFileRef.current, ctvOttFormats, generationRequestRef.current);
-    }
+    ctvOttWorkflow.retry(pendingFileRef.current);
   };
 
-  const openFeedback = () => {
-    setFeedbackError("");
-    setFeedbackSuccess("");
-    setFeedbackShareOpen(false);
-    setFeedbackBundleUrl("");
-    setFeedbackSubmitted(false);
-    setFeedbackOpen(true);
-  };
-
-  const pasteFeedbackImages = (context: FeedbackImageContext, event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const images = Array.from(event.clipboardData.items)
-      .filter(item => item.kind === "file" && item.type.startsWith("image/"))
-      .map(item => item.getAsFile())
-      .filter((file): file is File => Boolean(file));
-    if (!images.length) return;
-    event.preventDefault();
-    setFeedbackInlineImages(current => {
-      const existingCount = current.filter(image => image.context === context).length;
-      const pasted = images.map((image, index) => {
-        const extension = image.type === "image/jpeg" ? "jpg" : image.type === "image/webp" ? "webp" : image.type === "image/gif" ? "gif" : "png";
-        const file = new File([image], `${context}-pasted-${existingCount + index + 1}.${extension}`, { type: image.type, lastModified: Date.now() });
-        return { id: crypto.randomUUID(), context, file, previewUrl: URL.createObjectURL(file) };
-      });
-      return [...current, ...pasted];
-    });
-  };
-
-  const removeFeedbackImage = (id: string) => {
-    setFeedbackInlineImages(current => {
-      const removed = current.find(image => image.id === id);
-      if (removed) URL.revokeObjectURL(removed.previewUrl);
-      return current.filter(image => image.id !== id);
-    });
-  };
-
-  const downloadFeedbackBundle = async () => {
-    const referenceInput = feedbackReferenceUrl.trim();
-    const reference = referenceInput ? parseProductionReference(referenceInput) : null;
-    if (referenceInput && !reference) {
-      setFeedbackError("Enter a valid CCRV or Showcase URL from showcase.vdx.tv, including its # creative ID.");
-      return;
-    }
-    if (requiresProductionReference && !reference) {
-      setFeedbackError("Add a CCRV or Showcase URL to compare this visual mismatch with production.");
-      return;
-    }
-    setFeedbackPreparing(true);
-    setFeedbackError("");
-    setFeedbackSuccess("");
-    try {
-      const capture = feedbackIncludeScreenshot && summary
-        ? await captureFeedbackPreview(iframeRef.current).catch(cause => ({ error: cause instanceof Error ? cause.message : String(cause) }))
-        : null;
-      const captureResult = capture && "dataUrl" in capture ? capture : null;
-      const captureError = capture && "error" in capture ? capture.error : null;
-      const packageFile = feedbackEvidenceLevel === "complete-package" ? sourcePackage : null;
-      const includedAffectedFiles = feedbackEvidenceLevel === "affected-assets" ? feedbackAffectedFiles : [];
-      const generatedAt = new Date().toISOString();
-      const files: Record<string, Uint8Array> = {};
-      const feedback = {
-        schemaVersion: 1,
-        generatedAt,
-        build: PREVIEW_VERSION,
-        reviewer: feedbackReviewerName.trim(),
-        type: feedbackType,
-        testCase: selectedFeedbackCase ? { id: selectedFeedbackCase.id, area: selectedFeedbackCase.area, priority: selectedFeedbackCase.priority, name: selectedFeedbackCase.name, status: feedbackCaseStatus } : null,
-        productionReference: reference,
-        report: {
-          description: feedbackSummary.trim() || null,
-          actualResult: feedbackActual.trim() || null,
-          expectedResult: feedbackExpected.trim() || null,
-          reproductionSteps: feedbackSteps.trim() || null,
-        },
-        appState: {
-          section: activeTab,
-          theme,
-          preview: captureResult?.state || null,
-          previewCaptureError: captureError,
-        },
-        environment: {
-          userAgent: navigator.userAgent,
-          language: navigator.language,
-          viewport: { width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio },
-        },
-        package: summary ? {
-          sourceFile: summary.sourceFile,
-          creativeName: summary.creativeName,
-          evidenceLevel: feedbackPackageData ? feedbackEvidenceLevel : null,
-          completePackageIncluded: Boolean(packageFile),
-          completePackageSize: packageFile?.size || null,
-          affectedAssetCount: includedAffectedFiles.length,
-          artboards: summary.artboards,
-          findings: summary.findings,
-        } : null,
-        evidence: {
-          activePreviewScreenshot: Boolean(captureResult),
-          screenshotRequested: feedbackIncludeScreenshot,
-          packageDiagnostics: Boolean(feedbackPackageData),
-          affectedAssets: includedAffectedFiles.map(([name, data]) => ({ name, size: data.byteLength })),
-          sourcePackage: Boolean(packageFile),
-          pastedImages: feedbackInlineImages.map(image => ({ context: image.context, name: image.file.name, size: image.file.size, type: image.file.type || null })),
-          attachments: feedbackAttachments.map(file => ({ name: file.name, size: file.size, type: file.type || null })),
-        },
-      };
-      files["feedback.json"] = strToU8(JSON.stringify(feedback, null, 2));
-      if (feedbackPackageData) {
-        files["package/diagnostics/export.json"] = strToU8(JSON.stringify(feedbackPackageData.exportData, null, 2));
-        files["package/diagnostics/file-inventory.json"] = strToU8(JSON.stringify(feedbackPackageData.packageFiles.map(([name, data]) => ({ name, size: data.byteLength })), null, 2));
-      }
-      if (captureResult) files["evidence/active-preview.png"] = dataUrlToBytes(captureResult.dataUrl);
-      for (const image of feedbackInlineImages) {
-        const folder = image.context === "description" ? "description" : `${image.context}-result`;
-        files[`evidence/${folder}/${safeFilePart(image.file.name, `${image.context}-pasted.png`)}`] = new Uint8Array(await image.file.arrayBuffer());
-      }
-      for (const [name, data] of includedAffectedFiles) files[`package/affected-assets/${safeArchivePath(name)}`] = data;
-      if (packageFile) files[`package/${safeFilePart(packageFile.name, "source-package.zip")}`] = new Uint8Array(await packageFile.arrayBuffer());
-      const usedAttachmentNames = new Set<string>();
-      for (const attachment of feedbackAttachments) {
-        const baseName = safeFilePart(attachment.name, "attachment");
-        let name = baseName;
-        let suffix = 2;
-        while (usedAttachmentNames.has(name.toLowerCase())) {
-          const dot = baseName.lastIndexOf(".");
-          name = dot > 0 ? `${baseName.slice(0, dot)}-${suffix}${baseName.slice(dot)}` : `${baseName}-${suffix}`;
-          suffix += 1;
-        }
-        usedAttachmentNames.add(name.toLowerCase());
-        files[`attachments/${name}`] = new Uint8Array(await attachment.arrayBuffer());
-      }
-      const archive = zipSync(files, { level: 6 });
-      const archiveBuffer = archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength) as ArrayBuffer;
-      const stamp = generatedAt.replace(/[:.]/g, "-");
-      const creative = safeFilePart(summary?.creativeName || "turbo", "turbo").toLowerCase();
-      const filename = `${creative}-feedback-${stamp}.zip`;
-      const url = URL.createObjectURL(new Blob([archiveBuffer], { type: "application/zip" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      setFeedbackSuccess(filename);
-    } catch (cause) {
-      setFeedbackError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setFeedbackPreparing(false);
-    }
-  };
-
-  const submitFeedbackToNotion = async () => {
-    if (!feedbackSuccess) return;
-    if (!parsedFeedbackBundleUrl) {
-      setFeedbackError("Paste a valid HTTPS Box file link before sharing feedback.");
-      return;
-    }
-    setFeedbackSubmitting(true);
-    setFeedbackError("");
-    try {
-      const response = await fetch("/api/ctv-ott/notion/feedback-submission", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviewer: feedbackReviewerName.trim(), appVersion: PREVIEW_VERSION,
-          package: summary?.sourceFile || "Not recorded", feedbackType: FEEDBACK_TYPE_LABELS[feedbackType],
-          testCase: selectedFeedbackCase ? { ...selectedFeedbackCase, status: feedbackCaseStatus } : null,
-          productionReference: feedbackReferenceUrl.trim(), description: feedbackSummary.trim(),
-          actualResult: feedbackActual.trim(), expectedResult: feedbackExpected.trim(),
-          reproductionSteps: feedbackSteps.trim(), bundleFilename: feedbackSuccess,
-          bundleUrl: parsedFeedbackBundleUrl,
-          evidenceSummary: feedbackEvidenceSummary,
-          supportingFiles: feedbackAttachments.map(file => file.name),
-          pastedImages: feedbackInlineImages.map(image => `${image.context}: ${image.file.name}`),
-        }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "Feedback could not be shared to Notion.");
-      setFeedbackSubmitted(true);
-    } catch (cause) {
-      setFeedbackError(cause instanceof Error ? cause.message : "Feedback could not be shared to Notion.");
-    } finally {
-      setFeedbackSubmitting(false);
-    }
-  };
+  const openFeedback = () => setFeedbackOpen(true);
 
   return (
     <main className="studio-shell">
@@ -1502,152 +309,78 @@ export default function Home() {
           </div></div>
 
           <div className="ctv-ott-subnav" role="navigation" aria-label="CTV and OTT teaser navigation">
-            {ctvOttFormats.length > 0 && <button type="button" className={activeTab === "ctvOtt" ? "active" : ""} onClick={openCtvOtt}><Play /> {ctvOttViewLabel(ctvOttFormats)}</button>}
-            {ctvOttStatus === "rendering" && <span role="status"><LoaderCircle className="spin" /> Generating teaser preview…</span>}
-            {ctvOttStatus === "error" && <span className="ctv-ott-subnav-error" role="alert"><CircleAlert /> {ctvOttError}</span>}
-            {ctvOttStatus === "missing" && <span className="ctv-ott-subnav-error" role="alert"><CircleAlert /> {ctvOttError}</span>}
+            {ctvOttWorkflow.formats.length > 0 && <button type="button" className={activeTab === "ctvOtt" ? "active" : ""} onClick={openCtvOtt}><Play /> {ctvOttViewLabel(ctvOttWorkflow.formats)}</button>}
+            {ctvOttWorkflow.status === "rendering" && <span role="status"><LoaderCircle className="spin" /> Generating teaser preview…</span>}
+            {ctvOttWorkflow.status === "error" && <span className="ctv-ott-subnav-error" role="alert"><CircleAlert /> {ctvOttWorkflow.error}</span>}
+            {ctvOttWorkflow.status === "missing" && <span className="ctv-ott-subnav-error" role="alert"><CircleAlert /> {ctvOttWorkflow.error}</span>}
           </div>
 
-          {activeTab === "overview" && <div role="tabpanel" className="workspace-content">
-            <section className="summary-hero"><div><span className="eyebrow">PACKAGE SUMMARY</span><h1>{summary.creativeName}</h1><p>{issueCount ? `${issueCount} issue${issueCount === 1 ? "" : "s"} need review before handoff.` : "No errors or warnings were found by the current rule set."}</p></div><Button variant="outline" onClick={() => setActiveTab("findings")}>See all {summary.findings.length} findings <ChevronRight /></Button></section>
-            <section className="stat-grid overview-action-grid" aria-label="Quick access">
-              <button className="quick-link overview-action-card" onClick={() => setActiveTab("preview")}><span className="quick-link-icon"><ImageIcon /></span><span><strong>Main Unit</strong><small>{summary.artboards.length} sizes · {summary.tabs.length} tabs</small></span><ChevronRight /></button>
-              {teaserMedia && <button className="quick-link overview-action-card" onClick={() => setActiveTab("teasers")}><span className="quick-link-icon"><Play /></span><span><strong>Teaser preview</strong><small>Open teaser formats</small></span><ChevronRight /></button>}
-              {ctvOttFormats.length > 0 && <button className="quick-link overview-action-card" onClick={openCtvOtt}><span className="quick-link-icon"><Play /></span><span><strong>CTV/OTT view</strong><small>{ctvOttFormats.map(format => format.toUpperCase()).join(" + ")} ready</small></span><ChevronRight /></button>}
-              <button className="quick-link overview-action-card findings-link" onClick={() => setActiveTab("findings")}><span className="quick-link-icon"><FileSearch /></span><span><strong>Review findings</strong><small>{summary.findings.length} items · highest priority first</small></span><ChevronRight /></button>
-            </section>
-            <section className="overview-grid overview-details">
-              <article className="panel package-at-glance"><div className="panel-heading"><div><span className="eyebrow">PACKAGE DETAILS</span><h2>Package at a glance</h2></div></div>
-                <div className="snapshot-row"><strong>Videos ({summary.videos.length})</strong><div className="snapshot-content">{summary.videos.length ? summary.videos.map((video, index) => { const asset = summary.assets.find(item => item.name === video.path); const hasValidationFinding = Boolean(asset?.validationErrors.length || asset?.validationWarnings.length); return <div className="video-summary" key={`${video.path}-${video.size}-${index}`}><span>{video.name} · {formatBytes(video.size)}</span>{hasValidationFinding && <button type="button" className="asset-status warning" onClick={() => openAssetFindings(video.path)} aria-label={`Show findings for ${video.name}`}>Warning</button>}</div>; }) : <span className="muted">None found</span>}</div></div>
-                <div className="snapshot-row"><strong>Tabs ({summary.tabs.length})</strong><span>{summary.tabs.length ? summary.tabs.join(" · ") : "No named tabs found"}</span></div>
-                <div className="snapshot-row"><strong>Components ({summary.components.reduce((total, item) => total + item.count, 0)})</strong><span>{summary.components.length ? summary.components.map(item => `${item.name} (${item.count})`).join(" · ") : "No recognized components found"}</span></div>
-                <div className="snapshot-row"><strong>Fonts ({summary.fonts.length})</strong><span>{summary.fonts.length ? summary.fonts.join(" · ") : "No font metadata found"}</span></div>
-                <div className="snapshot-row"><strong>Colors ({summary.colorCount})</strong><span className="color-summary">{summary.colors.map(color => <span key={color.hex} title={`${color.hex} · ${color.count} uses`}><i style={{ backgroundColor: color.hex }} />{color.hex}</span>)}</span></div>
-              </article>
-              <article className="panel review-summary"><div className="panel-heading"><div><span className="eyebrow">PACKAGE REVIEW</span><h2>Review summary</h2></div></div>
-                <section className="stat-grid overview-metrics review-summary-metrics">
-                  <button className="stat-card metric-error" onClick={() => { setSeverity("error"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); setActiveTab("findings"); }}><p>Errors</p><strong>{count(summary.findings, "error")}</strong><span>Critical issues to fix</span></button>
-                  <button className="stat-card metric-warning" onClick={() => { setSeverity("warning"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); setActiveTab("findings"); }}><p>Warnings</p><strong>{count(summary.findings, "warning")}</strong><span>Items for designer review</span></button>
-                  <div className="stat-card metric-cta" title={summary.ctaReferenceArtboard ? `Counts CTA instances across tabs and slides in the Desktop Expandable reference size (${summary.ctaReferenceArtboard}). Repeated groups in other ad sizes are counted once.` : "Desktop Expandable (970x546) was not found, so CTAs cannot be calculated."}><p>CTAs</p><strong>{summary.ctaCount ?? "—"}</strong><span>{summary.ctaReferenceArtboard ? `Desktop Expandable · ${summary.ctaReferenceArtboard}` : "Desktop Expandable unavailable"}</span></div>
-                  <button className="stat-card metric-assets" onClick={() => setActiveTab("assets")}><p>Package size</p><strong>{formatBytes(sourcePackage?.size || totalBytes)}</strong><span>{summary.assets.length} files</span></button>
-                </section>
-              </article>
-            </section>
-          </div>}
+          {activeTab === "overview" && <OverviewSection
+            summary={summary}
+            packageSizeBytes={sourcePackage?.size || totalBytes}
+            teaserAvailable={Boolean(teaserWorkflow.teaserMedia)}
+            ctvOttFormats={ctvOttWorkflow.formats}
+            errorCount={countFindings(summary.findings, "error")}
+            warningCount={countFindings(summary.findings, "warning")}
+            issueCount={issueCount}
+            onOpenMainUnit={() => setActiveTab("preview")}
+            onOpenTeasers={() => setActiveTab("teasers")}
+            onOpenCtvOtt={openCtvOtt}
+            onOpenFindings={() => setActiveTab("findings")}
+            onShowSeverity={showSeverityFindings}
+            onOpenAssets={() => setActiveTab("assets")}
+            onOpenAssetFindings={openAssetFindings}
+          />}
 
-          {activeTab === "findings" && <div role="tabpanel" className="workspace-content">
-            <section className="page-title"><span className="eyebrow">CREATIVE ANALYSIS</span><h1>Findings</h1><p>Deterministic defects and review signals from the complete package structure.</p></section>
-            <div className="findings-summary-bar">
-              <div className="findings-summary-count"><strong>{summary.findings.length} {summary.findings.length === 1 ? "finding" : "findings"}</strong><span>across {summary.artboards.length} sizes and {summary.tabCount} tabs</span></div>
-              <div className="findings-summary-severity">
-                {count(summary.findings, "error") > 0 && <button type="button" className={`summary-severity critical ${severity === "error" ? "active" : ""}`} aria-pressed={severity === "error"} onClick={() => { setSeverity(severity === "error" ? "all" : "error"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); }}>{count(summary.findings, "error")} critical</button>}
-                {count(summary.findings, "warning") > 0 && <button type="button" className={`summary-severity review ${severity === "warning" ? "active" : ""}`} aria-pressed={severity === "warning"} onClick={() => { setSeverity(severity === "warning" ? "all" : "warning"); setFindingCategory("all"); setFindingTab("all"); setFindingSize("all"); setFindingQuery(""); }}>{count(summary.findings, "warning")} need review</button>}
-                <label className="summary-select"><span>Tab</span><select aria-label="Filter by tab" value={findingTab} onChange={event => setFindingTab(event.target.value)}><option value="all">All tabs</option>{findingTabs.map(value => <option key={value} value={value}>{findingContextLabel(value)}</option>)}</select></label>
-                <label className="summary-select"><span>Size</span><select aria-label="Filter by size" value={findingSize} onChange={event => setFindingSize(event.target.value)}><option value="all">All sizes</option>{findingSizes.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-              </div>
-            </div>
-            <div className="toolbar findings-search"><label className="search-field"><Search /><input value={findingQuery} onChange={event => setFindingQuery(event.target.value)} placeholder="Search copy, element, or suggested fix…" /></label></div>
-            <div className="finding-category-filters" aria-label="Filter findings by check">
-              <button type="button" className={findingCategory === "all" ? "active" : ""} aria-pressed={findingCategory === "all"} onClick={() => setFindingCategory("all")}>All checks</button>
-              {findingCategories.map(category => <button type="button" key={category} className={findingCategory === category ? "active" : ""} aria-pressed={findingCategory === category} onClick={() => setFindingCategory(findingCategory === category ? "all" : category)}>{category}</button>)}
-            </div>
-            <div className="finding-list">{findingGroups.length ? findingGroups.map(group => <section key={group.id} className="finding-group"><header className="finding-group-heading"><strong>{group.label}</strong><span>{group.findings.length} {group.findings.length === 1 ? "finding" : "findings"}</span></header>{group.findings.map((finding, index) => <article key={`${finding.id}-${index}`} className={`finding-row ${finding.severity}`}><div className="finding-icon"><SeverityIcon level={finding.severity} /></div><div className="finding-copy"><div className="finding-title"><strong>{finding.title}</strong><button type="button" className="finding-category-tag" aria-pressed={findingCategory === finding.category} onClick={() => setFindingCategory(findingCategory === finding.category ? "all" : finding.category)}>{finding.category}</button><span className="finding-why"><button type="button" aria-label={`Why this was flagged: ${finding.reason}`} aria-describedby={`finding-why-${finding.id}`}><Info aria-hidden="true" /></button><span role="tooltip" id={`finding-why-${finding.id}`} className="finding-why-tip">{finding.reason}</span></span></div>{finding.ruleId === "copy.spacing" ? <SpacingHighlight finding={finding} /> : <p>{finding.message}</p>}{finding.ruleId === "copy.line-end-spacing" && <SpacingHighlight finding={finding} />}<p className="finding-fix"><strong>Suggested fix</strong><span>{finding.suggestedFix}</span></p>{(finding.artboard || finding.tab || finding.slide) && <div className="finding-location">{[finding.artboard, finding.tab, finding.slide].filter((value): value is string => Boolean(value)).map((value, locationIndex) => <span key={`${value}-${locationIndex}`}>{findingContextLabel(value)}</span>)}{finding.layerId != null && finding.artboard && <button type="button" className="finding-preview-button" aria-label="Show finding in preview" title="Show in preview" onClick={() => focusFinding(finding)}><Play aria-hidden="true" /></button>}</div>}{finding.evidence && (finding.ruleId.startsWith("assets.") || finding.ruleId === "copy.line-end-spacing") && <small>{finding.evidence}</small>}</div></article>)}</section>) : <div className="empty-results"><CheckCircle2 /><strong>No matching findings</strong><span>Adjust the search or selected filters.</span></div>}</div>
-          </div>}
+          {activeTab === "findings" && <FindingsSection
+            findingCount={summary.findings.length}
+            sizeCount={summary.artboards.length}
+            tabCount={summary.tabCount}
+            errorCount={countFindings(summary.findings, "error")}
+            warningCount={countFindings(summary.findings, "warning")}
+            severity={severity}
+            query={findingQuery}
+            category={findingCategory}
+            tab={findingTab}
+            size={findingSize}
+            categories={findingCategories}
+            tabs={findingTabs}
+            sizes={findingSizes}
+            groups={findingGroups}
+            onSeverityToggle={toggleFindingSeverity}
+            onQueryChange={setFindingQuery}
+            onCategoryChange={setFindingCategory}
+            onTabChange={setFindingTab}
+            onSizeChange={setFindingSize}
+            onFocusFinding={focusFinding}
+          />}
 
-          {activeTab === "assets" && <div role="tabpanel" className="workspace-content">
-            <section className="page-title"><span className="eyebrow">PACKAGE INVENTORY</span><h1>Assets</h1><p>Files, sizes, declared references, and potential package debris.</p></section>
-            <div className="toolbar"><label className="search-field"><Search /><input value={assetQuery} onChange={event => setAssetQuery(event.target.value)} placeholder="Filter by filename, type, or status…" /></label><select aria-label="Asset scope" value={assetScope} onChange={event => setAssetScope(event.target.value)}><option value="all">All assets</option><option value="first-view">First view</option>{summary.firstViews.map(view => <option key={view.artboard} value={view.artboard}>{view.artboard} first view</option>)}</select></div>
-            <div className="table-panel"><Table><TableHeader><TableRow><TableHead>Asset</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Size</TableHead><TableHead>Validation</TableHead><TableHead>Status</TableHead><TableHead>References</TableHead></TableRow></TableHeader><TableBody>{filteredAssets.map((asset, index) => <TableRow key={`${asset.name}-${index}`}><TableCell className="asset-name">{asset.name}</TableCell><TableCell>{asset.extension}</TableCell><TableCell className="text-right font-mono">{formatBytes(asset.uncompressedSize)}</TableCell><TableCell>{asset.validationErrors.length || (asset.validationWarnings || []).length ? <><span className={`asset-status ${asset.validationErrors.length ? "error" : "warning"}`}>{asset.validationErrors.length ? "Error" : "Warning"}</span>{[...asset.validationErrors, ...(asset.validationWarnings || [])].map(message => <p key={message}>{message}</p>)}</> : "—"}</TableCell><TableCell><span className={`asset-status ${asset.status}`}>{asset.status}</span></TableCell><TableCell>{asset.referenceCount || "—"}</TableCell></TableRow>)}</TableBody></Table></div>
-          </div>}
+          {activeTab === "assets" && <AssetsSection
+            filteredAssets={filteredAssets}
+            firstViews={summary.firstViews}
+            query={assetQuery}
+            scope={assetScope}
+            onQueryChange={setAssetQuery}
+            onScopeChange={setAssetScope}
+          />}
 
           {activeTab === "ctvOtt" && <div role="tabpanel" className="workspace-content ctv-ott-page">
-            <section className="page-title"><span className="eyebrow">TEASER PREVIEW</span><h1>{ctvOttViewLabel(ctvOttFormats)}</h1><p>Automatically generated from the detected package theme.</p></section>
-            {ctvOttStatus === "rendering" && <section className="ctv-ott-state" role="status"><LoaderCircle className="spin" /><strong>Generating CTV/OTT teaser preview…</strong></section>}
-            {ctvOttStatus === "error" && <section className="ctv-ott-state error" role="alert"><CircleAlert /><div><strong>CTV/OTT preview unavailable</strong><span>{ctvOttError}</span></div></section>}
-            {ctvOttStatus === "missing" && <section className="ctv-ott-state error" role="alert"><CircleAlert /><div><strong>CTV/OTT assets missing</strong><span>{ctvOttError}</span></div></section>}
-            {ctvOttStatus === "ready" && <div className="ctv-ott-video-grid">{ctvOttFormats.map(format => <article key={format} className="ctv-ott-video-card"><h2>{format.toUpperCase()} preview</h2><video src={ctvOttVideos[format]} controls autoPlay muted loop playsInline controlsList="nodownload" aria-label={`${format.toUpperCase()} teaser preview`} /></article>)}</div>}
+            <section className="page-title"><span className="eyebrow">TEASER PREVIEW</span><h1>{ctvOttViewLabel(ctvOttWorkflow.formats)}</h1><p>Automatically generated from the detected package theme.</p></section>
+            {ctvOttWorkflow.status === "rendering" && <section className="ctv-ott-state" role="status"><LoaderCircle className="spin" /><strong>Generating CTV/OTT teaser preview…</strong></section>}
+            {ctvOttWorkflow.status === "error" && <section className="ctv-ott-state error" role="alert"><CircleAlert /><div><strong>CTV/OTT preview unavailable</strong><span>{ctvOttWorkflow.error}</span></div></section>}
+            {ctvOttWorkflow.status === "missing" && <section className="ctv-ott-state error" role="alert"><CircleAlert /><div><strong>CTV/OTT assets missing</strong><span>{ctvOttWorkflow.error}</span></div></section>}
+            {ctvOttWorkflow.status === "ready" && <div className="ctv-ott-video-grid">{ctvOttWorkflow.formats.map(format => <article key={format} className="ctv-ott-video-card"><h2>{format.toUpperCase()} preview</h2><video src={ctvOttWorkflow.videos[format]} controls autoPlay muted loop playsInline controlsList="nodownload" aria-label={`${format.toUpperCase()} teaser preview`} /></article>)}</div>}
           </div>}
 
-          {activeTab === "teasers" && teaserMedia && <div role="tabpanel"><TeaserPreview artboards={summary.artboards} media={teaserMedia} layouts={teaserLayouts} generationStatus={teaserGenerationStatus} onOpen={openMainUnit} /></div>}
+          {activeTab === "teasers" && teaserWorkflow.teaserMedia && <div role="tabpanel"><TeaserPreview artboards={summary.artboards} media={teaserWorkflow.teaserMedia} layouts={teaserWorkflow.teaserLayouts} generationStatus={teaserWorkflow.teaserGenerationStatus} onOpen={openMainUnit} /></div>}
           {activeTab === "preview" && <div role="tabpanel" className="preview-content"><div className="preview-placeholder" /></div>}
         </div>
       ) : null}
 
-      <Dialog open={feedbackOpen} onOpenChange={open => { if (!feedbackPreparing) setFeedbackOpen(open); }}>
-        <DialogContent className="feedback-dialog" aria-describedby="feedback-description">
-          <DialogHeader>
-            <span className="eyebrow">BUILD · {PREVIEW_VERSION}</span>
-            <DialogTitle>Report feedback</DialogTitle>
-            <DialogDescription id="feedback-description">Capture the information needed to reproduce and compare this issue. The feedback ZIP is prepared locally and downloaded to your computer.</DialogDescription>
-          </DialogHeader>
-
-          <div className="feedback-form">
-            <div className="feedback-grid feedback-grid-two">
-              <label className="feedback-field"><span>Reviewer name <b aria-hidden="true">*</b></span><input required value={feedbackReviewerName} onChange={event => setFeedbackReviewerName(event.target.value)} placeholder="Enter your name" /></label>
-              <label className="feedback-field"><span>Feedback type</span>
-                <span className="feedback-select">
-                  <select value={feedbackType} onChange={event => setFeedbackType(event.target.value as FeedbackType)}>
-                    {FEEDBACK_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                  <ChevronDown aria-hidden="true" />
-                </span>
-              </label>
-              <label className="feedback-field"><span>CCRV or Showcase URL {requiresProductionReference ? <b aria-hidden="true">*</b> : "(optional)"}</span>
-                <span className="feedback-input-icon"><Link2 /><input type="url" required={requiresProductionReference} aria-invalid={productionReferenceInvalid} value={feedbackReferenceUrl} onChange={event => setFeedbackReferenceUrl(event.target.value)} placeholder="https://showcase.vdx.tv/…/#creative-id" /></span>
-                {feedbackReferenceUrl && <small className={productionReference ? "valid" : "invalid"}>{productionReference ? `${productionReference.type === "ccrv" ? "CCRV" : "Showcase"} reference · ${productionReference.creativeId}${productionReference.variant ? ` / ${productionReference.variant}` : ""}` : "Use a showcase.vdx.tv CCRV or Showcase link with its # creative ID."}</small>}
-              </label>
-            </div>
-
-            <div className="feedback-grid feedback-grid-two">
-              <label className="feedback-field"><span>Test case (optional)</span><span className="feedback-select"><select value={feedbackCaseId} onChange={event => { setFeedbackCaseId(event.target.value); setFeedbackCaseStatus(event.target.value ? "In progress" : "Not started"); }}><option value="">General feedback — no case</option><optgroup label="Suggested for this feedback type">{relatedFeedbackCases.map(testCase => <option key={testCase.id} value={testCase.id}>{testCase.id} · {testCase.name} · {testCase.priority.toUpperCase()}</option>)}</optgroup><optgroup label="All other test cases">{sortedFeedbackCases.filter(testCase => !relatedFeedbackCases.some(related => related.id === testCase.id)).map(testCase => <option key={testCase.id} value={testCase.id}>{testCase.id} · {testCase.name} · {testCase.priority.toUpperCase()}</option>)}</optgroup></select><ChevronDown aria-hidden="true" /></span>{selectedFeedbackCase && <small className={`feedback-priority feedback-priority-${selectedFeedbackCase.priority.toLowerCase()}`}>{selectedFeedbackCase.priority} priority · {selectedFeedbackCase.area}</small>}</label>
-              {selectedFeedbackCase && <label className="feedback-field"><span>Case status <b aria-hidden="true">*</b></span><span className="feedback-select"><select value={feedbackCaseStatus} onChange={event => setFeedbackCaseStatus(event.target.value as CaseStatus)}>{CASE_STATUS_OPTIONS.filter(status => status !== "Not started").map(status => <option key={status} value={status}>{status}</option>)}</select><ChevronDown aria-hidden="true" /></span></label>}
-            </div>
-
-            <div className="feedback-field"><label htmlFor="feedback-description-text">Description (optional)</label><div className="feedback-textarea-paste"><textarea id="feedback-description-text" value={feedbackSummary} onChange={event => setFeedbackSummary(event.target.value)} onPaste={event => pasteFeedbackImages("description", event)} placeholder="Describe the issue, or paste a screenshot…" />{feedbackInlineImages.some(image => image.context === "description") && <div className="feedback-pasted-images" aria-label="Screenshots pasted into description">{feedbackInlineImages.filter(image => image.context === "description").map(image => <div className="feedback-pasted-image" key={image.id}><span role="img" aria-label={image.file.name} style={{ backgroundImage: `url(${image.previewUrl})` }} /><div><b>{image.file.name}</b><small>{formatBytes(image.file.size)}</small></div><button type="button" aria-label={`Remove ${image.file.name}`} onClick={() => removeFeedbackImage(image.id)}>×</button></div>)}</div>}</div><small>Paste an image from the clipboard to attach it as general evidence.</small></div>
-            {showComparisonFields && <div className="feedback-grid feedback-grid-two">
-              <div className="feedback-field"><label htmlFor="feedback-actual">Actual result (optional)</label><div className="feedback-textarea-paste"><textarea id="feedback-actual" value={feedbackActual} onChange={event => setFeedbackActual(event.target.value)} onPaste={event => pasteFeedbackImages("actual", event)} placeholder="Describe what happened, or paste a screenshot…" />{feedbackInlineImages.some(image => image.context === "actual") && <div className="feedback-pasted-images" aria-label="Screenshots pasted into actual result">{feedbackInlineImages.filter(image => image.context === "actual").map(image => <div className="feedback-pasted-image" key={image.id}><span role="img" aria-label={image.file.name} style={{ backgroundImage: `url(${image.previewUrl})` }} /><div><b>{image.file.name}</b><small>{formatBytes(image.file.size)}</small></div><button type="button" aria-label={`Remove ${image.file.name}`} onClick={() => removeFeedbackImage(image.id)}>×</button></div>)}</div>}</div><small>Paste an image from the clipboard to attach it as actual-result evidence.</small></div>
-              <div className="feedback-field"><label htmlFor="feedback-expected">Expected result (optional)</label><div className="feedback-textarea-paste"><textarea id="feedback-expected" value={feedbackExpected} onChange={event => setFeedbackExpected(event.target.value)} onPaste={event => pasteFeedbackImages("expected", event)} placeholder="Describe production, or paste a reference screenshot…" />{feedbackInlineImages.some(image => image.context === "expected") && <div className="feedback-pasted-images" aria-label="Screenshots pasted into expected result">{feedbackInlineImages.filter(image => image.context === "expected").map(image => <div className="feedback-pasted-image" key={image.id}><span role="img" aria-label={image.file.name} style={{ backgroundImage: `url(${image.previewUrl})` }} /><div><b>{image.file.name}</b><small>{formatBytes(image.file.size)}</small></div><button type="button" aria-label={`Remove ${image.file.name}`} onClick={() => removeFeedbackImage(image.id)}>×</button></div>)}</div>}</div><small>Paste an image from the clipboard to attach it as expected-result evidence.</small></div>
-            </div>}
-            <label className="feedback-field"><span>Steps to reproduce (optional)</span><textarea value={feedbackSteps} onChange={event => setFeedbackSteps(event.target.value)} placeholder={'1. Open the package\n2. Select the size and state\n3. Observe the issue'} /></label>
-
-            <section className="feedback-evidence" aria-labelledby="feedback-evidence-title">
-              <div className="feedback-evidence-heading"><div><strong id="feedback-evidence-title">Evidence included</strong><span>Start lightweight. Add package files only when they help reproduce the issue.</span></div><ShieldCheck /></div>
-              <label className="feedback-check"><input type="checkbox" checked={feedbackIncludeScreenshot} disabled={!summary} onChange={event => setFeedbackIncludeScreenshot(event.target.checked)} /><span><b>Active preview screenshot</b><small>{summary ? "Captures the current artboard and records its tab, slide, view, scale, and theme." : "Open a package to include a rendered artboard."}</small></span></label>
-              <div className="feedback-package-evidence"><div className="feedback-package-heading"><div><b>Package evidence</b><small>Selected automatically from the feedback type.</small></div><span>Automatic</span></div><div className="feedback-auto-evidence"><CheckCircle2 aria-hidden="true" /><span><b>{feedbackEvidenceSummary}</b><small>{feedbackEvidenceLevel === "complete-package" ? "The original ZIP is needed to investigate package loading." : feedbackEvidenceLevel === "affected-assets" ? "Only files connected to asset findings or validation warnings are added." : "Includes export.json and the package file inventory; asset contents stay out."}</small></span></div></div>
-              <label className="feedback-attachment"><Paperclip /><span><b>Add supporting files</b><small>Reference screenshots, logs, PDFs, or corrected assets</small></span><input type="file" multiple onChange={event => setFeedbackAttachments(Array.from(event.target.files || []))} /></label>
-              {feedbackAttachments.length > 0 && <div className="feedback-attachment-list">{feedbackAttachments.map((file, index) => <span key={`${file.name}-${file.size}-${index}`}>{file.name} · {formatBytes(file.size)}</span>)}</div>}
-            </section>
-
-            {feedbackError && <div className="feedback-error" role="alert"><CircleAlert /> {feedbackError}</div>}
-            {feedbackSuccess && <div className="feedback-success" role="status" aria-live="polite">
-              <div className="feedback-success-icon"><CheckCircle2 aria-hidden="true" /></div>
-              <div className="feedback-success-content">
-                <span className="feedback-success-kicker">{feedbackSubmitted ? "Shared with the team" : "One final step"}</span>
-                <strong>{feedbackSubmitted ? "Review saved!" : "Feedback bundle downloaded"}</strong>
-                <p>{feedbackSubmitted ? "Your local draft remains available for edits." : "Upload the ZIP to Box, then share its file link."}</p>
-                <span className="feedback-success-filename">{feedbackSuccess}</span>
-                {!feedbackSubmitted && <Button asChild className="feedback-upload-button"><a href={FEEDBACK_BOX_UPLOAD_URL} target="_blank" rel="noreferrer">Upload bundle to Box <ExternalLink aria-hidden="true" /></a></Button>}
-              </div>
-            </div>}
-            {feedbackSuccess && !feedbackSubmitted && <div className="feedback-share-panel">
-              {!feedbackShareOpen ? <Button onClick={() => setFeedbackShareOpen(true)}>Share Feedback</Button> : <>
-                <label className="feedback-field"><span>Feedback bundle URL <b aria-hidden="true">*</b></span><input type="url" value={feedbackBundleUrl} onChange={event => setFeedbackBundleUrl(event.target.value)} placeholder="Paste the uploaded Box file link" /></label>
-                <small>{parsedFeedbackBundleUrl ? "Box link ready to share." : "Paste the shared file link from Box."}</small>
-              </>}
-            </div>}
-          </div>
-
-          <DialogFooter className="feedback-footer">
-            <Button variant="outline" disabled={feedbackPreparing || feedbackSubmitting} onClick={() => setFeedbackOpen(false)}>{feedbackSubmitted ? "Close" : feedbackSuccess ? "Cancel" : "Cancel"}</Button>
-            {!feedbackSuccess && <Button disabled={!canCreateFeedbackBundle} onClick={() => void downloadFeedbackBundle()}>{feedbackPreparing ? <><LoaderCircle className="spin" /> Preparing bundle…</> : <><Download /> Download feedback bundle</>}</Button>}
-            {feedbackSuccess && !feedbackSubmitted && feedbackShareOpen && <Button disabled={!parsedFeedbackBundleUrl || feedbackSubmitting} onClick={() => void submitFeedbackToNotion()}>{feedbackSubmitting ? <><LoaderCircle className="spin" /> Sharing…</> : "Submit to Notion"}</Button>}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} summary={summary} sourcePackage={sourcePackage} packageData={feedbackPackageData} activeTab={activeTab} theme={theme} build={PREVIEW_VERSION} capturePreview={() => captureFeedbackPreview(iframeRef.current, BRIDGE_TOKEN)} />
 
       <iframe ref={iframeRef} title="Turbo package preview" allow="autoplay" srcDoc={srcDoc} onLoad={() => {
         setPreviewPlaybackActive(iframeRef.current, Boolean(summary) && activeTab === "preview");
-        if (pendingFileRef.current) void loadPreviewFile(iframeRef.current, pendingFileRef.current);
       }} className={summary && activeTab === "preview" ? "preview-frame" : "analysis-frame"} />
     </main>
   );

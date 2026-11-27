@@ -4,6 +4,11 @@ import test from 'node:test';
 import ts from 'typescript';
 import { createPreviewMediaLifecycle } from '../../lib/preview-media.js';
 
+const currentPreviewPath = readFileSync('preview/current-preview.ts', 'utf8')
+  .match(/path: "preview\/([^"]+)"/)?.[1];
+assert.ok(currentPreviewPath, 'current preview pointer must declare an HTML build path');
+const currentPreviewHtml = readFileSync(`preview/${currentPreviewPath}`, 'utf8');
+
 class Events {
   listeners = new Map();
   addEventListener(type, fn, options = {}) {
@@ -180,8 +185,8 @@ test('host delegates workspace state to the renderer without a second competing 
   assert.doesNotMatch(source, /addEventListener/);
 });
 
-test('current standalone embeds the tested lifecycle and caches video by source layer', () => {
-  const html = readFileSync('preview/turbo-preview-7.15.3.html', 'utf8');
+test('current preview artifact embeds the tested lifecycle and caches video by source layer', () => {
+  const html = currentPreviewHtml;
   const source = readFileSync('lib/preview-media.js', 'utf8').replace('export function', 'function');
   assert.ok(html.includes(source));
   assert.match(html, /let previewVideoAudioEnabled = true/);
@@ -254,12 +259,11 @@ test('Compare mode forces mute without changing the Preview audio preference', a
   assert.equal(f.video.muted, true, 'the reviewer mute preference is retained in Preview');
 });
 
-test('current renderer applies the Compare mute policy before painting video', () => {
-  const html = readFileSync('preview/turbo-preview-7.15.3.html', 'utf8');
+test('current preview artifact applies the Compare mute policy before painting video', () => {
+  const html = currentPreviewHtml;
   const source = readFileSync('lib/preview-media.js', 'utf8').replace('export function', 'function');
   assert.ok(html.includes(source));
   assert.match(html, /setCompareMuted: muted => previewMedia\(\)\.setCompareMuted\(muted\)/);
-  assert.match(html, /P\.setCompareMuted\(compareEnabled\);/);
-  assert.match(html, /P\.setCompareMuted\(compareEnabled\);/);
+  assert.match(html, /P\.setCompareMuted\(compareEnabled\);\s*const selection =/);
   assert.match(html, /const audible = previewVideoAudioEnabled && !scanStage;/);
 });

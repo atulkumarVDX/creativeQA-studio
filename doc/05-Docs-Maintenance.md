@@ -1,14 +1,14 @@
 # 05 — Docs Maintenance — Turbo Export Preview
 
-> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Nominal video duration checks allow timestamp/frame rounding (D105).
+> **Current release: 7.16.13** — `preview/turbo-preview-7.16.13.html`. Teaser and CTV/OTT lifecycle state and temporary media cleanup live in feature hooks; renderer behavior is unchanged.
 
-> **Current release note:** QA Studio points to 7.15.8, based on user-confirmed 7.15.7. The 30-second video warning threshold allows 0.05 seconds for timestamp/frame rounding; the 270-second escalation threshold is unchanged. The teaser gallery centers all available cards in one parent; 728×90 and 320×50 follow the main mosaic in left-aligned rows, with absent sizes omitted. Current-build follow-ups preserve authored teaser dimensions, scroll horizontally at narrow widths, and keep one generation-status banner beneath Mobile In-stream as it changes from rendering to ready. Creative destinations lead the Overview, while package-review metrics sit together in a Review summary panel. `video_ctvott.mp4` is exempt from the 2.5 MB size rule but remains subject to duration validation. The technical completion label remains intentionally hidden; Findings and package data continue to indicate results. CTAs uses the Desktop Expandable reference size so repeated groups across ad sizes do not inflate the designer-facing count. Compare remains the default Main Unit view and starts muted; explicit Unmute selects one audible ad size while other sizes stay muted. Single view remains audio-capable. The 7.9.x tables below are historical reconstruction records, not today's release pointer. For active CTV/OTT design and technical rules, maintain [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md) and the [build inventory](18-Preview-Build-Inventory.md) together.
+> **Current release note:** QA Studio points to patch 7.16.13. The embedded preview is carried forward with only its build identity changed; teaser and CTV/OTT workflow state and cleanup are separated from page-level state.
 
 > **7.11.0-feedback note:** the user explicitly selected this named feature-build label and confirmed 7.10.3 as its source. QA Studio's host-level feedback bundle contract is documented in `19-Feedback-Debug-Bundle.md`; the embedded renderer is otherwise unchanged from that confirmed source.
 
-**Doc version:** 1.9.3
-**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
-**Last updated:** 2026-11-19
+**Doc version:** 1.9.19
+**Reflects build:** `preview/turbo-preview-7.16.13.html` @ **v7.16.13** (current); historical baselines are described below.
+**Last updated:** 2026-11-27
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. This doc defines the maintenance process going forward; it did not exist previously in a recoverable form.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and dedicated capture documents describe that historical release.
@@ -18,13 +18,13 @@
 ## 1. Purpose
 
 This is the process doc. It defines:
-1. How versioning/build tags work for both product lines, going forward.
+1. How the current QA Studio build and its embedded preview artifact are versioned together; the legacy standalone source record is historical.
 2. Which of `01-PRD.md` / `02-Technical-Spec.md` / `03-UI-UX-Guidelines.md` / `04-Decisions-Log.md` must be touched for a given change, so docs don't drift from code the way they had (silently, with no doc trail at all) before this reconstruction.
 3. The drift-check procedure to run **before** making any change to the tool.
 
 ## 2. Versioning policy (Semantic Versioning)
 
-Each product line (`02-Technical-Spec.md` §2) is versioned **independently** using `MAJOR.MINOR.PATCH`:
+The active QA Studio release uses `MAJOR.MINOR.PATCH` for the versioned preview artifact selected by the host pointer. The root app shell and preview source travel together as one release; the historical standalone source record is not a separate active line.
 
 - **MAJOR** — breaking change to the input format expected (e.g. a new required `export.json` shape), removal of a previously-supported artboard/tab/gallery convention, or a rewrite of the rendering pipeline that changes visual output for existing packages in a way QA must re-baseline against.
 - **MINOR** — new capability, backward compatible (e.g. ISI panel rendering, vertical nav support, Compare mode, the v7.6.0 kerning QC layer and control-panel redesign). Every "new capability" row in the Tech Spec §5 matrix is a MINOR bump at minimum.
@@ -38,20 +38,35 @@ When one release bundles more than one change type, use the highest required inc
 
 `PREVIEW_BUILD` in the code **must always equal the current semver of that file**, e.g. `"7.7.0"`. No date-stamps, no free-text suffixes (the pre-baseline tags `2026.08.14-nav-label-fix.3` and `2026.08.15-text-render-fix.4` are the pattern being retired — see D001). If you need to record *what* a build fixed and *when*, that's what the Decisions Log is for — don't encode it into the version string.
 
-- `index.html` also references `preview.js?v=<tag>` as a cache-buster query param — keep this equal to the current semver too when it's next touched, so the two can't silently drift from each other again.
+- The root `index.html` is the Vite QA Studio shell and does not reference `preview.js`. The active preview artifact is selected only through `preview/current-preview.ts`.
 
 ### 2.2 QA Studio current-preview pointer
 
-`preview/current-preview.ts` is the only runtime release pointer. Promoting a build requires changing only that file's static import, `version`, and `path` fields together, after the user confirms the latest source. The imported HTML must remain directly under `preview/`; all older HTML builds belong under `preview/archive/`. Never replace the pointer with a wildcard or eager glob. Update `18-Preview-Build-Inventory.md` whenever a build changes location or status.
+`preview/current-preview.ts` is the only runtime release pointer. Promoting a build requires changing only that file's static import, `version`, and `path` fields together, after the user confirms the latest source. The imported HTML must remain directly under `preview/`. Superseded HTML may remain there or in `preview/archive/` as recorded in the inventory; do not move or delete it without approval. Never replace the pointer with a wildcard or eager glob. Update `18-Preview-Build-Inventory.md` whenever a build changes location or status.
 
 ### 2.3 Current versions (as of this baseline)
 
 | File | Line | Version | Notes |
 |---|---|---|---|
-| `preview/turbo-preview-7.15.8.html` | Turbo Preview Artifact | **7.15.8** | Current patch: nominal video durations allow timestamp/frame rounding (D105). |
-| `preview/turbo-preview-7.15.7.html` | Turbo Preview Artifact | **7.15.7** | Retained patch: teaser cards share a centered parent and follow D104. |
-| `preview/turbo-preview-7.15.6.html` | Turbo Preview Artifact | **7.15.6** | Retained patch: Compare audio can be explicitly enabled for one ad size at a time (D103). |
-| `preview/turbo-preview-7.15.5.html` | Turbo Preview Artifact | **7.15.5** | Retained patch: creative-wide video/package limits and AdEx escalation guidance. |
+| `preview/turbo-preview-7.16.13.html` | Turbo Preview Artifact | **7.16.13** | Current patch: CTV/OTT render state, retry, stale-request handling, and object-URL cleanup are in `features/ctv-ott/use-ctv-ott-workflow.ts`; embedded renderer is unchanged. |
+| `preview/turbo-preview-7.16.12.html` | Turbo Preview Artifact | **7.16.12** | Retained patch: teaser loading, generated-frame coordination, and object-URL cleanup are in `features/teasers/use-teaser-workflow.ts`; embedded renderer is unchanged. |
+| `preview/turbo-preview-7.16.11.html` | Turbo Preview Artifact | **7.16.11** | Retained patch: Overview, Findings, and Assets presentation is extracted into typed feature components; embedded renderer is unchanged. |
+| `preview/archive/turbo-preview-7.16.10.html` | Turbo Preview Artifact | **7.16.10** | Historical patch: renderer startup loads the project's `.env.local` even when launched without the app stack wrapper. |
+| `preview/archive/turbo-preview-7.16.9.html` | Turbo Preview Artifact | **7.16.9** | Historical patch: feedback route parsing and Notion/Box integrations are isolated in `scripts/feedback-service.mjs`; endpoint behavior is preserved. |
+| `preview/archive/turbo-preview-7.16.8.html` | Turbo Preview Artifact | **7.16.8** | Historical patch: local CTV/OTT renderer bounds captured stderr so verbose FFmpeg output cannot exhaust the process string limit. |
+| `preview/archive/turbo-preview-7.16.0.html` | Turbo Preview Artifact | **7.16.0** | Historical stable minor baseline for the host architecture refactor (D107–D115). |
+| `preview/archive/turbo-preview-7.16.7.html` | Turbo Preview Artifact | **7.16.7** | Historical patch: map bridge generation separated from general document assembly; no intended workflow change. |
+| `preview/archive/turbo-preview-7.16.6.html` | Turbo Preview Artifact | **7.16.6** | Historical patch: findings and asset review calculations extracted behind the existing UI state contract. |
+| `preview/archive/turbo-preview-7.16.5.html` | Turbo Preview Artifact | **7.16.5** | Historical patch: analyzer text, consistency, and asset domains extracted behind the stable analyzer contract. |
+| `preview/archive/turbo-preview-7.16.3.html` | Turbo Preview Artifact | **7.16.3** | Historical patch: host map popup position accounts for popup width and rendered pin height. |
+| `preview/archive/turbo-preview-7.16.2.html` | Turbo Preview Artifact | **7.16.2** | Historical patch: Teaser media is extracted on demand (D117). |
+| `preview/archive/turbo-preview-7.16.1.html` | Turbo Preview Artifact | **7.16.1** | Historical patch: package assets are expanded only in Preview (D116). |
+| `preview/archive/turbo-preview-7.15.10.html` | Turbo Preview Artifact | **7.15.10** | Retained patch: host map setup uses Mapbox.js Streets styleLayer and resolves location feeds per map (D106). |
+| `preview/archive/turbo-preview-7.15.9.html` | Turbo Preview Artifact | **7.15.9** | Retained patch: host map tile failure handling. |
+| `preview/archive/turbo-preview-7.15.8.html` | Turbo Preview Artifact | **7.15.8** | Retained patch: nominal video durations allow timestamp/frame rounding (D105). |
+| `preview/archive/turbo-preview-7.15.7.html` | Turbo Preview Artifact | **7.15.7** | Retained patch: teaser cards share a centered parent and follow D104. |
+| `preview/archive/turbo-preview-7.15.6.html` | Turbo Preview Artifact | **7.15.6** | Retained patch: Compare audio can be explicitly enabled for one ad size at a time (D103). |
+| `preview/archive/turbo-preview-7.15.5.html` | Turbo Preview Artifact | **7.15.5** | Retained patch: creative-wide video/package limits and AdEx escalation guidance. |
 | `preview/turbo-preview-7.15.3.html` | Turbo Preview Artifact | **7.15.3** | Retained patch: promotes creative destinations, groups review metrics, and exempts `video_ctvott.mp4` from the 2.5 MB rule (D101). |
 | `preview/turbo-preview-7.15.2.html` | Turbo Preview Artifact | **7.15.2** | Retained patch: hides the technical analysis-complete label while retaining all package checks and findings (D100). |
 | `preview/turbo-preview-7.15.1.html` | Turbo Preview Artifact | **7.15.1** | Retained patch: CTAs are counted across Desktop Expandable tabs and slides only, excluding repeated groups in other ad sizes (D099). |
@@ -64,7 +79,7 @@ When one release bundles more than one change type, use the highest required inc
 | `preview/turbo-preview-7.9.11.html` | Turbo Preview Artifact | **7.9.11** | Historical patch: production-parity branch-level vertical reflow after responsive full-width video. Applies one rounded video-height delta to qualifying direct sibling branches while preserving descendant spacing and unrelated structures (D068/TR-011). |
 | `preview/archive/turbo-preview-7.9.10.html` | Turbo Preview Artifact | **7.9.10** | Previous patch: global 375×622 correction for responsive ISI, anchored video/circular controls, selected-artboard state controls, and production 3.13.8-0 text-candidate parity. Its preserve-all-y vertical clause is superseded by D068. |
 | `preview/archive/turbo-preview-7.9.9.html` | Turbo Preview Artifact | **7.9.9** | Current patch: ordinary shape collection uses the existing authored-corner-radius helper. Live Tryngolza production confirms a 14px rounded rectangle where the preview incorrectly painted a circle. Text rendering is identical to restored 7.9.8. |
-| `index.html` + `preview.js` | Standalone | **1.0.0** | First formally tracked version (baseline) |
+| Legacy standalone source (`index.html` + `preview.js`) | Standalone | **1.0.0** | Historical baseline only; `preview.js` is not present in this workspace and the root `index.html` is now the QA Studio shell. |
 | `turbo_preview_artifact_5.html` | Turbo Preview Artifact | **superseded / deprecated** | Do not assign a fabricated precise predecessor number — see D001 |
 | `turbo_preview_artifact_7_7_0.html` | Turbo Preview Artifact | **7.7.0** | Historical baseline. Reconciles always-on text disclosure and registration marks, and formally releases the mobile-instream Fit/1× capability (D040–D044; D045 withheld pending evidence). |
 | `turbo_preview_artifact_7_6_2.html` | Turbo Preview Artifact | **7.6.2 baseline** | Preserved review input. Its unlogged changes are not retroactively assigned to 7.6.1 or reconstructed without evidence. |
@@ -80,11 +95,11 @@ When one release bundles more than one change type, use the highest required inc
 
 ### 2.4 This doc set's own version
 
-The five docs are versioned together as a bundle, independent of the code's version: currently **1.9.2**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
+The five docs are versioned together as a bundle, independent of the code's version: currently **1.9.19**. Bump the bundle's `Doc version` header on every doc that changes in a given update, even if only one doc's content actually changed — keeps all five headers auditable against the same timeline.
 
 ## 3. Change-type → doc-update table
 
-Run this **every time** before merging a change to `preview.js` / any `index.html` or `turbo_preview_artifact_*.html`:
+Run this **every time** before merging a change to the current preview artifact or its host integration:
 
 | Change type | 04 Decisions Log | 01 PRD | 02 Technical Spec | 03 UI/UX Guidelines |
 |---|:---:|:---:|:---:|:---:|
@@ -99,15 +114,15 @@ Run this **every time** before merging a change to `preview.js` / any `index.htm
 
 ## 4. Drift-check procedure (run before starting any new change)
 
-1. **Compare build tags.** For each file you're about to touch, `grep PREVIEW_BUILD` (and `preview.js?v=` in `index.html`) and compare against this doc set's §2.3 table and each doc's `Reflects build:` header. If they don't match, something changed without a doc update since the header was last written — stop and reconcile before proceeding (update the Decisions Log with what you find, per §3's "docs-only correction" row).
+1. **Compare build tags.** For the artifact being changed, check `PREVIEW_BUILD` and compare it against `preview/current-preview.ts`, this inventory, and each current doc's `Reflects build:` header. If they don't match, stop and reconcile before proceeding.
 2. **Spot-check structural drift.** Grep for the feature markers in `02-Technical-Spec.md` §5/§6 (e.g. `rgbChannels`, `isVerticalNav`, `cp-isi`, `scaleTextStyle`, `ResizeObserver`, `scanPackageKerningRisks`) against the actual file. If a marker's presence/absence doesn't match the matrix, the Tech Spec is stale — fix the matrix as part of your change, not as a separate cleanup later.
 3. **Only then** make the code change.
 4. **Before merging**, apply the §3 table for what you just did.
 
 ## 5. Known standing debt (tracked here so it isn't lost again)
 
-- Engine duplication across three files with no shared-module mechanism (Tech Spec §7) — the actual reason drift like D005/D014/D015/D020-22 exists between files today. Any doc-maintenance process is a mitigation, not a fix, for this; the real fix is the refactor described in Tech Spec §7.
-- No test coverage found in any of the three files (Tech Spec §8, item 4) — drift-checks in §4 above are manual because there's nothing automated to run instead.
+- The previous three-file renderer-duplication finding described historical source files that are not active in this workspace. Current architecture follow-ups are listed in Technical Spec §7 and should be handled as versioned, tested patch sets.
+- Current application tests live under `tests/`; retain and extend them when extracting package, analyzer, or preview-bridge responsibilities.
 
 
 ## Historical screenshot source maintenance addendum — 7.8.4

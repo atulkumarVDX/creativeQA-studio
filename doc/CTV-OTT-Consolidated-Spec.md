@@ -1,7 +1,7 @@
 # CTV/OTT preview — consolidated design and technical specification
 
-**Current implementation:** Turbo QA Studio 7.11.16 · 2026-10-18.  
-**Authority:** This document describes the local FFmpeg preview, not every publisher or After Effects delivery workflow. The implementation is `scripts/ctv-ott-renderer.mjs`, `scripts/preview-stack.mjs`, `app/page.tsx`, `vite.config.ts` and `preview/current-preview.ts`.
+**Current implementation:** Turbo QA Studio 7.16.10 · 2026-11-27.
+**Authority:** This document describes the local FFmpeg preview, not every publisher or After Effects delivery workflow. The implementation is `scripts/ctv-ott-renderer.mjs`, `scripts/feedback-service.mjs`, `scripts/preview-stack.mjs`, `app/page.tsx`, `vite.config.ts` and `preview/current-preview.ts`.
 
 ## Scope and source priority
 
@@ -21,7 +21,10 @@ Reference material, relative to the workspace parent:
 1. On ZIP upload, the app detects visible artboards named with a `ctv`, `ott` or `ctvott` prefix followed by `_` or end-of-name. It offers View CTV, View OTT or View CTV/OTT. CTV and OTT renders start automatically; opening the view after an error retries with the retained package.
 2. The view reports rendering, unavailable and missing-assets states. A completed preview appears in a native video player with controls, autoplay muted, loop, inline playback and `nodownload` controls. The browser holds an object URL; the panel offers no MP4 download action.
 3. The browser calls same-origin `/api/ctv-ott/health` and `/api/ctv-ott/render?format=ctv|ott`. Vite proxies these to the local renderer at `127.0.0.1:4177`, including when QA Studio is opened at `localhost:5173`.
-4. `npm run dev` and `npm start` launch the renderer and app together through `scripts/preview-stack.mjs`. FFmpeg/ffprobe must be on `PATH`. A static `dist/` deployment by itself cannot render CTV/OTT; it needs an equivalent renderer service and proxy. The renderer health build, preview HTML badge and current pointer should all read **7.11.16**.
+4. `npm run dev` and `npm start` launch the renderer and app together through `scripts/preview-stack.mjs`. Both the stack launcher and renderer load the project's optional `.env.local`; the renderer therefore receives Notion settings if started directly as well. FFmpeg/ffprobe must be on `PATH`. A static `dist/` deployment by itself cannot render CTV/OTT; it needs an equivalent renderer service and proxy. The renderer health build, preview HTML badge and current pointer should all read **7.16.10**.
+5. Subprocess stderr capture is bounded to its most recent 64 KiB. FFmpeg can emit verbose diagnostics during rendering; retaining the entire stream can exceed Node's maximum string length and terminate the local renderer. The bounded tail preserves recent error context without allowing output volume to grow for the life of the process. A renderer failure affects CTV/OTT rendering only; the app remains available for other review features.
+
+6. The companion service routes `/feedback/upload`, `/notion/pilot-session`, and `/notion/feedback-submission` to `scripts/feedback-service.mjs`. That module owns request limits, origin checks, payload validation, and Box/Notion API calls. The renderer retains `/health` and `/render`; the JSON response helper is shared through dependency injection. The extraction preserves existing endpoints and response contracts.
 
 ## Export-package contract
 

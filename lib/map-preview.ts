@@ -1,4 +1,6 @@
-export type PackageFileBytes = readonly [string, Uint8Array];
+import type { PackageFile } from "@/types/package";
+
+export type PackageFileBytes = PackageFile;
 export type MapPreviewAssetReference = { layerID: number | string; fileName: string };
 
 export type MapPreviewStore = {
@@ -84,6 +86,35 @@ function findRoleImage(files: PackageFileBytes[], role: string, id: number): Pac
 function layerId(layer: Record<string, unknown>): number | null {
   const child = Number(layer.layerID);
   return Number.isFinite(child) && child > 0 ? child : null;
+}
+
+/** Select only archive members needed to render location maps in the preview. */
+export function getMapPreviewAssetNames(rawLayers: unknown, archiveNames: readonly string[]): string[] {
+  if (!Array.isArray(rawLayers)) return [];
+  const layers = rawLayers.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
+  const mapLayers = layers.filter(layer => /^locationmap(?:\d+)?$/i.test(String(layer.name || "")));
+  if (!mapLayers.length) return [];
+
+  const roleFiles = new Set<string>();
+  for (const map of mapLayers) {
+    const rootId = layerId(map);
+    if (!rootId) continue;
+    const children = layers.filter(layer => Number(layer.parentLayerID) === rootId);
+    for (const child of children) {
+      const role = String(child.name || "").toLowerCase();
+      if (!["pin", "default", "loading", "nodata", "button", "logo"].includes(role)) continue;
+      const id = layerId(child);
+      if (id) {
+        roleFiles.add(`${role}-${id}.png`);
+        roleFiles.add(`${role}-${id}-2x.png`);
+      }
+    }
+  }
+
+  return archiveNames.filter(name => {
+    const basename = name.split("/").pop()?.toLowerCase() || "";
+    return basename === "data.json" || roleFiles.has(basename);
+  });
 }
 
 /** Build the small, safe payload the isolated campaign preview needs for a Mapbox locationMap. */
