@@ -1,12 +1,12 @@
 # 02 — Technical Specification — Turbo Export Preview
 
-> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Video duration checks allow 0.05 seconds for timestamp/frame rounding (D105).
+> **Current release: 7.16.13** — `preview/turbo-preview-7.16.13.html`. Teaser lazy loading, generated mobile-instream state, and media URL cleanup are owned by `features/teasers/use-teaser-workflow.ts`; CTV/OTT preview state, retry, and video URL cleanup are owned by `features/ctv-ott/use-ctv-ott-workflow.ts`. The embedded renderer is carried forward unchanged apart from build identity.
 
 > **Current CTV/OTT exception (7.11.16):** This reconstructed core spec primarily describes the banner/main-unit preview line and its historical baseline. The separate local FFmpeg CTV/OTT renderer, including package media rules, animation, glass, QR grouping, service API and output profile, is specified in [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Excluding CTV/OTT artboards from the in-page banner renderer does not mean they are unavailable in QA Studio.
 
-**Doc version:** 1.9.3
-**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
-**Last updated:** 2026-11-19
+**Doc version:** 1.9.19
+**Reflects build:** `preview/turbo-preview-7.16.13.html` @ **v7.16.13** (current); historical baselines are described below.
+**Last updated:** 2026-11-27
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
@@ -17,29 +17,28 @@
 
 An offline, in-browser QC preview renderer for **VDX Turbo export packages**: a PSD-derived `export.json` layer manifest plus rasterized layer PNGs (and optionally video/font/disclaimer assets). It reconstructs, at true 1:1 pixel scale, what a Photoshop-authored multi-size, multi-tab, multi-slide ad will look like in production — **without** running Photoshop, without a build step, and without a server.
 
-Two independent distribution lines currently exist (see §2), which is itself the top architectural finding of this reconstruction (§7).
+The current workspace contains the QA Studio web app, its embedded self-contained preview artifact, and a companion local CTV/OTT service. Earlier standalone-source descriptions in this document are historical and are not active workspace entry points.
 
 ## 2. Distribution lines
 
-### 2.1 Standalone Preview — `index.html` + `preview.js` — v1.0.0
+### 2.1 QA Studio web app — `index.html` + `main.tsx`
 
-- Opened directly via `file://` — no bundler, no server.
-- Loads a single `export.json` via `<input type="file">`; PNG/font/video assets are resolved as relative URLs against `document.baseURI`, i.e. **the files must sit next to `preview.js`/`index.html` on disk**.
-- Single-select size picker (checkboxes), tab/slide segmented controls, no theming, no compare mode.
-- Simplest, oldest lineage; does not yet include most of the fixes and features in the artifact line (see §5 matrix).
+- The Vite app shell starts from the root `index.html` and `main.tsx`.
+- The host owns package review, QA sections, and the iframe integration; the current renderer is read through `preview/current-preview.ts`.
+- ZIP analysis and CTV/OTT rendering use the app's browser modules and companion local service, as described in the README and CTV/OTT specification.
 
-### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.15.8 current source**
+### 2.2 Turbo Preview Artifact — self-contained single-file HTML — **v7.16.13 current source**
 
 - Built to run as a Claude artifact / any static host: everything (engine, UI, styling) is inlined in one `.html` file plus a CDN `<script>` for JSZip.
 - Ingests a **`.zip`** of the whole export package (via drag-drop or file picker), unzips in-browser with JSZip, and resolves every asset filename to an in-memory `Blob` URL through `CSM_PREVIEW.setAssetResolver()` — nothing is uploaded anywhere.
 - Dark/light theme toggle, sticky size/tab/slide control panel, Compare mode (all available sizes), Compare-card registration marks, always-on text-risk disclosure (§4.5), and a focused mobile-instream Fit/1× control (§4.7).
-- `preview/turbo-preview-7.15.8.html` is the **current source** and declares `PREVIEW_BUILD = "7.15.8"`. It is based on user-confirmed 7.15.7; earlier releases remain available as historical builds.
-- QA Studio imports only `preview/current-preview.ts`. That pointer statically imports the confirmed current HTML and owns its version/path metadata. Historical builds live under `preview/archive/` and are available to regression tests without entering the application module graph. See `18-Preview-Build-Inventory.md` for the version-to-path register.
+- `preview/turbo-preview-7.16.13.html` is the **current source** and declares `PREVIEW_BUILD = "7.16.13"`. It carries 7.16.12 forward with only its build identity updated; this release extracts host CTV/OTT workflow state and does not change the embedded renderer.
+- QA Studio imports only `preview/current-preview.ts`. That pointer statically imports the confirmed current HTML and owns its version/path metadata. Superseded builds remain directly under `preview/` or in `preview/archive/`, as recorded in `18-Preview-Build-Inventory.md`; neither location is imported by the app.
 - v7.7.0 combines PATCH-level regression corrections (D041/D042) with the backward-compatible mobile-instream scale capability (D043), so the release uses a MINOR increment per `05-Docs-Maintenance.md` §2.
 
 ## 3. Data model
 
-### QA Studio overview summary (7.15.8)
+### QA Studio overview summary (7.16.13)
 
 The host derives overview data from the already analyzed `export.json` and ZIP inventory: CTA instances, tab labels, recognized component group counts, font-family metadata, frequently repeated RGB colors, and video file sizes. **CTAs** counts recognized CTA/button groups across tabs and slides in the Desktop Expandable (`970x546`) reference size. Repeated groups in other ad sizes are excluded, so the number represents designer-facing CTA touchpoints rather than a package-wide total. If the reference size is absent, the card explicitly reports that CTAs cannot be calculated. The Overview presents creative destinations first, followed by a grouped review summary for Errors, Warnings, CTAs, and Package Size. Package size uses the uploaded ZIP byte length when available, displays file count below it, and opens Assets. Teaser preview and CTV/OTT view are separate quick actions. Video warning badges appear only when the corresponding asset has validation findings and open Findings with the matching asset path pre-filtered. The dedicated `video_ctvott.mp4` is excluded from the 2.5 MB size rule but retains duration validation; the 30-second warning threshold allows 0.05 seconds for timestamp/frame rounding. These are descriptive summaries; the video badge does not change analyzer findings.
 
@@ -159,7 +158,9 @@ Preview-mode tab and slide controls are derived only from the selected artboard,
 
 After each artboard render, the host marks numbered `buttonN` groups with one direct frame (`.cp-cta`) and the documented `button-clientLogo` role as keyboard-focusable links. A `buttonN` group's direct frame defines its hit area; its optional image/Smart Object background is named `background` per the authoring contract. For `button-clientLogo`, the renderer promotes the existing background-image group to a pointer hit target. A delegated stage handler opens the fixed `https://www.vdx.tv/` destination in a new tab on click or Enter. This is a default interaction target for preview QA, not an inferred campaign URL. It does not change `export.json`, package files, production actions, or tracking configuration. Decorative logos, reconstructed canvas tabs, gallery arrows, map Smart Object buttons, and layout-audit selection retain their existing behavior.
 
-## 5. Feature / fix matrix across the three files
+## 5. Historical feature / fix matrix (7.9.11 comparison)
+
+The matrix below records the older comparison between a legacy standalone source, two historical artifacts, and the 7.9.11 renderer. Those legacy source files are not current workspace entry points. Use §§2 and 7 for the current architecture.
 
 | Capability | `index.html`+`preview.js` (v1.0.0) | `artifact_5` (deprecated) | `preview/archive/turbo-preview-7.9.11.html` (v7.9.11, historical source) |
 |---|:---:|:---:|:---:|
@@ -226,19 +227,22 @@ TEXT_QA_ENABLED          = (?textQA=1) // gates full audit/badge, not baseline m
 
 Current Artifact QA/UI markers: `scanPackageKerningRisks` supplies the package-wide static list; `data-kerning-risk` drives dotted amber in-canvas disclosure; `data-text-qa-failure` drives dashed red failure disclosure; `text-qa-mode` identifies the opt-in full audit; `sizeCorrection` keeps transformed leading on the implied-size basis; and `.reg-corner` nodes are created only for Compare cards.
 
-## 7. Architecture finding: engine duplication across three files
+## 7. Current architecture and remaining findings
 
-**This is the single most important structural issue in the codebase.** The parsing/rendering engine (`parseExport`, `collectRenderablesWithSelection`, `paintArtboard`, and every helper) is not a shared module — it is copy-pasted inline into `preview.js` (loaded by `index.html`) **and separately** into `turbo_preview_artifact_5.html` **and separately again** into `turbo_preview_artifact_7_7_0.html`. The three copies have organically diverged (§5 matrix), meaning bug fixes made in one file are **not automatically present** in the others, and there is currently no mechanism to keep them in sync.
+The root `index.html` loads the QA Studio app. The app imports one preview artifact through `preview/current-preview.ts`; that single-file HTML is also retained as a versioned release source. Historical artifacts are snapshots, not active application imports. The current source tree has no root `preview.js`, so the old three-copy synchronization recommendation is not applicable to this workspace.
 
-**Recommendation (not yet actioned):** extract the shared engine into a single source file and have both distribution lines consume it — the Standalone line via `<script src>` (as `index.html` already does today), the Artifact line via a build step that inlines it into the single-file `.html` output. Until that refactor happens, any engine-level fix must be manually ported to all three files, and this doc's §5 matrix must be updated to reflect which files received it.
+Remaining maintainability work includes `app/page.tsx`, which still coordinates package workflows and remaining UI composition, and `lib/qa-engine.ts`, which coordinates package-summary construction from version-variable Photoshop descriptors. Build 7.16.5 separated analyzer domains; 7.16.6 extracted review view-model calculations; 7.16.7 separates map-specific bridge generation from general iframe document and message handling; 7.16.9 separates Notion and Box feedback handling from the renderer service; 7.16.11 extracts Overview, Findings, and Assets presentation into typed feature components; 7.16.12 moves teaser-specific lazy loading and media lifecycle state into a Teasers hook; 7.16.13 moves CTV/OTT preview state, retry behavior, and temporary video URL cleanup into its feature hook.
+
+### 7.1 QA Studio host package ingestion (7.16.13)
+
+The browser host reads and prepares uploaded ZIP packages through `features/package-loading/read-package.ts`. This module owns ZIP expansion, `export.json` parsing, package asset and video-duration inventory, and map-preview configuration. `features/package-workflow/prepare-package-review.ts` coordinates package analysis, CTV/OTT format detection, and teaser media/layout preparation through the feature modules. `features/teasers/use-teaser-workflow.ts` owns lazy teaser asset extraction, teaser-specific state, generated mobile-instream frame coordination, and teaser media/layout URL cleanup; `features/teasers/select-assets.ts` selects the package assets required by that workflow. `components/teaser-preview.tsx` owns Teaser rendering, while `features/teasers/package-preparation.ts` assembles package-derived media and layout data. The iframe bridge and preview-document assembly belong to `features/preview-bridge/preview-document.ts`; `features/preview-bridge/use-preview-messages.ts` owns host-side message subscription and dispatch. CTV/OTT renderer health checks, format requests, response handling, and video URL creation belong to `features/ctv-ott/render-package.ts`; package artboard format detection belongs to `features/ctv-ott/detect-package-formats.ts`; `features/ctv-ott/use-ctv-ott-workflow.ts` owns render status, stale-request handling, retry behavior, and temporary video URL cleanup. The page retains upload checks, React state updates, map messaging, UI composition, and preview/render handoffs. Feedback case definitions and pure parsing/file-selection helpers live in `features/feedback/catalog.ts` and `features/feedback/feedback-utils.ts`; `features/feedback/use-feedback-form.ts` owns feedback form state, evidence selection, validation, and submission actions; `features/feedback/feedback-dialog.tsx` owns the dialog UI; and `features/feedback/capture-preview.ts` owns the feedback screenshot message exchange. Feedback bundle assembly and the typed submission client remain in `features/feedback/create-feedback-bundle.ts` and `features/feedback/submit-feedback.ts`. The page supplies package and preview context to the feedback feature. These extracted boundaries are intended to preserve existing package and preview behavior; see D107–D115 and D128–D129.
 
 ## 8. Open issues
 
-1. `turbo_preview_artifact_7_4_1.html`'s `PREVIEW_BUILD` says `"1.0.1"`; should read `"7.4.1"` (D001).
-2. Engine duplication across three files with no sync mechanism (§7).
-3. `index.html`/`preview.js` and `turbo_preview_artifact_5.html` are missing the fixes listed in §5's "known gap" cells — most notably D005 (invisible text on float-color descriptors) and D010/D022 (stale-layout-on-font-swap class of bugs), which are silent-failure-mode bugs, not cosmetic ones.
-4. No automated test coverage of any kind was found for any of the three files.
-5. The ISI `titleAtTop` set (`970x546`, `mobile-instream`; explicitly excluding `970x250`) is code-confirmed and consistent with available package structures, but this pass did not locate a served-production capture proving the complete per-size placement rule. Do not broaden the set or log it as fully evidence-confirmed until that reference exists.
+1. The current host page remains responsible for package/workspace state and remaining CTV/OTT and Preview composition. Overview, Findings, Assets, teaser lifecycle, and CTV/OTT lifecycle concerns now have feature boundaries (D127–D129); later extraction should target a cohesive responsibility and preserve shared navigation contracts.
+2. `lib/qa-engine.ts` still coordinates package-summary construction with version-variable Photoshop descriptors; future type narrowing must preserve its stable public API and existing findings.
+3. The preview bridge now has separate map-specific and general document modules; future changes must preserve cross-frame ordering and map lifecycle.
+4. The product's historical standalone/archive sources and their feature matrix remain reference material only; do not restore them as current application paths without confirming a supported standalone product requirement.
 
 
 ## Screenshot capture addendum — 7.8.0

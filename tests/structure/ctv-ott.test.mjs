@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const preview = readFileSync("preview/archive/turbo-preview-7.12.5.html", "utf8");
+const currentPreviewPointer = readFileSync("preview/current-preview.ts", "utf8");
+const currentPreviewPath = currentPreviewPointer.match(/path:\s*"([^"]+)"/)?.[1];
+if (!currentPreviewPath) throw new Error("Could not resolve the current preview path.");
+const preview = readFileSync(currentPreviewPath, "utf8");
 const app = readFileSync("app/page.tsx", "utf8");
+const workflow = readFileSync("features/ctv-ott/use-ctv-ott-workflow.ts", "utf8");
+const hostService = readFileSync("features/ctv-ott/render-package.ts", "utf8");
+const formatDetection = readFileSync("features/ctv-ott/detect-package-formats.ts", "utf8");
 const renderer = readFileSync("scripts/ctv-ott-renderer.mjs", "utf8");
 const stack = readFileSync("scripts/preview-stack.mjs", "utf8");
 const viteConfig = readFileSync("vite.config.ts", "utf8");
@@ -16,15 +22,22 @@ test("CTV/OTT controls live in the host app, not the embedded main-unit preview"
 });
 
 test("CTV/OTT assets are detected and rendered automatically after upload", () => {
-  assert.match(app, /function detectCtvOttFormats\(exportData/);
-  assert.match(app, /exportData\.document\?\.artboards/);
-  assert.match(app, /void renderCtvOttPackage\(file, detectedCtvOttFormats/);
+  assert.match(formatDetection, /function detectCtvOttFormats\(exportData/);
+  assert.match(formatDetection, /exportData\.document\?\.artboards/);
+  assert.match(app, /void ctvOttWorkflow\.renderPackage\(file, detectedCtvOttFormats/);
   assert.match(app, /const openCtvOtt = \(\) =>/);
-  assert.match(app, /ctvOttStatus === "error"/);
-  assert.match(app, /renderCtvOttPackage\(pendingFileRef\.current, ctvOttFormats/);
-  assert.match(app, /fetch\(`\$\{rendererBase\}\/render\?format=\$\{format\}`/);
-  assert.match(app, /No supported CTV\/OTT artboard was found/);
-  assert.match(app, /The local FFmpeg renderer is unavailable/);
+  assert.match(app, /ctvOttWorkflow\.retry\(pendingFileRef\.current\)/);
+  assert.doesNotMatch(app, /renderCtvOttVideos|ctvOttObjectUrlsRef|setCtvOttStatus/);
+  assert.match(workflow, /renderCtvOttVideos\(file, nextFormats\)/);
+  assert.match(workflow, /requestId !== generationRequestRef\.current/);
+  assert.match(workflow, /No supported CTV\/OTT artboard was found/);
+  assert.match(workflow, /setStatus\("rendering"\)/);
+  assert.match(workflow, /setStatus\("ready"\)/);
+  assert.match(workflow, /setStatus\("error"\)/);
+  assert.match(workflow, /const retry = \(file: File \| null\)/);
+  assert.match(workflow, /URL\.revokeObjectURL\(url\)/);
+  assert.match(hostService, /fetch\(`\$\{RENDERER_BASE\}\/render\?format=\$\{format\}`/);
+  assert.match(hostService, /The local FFmpeg renderer is unavailable/);
 });
 
 test("the local app stack starts the FFmpeg renderer with the preview app", () => {
@@ -33,7 +46,7 @@ test("the local app stack starts the FFmpeg renderer with the preview app", () =
 });
 
 test("the browser reaches the renderer through the same-origin app proxy", () => {
-  assert.match(app, /const rendererBase = "\/api\/ctv-ott"/);
+  assert.match(hostService, /const RENDERER_BASE = "\/api\/ctv-ott"/);
   assert.doesNotMatch(app, /http:\/\/127\.0\.0\.1:4177/);
   assert.match(viteConfig, /"\/api\/ctv-ott"/);
   assert.match(viteConfig, /rewrite: \(requestPath: string\) => requestPath\.replace/);
@@ -43,7 +56,8 @@ test("the browser reaches the renderer through the same-origin app proxy", () =>
 });
 
 test("FFmpeg renderer stays on the approved production preview profile", () => {
-  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview\/archive\/turbo-preview-7\.12\.4\.html"\)/);
+  assert.match(renderer, /const HTML_FILE = join\(BUILD_DIR, "\.\.\/preview", previewHtml\)/);
+  assert.match(renderer, /const previewVersion = previewPointer\.match/);
   assert.match(renderer, /role === "disclaimer"/);
   assert.match(renderer, /duration - 8/);
   assert.match(renderer, /duration - 7\.8/);
@@ -54,7 +68,7 @@ test("FFmpeg renderer stays on the approved production preview profile", () => {
   assert.match(renderer, /-b:v", "15M/);
   assert.match(renderer, /-ar", "48000/);
   assert.match(renderer, /-ac", "2/);
-  assert.match(renderer, /build: "7\.12\.4"/);
+  assert.match(renderer, /build: previewVersion/);
   assert.match(renderer, /const qrBackingRect = \(qr, panel, shape\) =>/);
   assert.match(renderer, /\[qrBackingSource\]crop=/);
   assert.match(renderer, /\[expandedQrGroup\]/);

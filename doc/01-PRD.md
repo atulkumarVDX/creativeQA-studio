@@ -1,10 +1,10 @@
 # 01 — Product Requirements Document — Turbo Export Preview
 
-> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Nominal video duration checks allow timestamp/frame rounding (D105).
+> **Current release: 7.16.13** — `preview/turbo-preview-7.16.13.html`. CTV/OTT preview status, retry, and temporary video URL cleanup are owned by the CTV/OTT workflow hook; user-facing behavior is unchanged.
 
-**Doc version:** 1.9.3
-**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
-**Last updated:** 2026-11-19
+**Doc version:** 1.9.19
+**Reflects build:** `preview/turbo-preview-7.16.13.html` @ **v7.16.13** (current); historical baselines are described below.
+**Last updated:** 2026-11-27
 **Status:** ⚠️ Reconstructed baseline — see `04-Decisions-Log.md` § D000. Product goals/personas below are inferred from code behavior and comments (e.g. references to "Creative State Manager", "PSD_Design_Guidelines.docx", QC framing), not from an original PRD.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; the screenshot addenda and `08-Screenshot-Capture-Tool.md` describe that historical capture line.
@@ -78,7 +78,7 @@ The two products — and the several generations within the Artifact line — ar
 
 ## 8. Versioning
 
-See `05-Docs-Maintenance.md` for the semver policy. Summary: the Standalone line and the Artifact line are versioned **independently**; each ships its own `PREVIEW_BUILD` tag which must equal its semver. The current Artifact release is 7.15.1. v7.7.0 remains the historical MINOR release that formally introduced the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
+See `05-Docs-Maintenance.md` for the semver policy. The active QA Studio build uses the versioned preview artifact selected through `preview/current-preview.ts`; the legacy standalone line is historical and is not an active workspace entry point. The current build is 7.16.7. v7.7.0 remains the historical MINOR release that formally introduced the mobile-instream Fit/1× capability alongside PATCH-level disclosure and registration-mark corrections.
 
 ## 9. Release invariants
 

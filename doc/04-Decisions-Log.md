@@ -1,10 +1,10 @@
 # 04 — Decisions Log — Turbo Export Preview
 
-> **Current release: 7.15.8** — `preview/turbo-preview-7.15.8.html`. Nominal video duration checks allow timestamp/frame rounding (D105).
+> **Current release: 7.16.13** — `preview/turbo-preview-7.16.13.html`. Teaser and CTV/OTT preview lifecycle state are owned by their respective feature hooks.
 
-**Doc version:** 1.9.3
-**Reflects build:** `preview/turbo-preview-7.15.8.html` @ **v7.15.8** (current); historical baselines are described below.
-**Last updated:** 2026-11-19
+**Doc version:** 1.9.19
+**Reflects build:** `preview/turbo-preview-7.16.13.html` @ **v7.16.13** (current); historical baselines are described below.
+**Last updated:** 2026-11-27
 **Status:** ⚠️ Reconstructed from source-code comments and diffing three source files. No prior doc set was found in this workspace or project folder. This is a new baseline, not a recovered history — see the note at the bottom.
 
 **Historical screenshot release:** `preview/archive/turbo-preview-7.9.11.html`. The main sections below preserve the 7.7.0 baseline; historical capture decisions are recorded below and in `08-Screenshot-Capture-Tool.md`.
@@ -907,3 +907,213 @@ The supplied archive's feed coordinates are all in Miami, so an Oakland basemap 
 Validation and remaining limitations are recorded with the 7.15.10 build inventory entry.
 
 **Versioning:** create patch build 7.15.10 from current 7.15.9 and promote `preview/current-preview.ts`. The embedded renderer is carried forward with its build identity updated.
+
+## D107 — [QA Studio architecture] Extract ZIP package reader (7.16.0)
+
+**Decision:** move ZIP expansion, `export.json` parsing, asset/video metadata collection, teaser asset selection, and map-preview configuration into `features/package-loading/read-package.ts`. Keep UI state, QA analysis invocation, and preview/renderer handoffs in `app/page.tsx`. Pass the configured Mapbox token into the reader rather than coupling the module to Vite environment state. Preserve the existing package-size threshold and user-facing error.
+
+**Versioning exception:** the user selected 7.16.0 for this behavior-preserving architecture refactor. This does not meet the documented capability-based MINOR criteria; the policy itself remains unchanged, and this release is recorded as an explicit exception. The embedded HTML is carried forward from 7.15.10 with only `PREVIEW_BUILD` updated.
+
+**Validation:** typecheck and production build results are recorded at completion. Package fixture testing is not included in this slice.
+
+## D108 — [QA Studio architecture] Extract teaser package preparation (7.16.0)
+
+**Decision:** move teaser disclaimer assembly, package-derived teaser layouts, media object-URL creation, and their shared types into `features/teasers/`. Keep React rendering in `components/teaser-preview.tsx` and package-workflow state in `app/page.tsx`. Reuse the package reader's `PackageFile` type and the existing teaser geometry helper. Preserve the current URL cleanup ownership and rendered output.
+
+**Versioning:** this is a follow-up slice within the user-approved 7.16.0 refactor; it does not create another build tag. See D107 for the explicit MINOR-version exception.
+
+**Validation:** typecheck, production build, and regression-suite results are recorded at completion.
+
+## D109 — [QA Studio architecture] Extract preview iframe bridge (7.16.0)
+
+**Decision:** move the iframe bridge script and preview-document assembly into `features/preview-bridge/preview-document.ts`. Keep React message handling and app state in `app/page.tsx`. Pass the current embedded HTML and bridge token into the module so it does not select a build or read UI state itself. Preserve the injected script, token substitution, JSZip realm workaround, and host message contract.
+
+**Versioning:** this is another behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** typecheck, production build, and bridge/map regression results are recorded at completion.
+
+## D110 — [QA Studio architecture] Extract host preview message handling (7.16.0)
+
+**Decision:** move host-side iframe message subscription, protocol dispatch, and initial readiness ping into `features/preview-bridge/use-preview-messages.ts`. Keep React state ownership in `app/page.tsx` and supply refs, state setters, and stable preview callbacks to the hook. Preserve token checks, request guards, theme/map synchronization, pending package loading, and generated teaser frame handling.
+
+**Versioning:** follow-up behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed (lint reports existing warnings). `npm test` reports 238 passed and 8 failed; failures are in existing feedback markup, CTV/OTT renderer profile, preview playback source assertions, validator registry, and Mapbox popup layering expectations. The new host-message hook contract test passes. The build retains the existing 500 kB chunk-size warning.
+
+## D111 — [QA Studio architecture] Extract CTV/OTT renderer client (7.16.0)
+
+**Decision:** move same-origin renderer health checks, CTV/OTT render requests, response parsing, object-URL creation, and connection/API error formatting into `features/ctv-ott/render-package.ts`. Keep package format detection, render status state, stale-request checks, and object-URL cleanup in `app/page.tsx`. Preserve the existing endpoints, request headers, concurrent format rendering, and user-facing messages.
+
+**Versioning:** follow-up behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed (lint reports existing warnings). CTV/OTT host and renderer tests passed 15/15. `npm test` reports 241 passed and 7 failed; failures remain in feedback markup, preview playback source assertions, validator registry, and Mapbox popup layering expectations. The stale hard-coded FFmpeg preview profile assertion was updated to follow the current preview pointer. No failure targets the extracted service. The build retains the existing 500 kB chunk-size warning.
+
+## D112 — [QA Studio architecture] Extract feedback bundle assembly (7.16.0)
+
+**Decision:** move feedback metadata generation, evidence file assembly, filename/path sanitization, duplicate attachment naming, ZIP compression, and archive filename generation into `features/feedback/create-feedback-bundle.ts`. Keep form validation, preview capture, browser download initiation, and submission state in `app/page.tsx`. Preserve the documented feedback archive schema and evidence selection. Reject `.` and `..` archive path segments so user-supplied filenames cannot create traversal paths inside the downloaded ZIP.
+
+**Versioning:** follow-up behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed (lint reports existing warnings). Focused feedback tests passed 12/12. `npm test` reports 246 passed and 4 failed; remaining failures are in preview playback source assertions, validator registry, and Mapbox popup layering expectations. Feedback flow assertions now follow the current preview pointer and UI contract. The build retains the existing 500 kB chunk-size warning.
+
+## D113 — [QA Studio architecture] Extract feedback submission client (7.16.0)
+
+**Decision:** move the existing Notion metadata POST request, typed payload contract, and API error parsing into `features/feedback/submit-feedback.ts`. Keep Box URL validation, form field preparation, loading/error/success state, and dialog rendering in `app/page.tsx`. Preserve the endpoint, request payload, and server response behavior. Update the feedback guide to distinguish the manual Box ZIP upload from the optional Notion metadata submission; the ZIP and evidence bytes remain in Box and are not posted to Notion.
+
+**Versioning:** follow-up behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed (lint reports existing warnings). Focused feedback tests passed 15/15. `npm test` reports 249 passed and 4 failed; remaining failures are in preview playback source assertions, validator registry, and Mapbox popup layering expectations. The build retains the existing 500 kB chunk-size warning.
+
+## D114 — [QA Studio architecture] Extract package review preparation (7.16.0)
+
+**Decision:** move package analysis, CTV/OTT format detection, and teaser media/layout preparation into `features/package-workflow/prepare-package-review.ts`, with artboard format detection in `features/ctv-ott/detect-package-formats.ts`. Keep upload guards, package reading, state reset/update, iframe map messaging, URL cleanup, and render handoff in `app/page.tsx`. Preserve package results and user-visible workflow.
+
+**Versioning:** follow-up behavior-preserving slice within the user-approved 7.16.0 refactor; no additional build tag is created. See D107 for the explicit MINOR-version exception.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed; lint reports the existing 17 warnings. Focused package/CTV tests passed 19/19. The preparation workflow was exercised against the `navigation_prototype_demo.zip`, `Natera_Signatera.psd.zip`, and `Natrelle_creative_psd.zip` project samples; the browser-only teaser layout functions were stubbed in this Node sample run and remain covered by the existing teaser tests. `npm test` reports 253 passed and 4 failed; remaining failures are in preview playback source assertions, offline renderer validation, and Mapbox popup layering. The build retains the existing 500 kB chunk-size warning.
+
+## D115 — [QA Studio architecture] Extract feedback form and state (7.16.0)
+
+**Decision:** move feedback case definitions, reference and affected-file helpers, feedback form state/actions, dialog UI, and screenshot message exchange out of `app/page.tsx` into the `features/feedback/` feature. The page continues to own the menu entry and supplies current package, preview, theme, build, frame, and bridge token context. Preserve the existing feedback flow and user-visible behavior.
+
+**Versioning:** behavior-preserving continuation of the user-approved 7.16.0 architecture refactor; no additional build tag is created.
+
+**Validation:** `npm run typecheck`, `npm run build`, and `npm run lint` passed; lint reports 14 existing warnings outside the changed files, and the build retains the existing 500 kB chunk warning. Focused feedback tests passed 19/19. Feedback package-evidence selection was exercised with `navigation_prototype_demo.zip` (0 files selected), `Natera_Signatera.psd.zip` (47 files selected), and `Natrelle_creative_psd.zip` (2 files selected). The full suite reports 257 passed and 4 failed: current standalone lifecycle/cache assertion, Compare mute policy assertion, offline renderer registry/engine assertion, and Mapbox Streets popup layering assertion. No feedback test failed.
+
+## D116 — [Package loading] Keep expanded package assets in Preview (7.16.1)
+
+**Evidence:** Large packages made the workspace unresponsive and then crashed the browser after loading. The host expanded the whole ZIP for review, retained every extracted file in feedback state, and sent another full ZIP copy to the Preview iframe. Preview then expanded all assets into Blob URLs.
+
+**Decision:** QA Studio now reads only ZIP-directory metadata and `export.json`. It transfers the same source buffer to Preview after review preparation; Preview remains the owner of expanded image and video bytes. The host preserves asset inventory, analysis, and CTV/OTT detection without retaining a second expanded asset set.
+
+**Versioning:** Patch build 7.16.1. The embedded renderer is carried forward from 7.16.0 with its build identity updated.
+
+**Validation:** `npm run typecheck` and `npm run build` pass. Full tests report 257 passed and 4 known baseline failures: standalone lifecycle/cache, Compare mute policy, offline renderer registry/engine, and Mapbox popup layering. The build retains the existing 500 kB chunk warning.
+
+## D117 — [Teasers] Load media on demand (7.16.2)
+
+**Evidence:** D116 correctly removed the duplicate expanded package from the host, but Teasers still read its media from the initial host package state. The Teasers workspace therefore reported valid video files as missing.
+
+**Decision:** when Teasers is opened, QA Studio extracts only the package's teaser video, poster, branding, peel, pre-qualifier, and disclaimer files. This restores the Teaser preview without retaining those files while the reviewer is in Overview, Findings, Assets, or Main Unit.
+
+**Versioning:** Patch build 7.16.2. The embedded renderer is carried forward from 7.16.1 with its build identity updated.
+
+## D118 — [Map preview] Load map assets and anchor popups (7.16.3)
+
+**Evidence:** The package reader extracted `export.json` only and passed that single file into map configuration. A map package therefore produced map components with no store feed or pin artwork, leaving the location maps without the data and image assets needed to render. The Mapbox popup anchor had also drifted from the documented placement and added a fixed horizontal offset. After the bridge extraction, the old source test additionally expected popup CSS no longer used by the bridge.
+
+**Decision:** Extract only the `data.json` feeds and role artwork referenced by detected location maps, then pass those files to the existing map config builder. Keep unrelated package assets lazy. Use the production popup anchor `[popupWidth / 2 + 9, -iconHeight]`, with zero Leaflet popup offset, so the bubble tail follows the rendered pin height. Keep the `theme-bubble` class, whole-popup shadow, and custom production tip. Cover selective archive extraction, standard and scaled pin heights, and the bridge's current popup styling.
+
+**Validation:** Focused map, current-preview, and package-workflow tests pass (21/21); typecheck and production build pass. Archive inspection confirmed the Vivarin sample now yields five maps, 15 stores, and five pin artworks; two non-map samples correctly yield no map assets. In the browser, all five artboards rendered Mapbox tiles, store pins, and the default Walgreens popup. Full suite: 260 passed, 3 failed in the known standalone lifecycle assertion, Compare mute source assertion, and archived offline registry assertion.
+
+**Versioning:** Patch build 7.16.3. The embedded HTML is carried forward from 7.16.2 with only its `PREVIEW_BUILD` identity updated; the map correction is in the QA Studio host bridge.
+
+## D119 — [Playback tests] Follow the current preview pointer (7.16.3 maintenance)
+
+**Evidence:** Two playback source tests were described as checking the current renderer but hard-coded historical `turbo-preview-7.15.3.html`. They failed because that old artifact no longer contains the current lifecycle source. The failure did not demonstrate a standalone-preview or Compare-mode playback defect; the current 7.16.3 artifact contains the tested lifecycle, and the user confirmed Compare behavior works.
+
+**Decision:** Resolve the artifact path from `preview/current-preview.ts` in the playback tests, and name the checks for the current preview artifact. Keep historical 7.15.3 unchanged. No application code or runtime version change is needed.
+
+**Validation:** Playback tests pass 18/18. Full suite: 262 passed, 1 failed in the remaining archived offline-registry parity test.
+
+## D120 — [Package contracts] Share package types and size limit (7.16.4)
+
+**Evidence:** the 600 MB package limit was repeated in the ZIP reader and QA analyzer. Shared package types were owned by `features/package-loading/` but imported by unrelated teaser, feedback, and CTV/OTT features; the reader also depended on teaser-owned byte types. The technical spec still described an active `preview.js` standalone line and three duplicated renderer files, although those files are not current workspace entry points and the root `index.html` loads QA Studio.
+
+**Decision:** place shared package contracts in `types/package.ts`, put the single 600 MB limit in `config/package.ts`, and consume both from the reader, analyzer, and app. Keep raw nested Photoshop descriptors unknown at the external boundary. Correct the current architecture docs while retaining the old feature matrix as historical reference. Preserve package acceptance and QA findings.
+
+**Versioning:** patch build 7.16.4. Keep `preview/archive/turbo-preview-7.16.3.html` unchanged; the 7.16.4 artifact carries its renderer forward with only `PREVIEW_BUILD` updated.
+
+**Validation:** `npm run typecheck` passes. Package-analysis, format-detection, map, and teaser checks pass 50/50; the full suite passes 263/263. `npm run build` passes with the existing 500 kB chunk warning. Direct read/analyze smoke checks pass for `navigation_prototype_demo.zip`, `Natrelle_creative_psd.zip`, and `vivarian_map.zip`. The normalized artifact comparison confirms 7.16.4 differs from 7.16.3 only in `PREVIEW_BUILD`; `git diff --check` passes.
+
+## D121 — [Analyzer boundaries] Extract text and consistency analysis (7.16.5)
+
+**Evidence:** `lib/qa-engine.ts` mixed text-risk diagnostics, cross-size comparison, finding explanations, asset validation, and package summary construction in one module. Its tests exercise the analyzer as a stable public function, so internal separation can reduce coupling without changing the result contract.
+
+**Decision:** Extract text diagnostics, cross-size consistency checks, asset-reference and budget analysis, byte formatting, and finding guidance into `lib/qa-engine/` modules. Keep `analyzePackage`, `formatBytes`, and public result types available from `lib/qa-engine.ts`. Preserve finding content, ordering, IDs, and package summary behavior. Keep the existing 7.16.4 preview artifact unchanged and advance only the pointer to a new 7.16.5 copy after validation.
+
+**Versioning:** Patch build 7.16.5. The embedded renderer is copied from 7.16.4 with only `PREVIEW_BUILD` changed; this host-side refactor does not alter preview behavior.
+
+**Validation:** Focused analyzer tests pass 34/34, including new coverage for tab-wide element and copy consistency. The project test command passes 263/263; typecheck and production build pass. Lint reports 0 errors and 15 existing warnings. The current artifact is 686,958 bytes and matches 7.16.4 after normalizing only `PREVIEW_BUILD`; pointer and declared build agree. Direct read/analyze smoke checks complete for `ipsen_new.psd.zip` (8 artboards), `Cosentyx_DTC.zip` (8), and `IONIS_tryngolza.zip` (8). `git diff --check` passes.
+
+## D122 — [Review view model] Separate finding and asset selectors from page UI (7.16.6)
+
+**Evidence:** `app/page.tsx` contained findings search and facet filtering, grouping, facet construction, asset filtering, severity counts, and context-label formatting alongside React state and rendering. These calculations are pure and can be tested independently without changing page-owned state or UI.
+
+**Decision:** Move those calculations into `features/findings/finding-view-model.ts`. Keep React state, event handling, and rendering in `app/page.tsx`. Preserve filtering order, group keys and labels, facet ordering, and asset scope semantics.
+
+**Versioning:** Patch build 7.16.6. Keep the 7.16.5 preview artifact unchanged; the 7.16.6 artifact carries it forward with only `PREVIEW_BUILD` updated.
+
+**Validation:** Focused view-model tests pass 5/5. The project test suite passes 268/268; typecheck and production build pass. Lint reports 0 errors and 15 warnings in other files. The 7.16.6 artifact is 686,958 bytes and matches 7.16.5 after normalizing only `PREVIEW_BUILD`; the runtime pointer matches. Smoke checks combine package analysis with the new selectors for `ipsen_new.psd.zip` (8 sizes), `Cosentyx_DTC.zip` (8), and `IONIS_tryngolza.zip` (8). `git diff --check` passes.
+
+## D123 — [Preview bridge boundaries] Extract map bridge source (7.16.7)
+
+**Evidence:** `features/preview-bridge/preview-document.ts` combined general iframe message and capture handling with Leaflet loading, popup styling, and map overlay generation. The map behavior is independently testable and should not be interleaved with unrelated host-to-preview messages.
+
+**Decision:** Move map setup, rendering, lifecycle, and map-config handling into `features/preview-bridge/map-preview-bridge.ts`. Keep general message dispatch and document assembly in `preview-document.ts`. Preserve generated JavaScript behavior, map lifecycle, CSS, anchor calculations, and message ordering.
+
+**Versioning:** Patch build 7.16.7. Keep the 7.16.6 artifact unchanged; copy it forward with only `PREVIEW_BUILD` updated.
+
+**Validation:** The project test suite passes 268/268; TypeScript checking and the production build pass. Lint reports 0 errors and 15 warnings in unrelated files. Focused map bridge and screenshot capture tests pass within the full suite. The 7.16.7 preview artifact carries forward 7.16.6 with only `PREVIEW_BUILD` changed, and the runtime pointer selects 7.16.7. In the approved `vivarian_map.zip` sample, Main Unit loads and the tab3 map and location popup render in the browser. Visual smoke coverage was limited to this one package; remaining sample archive checks were not repeated for this extraction-only change. `git diff --check` passes.
+
+## D124 — [CTV/OTT renderer] Bound captured subprocess diagnostics (7.16.8)
+
+**Evidence:** The local renderer crashed at `scripts/ctv-ott-renderer.mjs` while appending FFmpeg stderr to an unbounded string. Node raised `RangeError: Invalid string length`, after which the Vite proxy reported `ECONNREFUSED` for the renderer on port 4177. The QA Studio app itself remained available.
+
+**Decision:** Retain only the most recent 64 KiB of subprocess stderr. This preserves useful failure diagnostics while preventing verbose FFmpeg output from exhausting the process string limit. A renderer failure remains isolated to CTV/OTT; the app and other review features stay usable.
+
+**Versioning:** Patch build 7.16.8. Keep the 7.16.7 preview artifact unchanged; carry it forward with only `PREVIEW_BUILD` updated. Renderer logic is updated in the current service source.
+
+**Validation:** Focused bounded-output tests pass 2/2 and the full suite passes 270/270. TypeScript checking and production build pass; lint reports 0 errors and 15 warnings already present in unrelated code (including an unused renderer binding outside this change). CTV renders pass for `IONIS_tryngolza.zip` (CTV), `tryptryDTC.psd.zip` (OTT), and `label-notVisible.zip` (CTV). The 7.16.8 preview HTML is 686,958 bytes and matches 7.16.7 after normalizing only `PREVIEW_BUILD`; the runtime pointer and inventory agree. `git diff --check` passes. The production build retains the existing large-chunk warning.
+
+
+## D125 — [Renderer service boundaries] Extract feedback service (7.16.9)
+
+**Evidence:** `scripts/ctv-ott-renderer.mjs` combined FFmpeg rendering and HTTP lifecycle with Notion pilot-session, Notion feedback-submission, and Box bundle-upload handling. These feedback integrations have independent payload validation, origin checks, and external API calls.
+
+**Decision:** Move feedback request parsing, validation, Notion API operations, and Box upload handling into `scripts/feedback-service.mjs`. Keep the renderer's health and render endpoints and shared JSON response format in `scripts/ctv-ott-renderer.mjs`; route the same three feedback paths through the extracted service. Preserve their URLs, origin policies, request/response contracts, size limits, and status mapping.
+
+**Versioning:** Patch build 7.16.9. Keep 7.16.8 as the previous release and carry its embedded preview forward with only `PREVIEW_BUILD` updated. The change is in the local host service, so the preview artifact has no intended behavior change.
+
+**Validation:** Focused feedback and CTV/OTT tests pass 29/29; the full suite passes 273/273. TypeScript checking and production build pass; lint reports 0 errors and 15 existing warnings. The renderer completes CTV renders for `IONIS_tryngolza.zip` (30.03 seconds) and `label-notVisible.zip` (75.776 seconds), plus an OTT render for `tryptryDTC.psd.zip` (60.127 seconds). The 7.16.9 artifact is 686,958 bytes and differs from 7.16.8 only by the `PREVIEW_BUILD` value; pointer and declared version agree. `git diff --check` passes. The build retains the existing large-chunk warning.
+
+## D126 — [Renderer startup] Load project settings on direct launch (7.16.10)
+
+**Evidence:** The feedback service returned `Notion feedback submissions are not configured.` while both `NOTION_API_TOKEN` and `NOTION_FEEDBACK_DATABASE_ID` were present in the project's `.env.local`. `scripts/preview-stack.mjs` loaded that file before spawning the app and renderer, but `scripts/ctv-ott-renderer.mjs` did not load it when started directly. The handler correctly returned 503 because its process environment lacked one or both settings.
+
+**Decision:** Add one shared `loadProjectEnv` helper and call it from the app stack launcher and the renderer itself. The renderer resolves `.env.local` from its project root, so direct launches receive the same local configuration. Preserve the standard process environment's precedence, server routes, feedback payload behavior, and user interface.
+
+**Versioning:** Patch build 7.16.10 based on confirmed 7.16.9. The embedded preview changes only its `PREVIEW_BUILD` identity.
+
+**Validation:** Focused environment, feedback, and CTV/OTT tests pass 16/16; the full suite passes 275/275. TypeScript checking and production build pass; lint reports 0 errors and 15 existing warnings. A direct renderer-start integration check removed inherited Notion variables, started the renderer as build 7.16.10, and received HTTP 403 for an untrusted-origin feedback request, confirming `.env.local` was loaded before the handler checked configuration. The running renderer on port 4177 was the stale 7.16.8 process; it was replaced with 7.16.10. The existing app proxy at port 5174 now reports renderer build 7.16.10, and its feedback endpoint returns the expected origin rejection instead of the configuration error. CTV renders pass for `IONIS_tryngolza.zip` (30.03 seconds) and `label-notVisible.zip` (75.776 seconds); OTT render passes for `tryptryDTC.psd.zip` (60.127 seconds). The 7.16.10 artifact is 686,959 bytes and matches 7.16.9 after normalizing only `PREVIEW_BUILD`; pointer and declared build agree. `git diff --check` passes. The production build retains its existing large-chunk warning.
+
+
+## D127 — [Workspace UI boundaries] Extract Overview, Findings, and Assets sections (7.16.11)
+
+**Evidence:** `app/page.tsx` mixed app-wide package workflows and navigation with the full markup for the Overview, Findings, and Assets workspaces. Those sections have independent typed data and action interfaces, while filtering, package state, and preview navigation are shared host concerns.
+
+**Decision:** Move the three screen presentations into `features/overview/overview-section.tsx`, `features/findings/findings-section.tsx`, and `features/assets/assets-section.tsx`. Keep shared package state, filtering calculations, and navigation callbacks in `app/page.tsx`, and pass explicit typed props into each section. Preserve visible controls and behavior. This is a structural refactor only.
+
+**Versioning:** Patch build 7.16.11 based on confirmed 7.16.10. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated.
+
+**Validation:** Focused section-boundary checks pass 3/3; full suite passes 278/278. TypeScript checking and production build pass. Lint reports 0 errors and 15 warnings (existing app hook, image, and unused-code warnings; no warnings originate in the new section modules). The production build retains the large JavaScript chunk warning. `git diff --check` passes. Sample ZIP package analysis plus Findings grouping and Assets filtering pass for navigation_prototype_demo.zip (0 sizes, 2 findings, 30 assets), Natera_Signatera.psd.zip (8 sizes, 73 findings, 125 assets), and vivarian_map.zip (5 sizes, 71 findings, 137 assets). These are data-flow smoke checks; package ingestion, preview rendering, and embedded renderer behavior are unchanged by this view-only extraction.
+
+## D128 — [Teaser lifecycle boundary] Extract lazy media workflow (7.16.12)
+
+**Evidence:** `app/page.tsx` still contained Teaser-only ZIP asset selection and extraction, teaser media/layout state, generated mobile-instream frame coordination, retry/error state updates, and teaser object-URL cleanup. Package analysis, the Teaser presentation, and base package preparation were already separated in D108, D112, and D117.
+
+**Decision:** Move Teaser-specific state, lazy extraction, media/layout URL cleanup, and generated mobile-instream coordination into `features/teasers/use-teaser-workflow.ts`. Put the reusable package asset-name selection rule in `features/teasers/select-assets.ts`. Keep package replacement, overall package state, and workspace navigation in `app/page.tsx`; keep cross-frame message subscription in `features/preview-bridge/use-preview-messages.ts`. Preserve the rule that teaser assets are extracted only after Teasers is opened.
+
+**Versioning:** Patch build 7.16.12 based on confirmed 7.16.11. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated.
+
+**Validation:** Focused teaser workflow, message-bridge, and asset-selection checks pass 7/7; full suite passes 281/281. TypeScript checking and production build pass. Lint reports 0 errors and 15 existing warnings; the new Teasers hook and asset selector introduce no lint warnings. Three sample ZIPs exercised the actual selector: navigation prototype (0 teaser assets), Natera Signatera (4), and Vivarian Map (6). The production build retains the large JavaScript chunk warning. `git diff --check` passes.
+
+## D129 — [CTV/OTT lifecycle boundary] Extract host preview workflow (7.16.13)
+
+**Evidence:** `app/page.tsx` owned CTV/OTT format, video, status, and error state; render orchestration; stale-request checks; retry behavior; and temporary object-URL cleanup. Those responsibilities mixed the CTV/OTT workflow with application composition even though the renderer client and format detector already lived in the feature folder.
+
+**Decision:** Move CTV/OTT workflow state and operations into `features/ctv-ott/use-ctv-ott-workflow.ts`. The hook owns reset on package change, missing/rendering/ready/error states, stale-response rejection, retry-on-open, and cleanup of generated video URLs. Keep UI composition and user-facing messages in the app and keep renderer requests in `render-package.ts`. Preserve existing behavior.
+
+**Versioning:** Patch build 7.16.13 based on confirmed 7.16.12. The embedded HTML is carried forward with only `PREVIEW_BUILD` updated; all code changes are in the QA Studio host.
+
+**Validation:** Focused CTV/OTT and current-preview checks pass 22/22; the full suite passes 281/281. TypeScript checking and production build pass. Lint reports 0 errors and 15 existing warnings; neither the CTV/OTT hook nor its workflow test adds a warning. Three sample ZIPs exercise CTV/OTT detection: navigation prototype (no CTV/OTT formats), Natera Signatera (OTT), and Vivarian Map (CTV and OTT). The 7.16.13 artifact is 686,959 bytes and matches 7.16.12 after normalizing only `PREVIEW_BUILD`; pointer and declared version agree. The production build retains the large JavaScript chunk warning. `git diff --check` passes.

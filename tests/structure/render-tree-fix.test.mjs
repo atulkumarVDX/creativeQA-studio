@@ -119,6 +119,7 @@ test('fix package loader resolves a missing PNG to its available Retina asset',(
 test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=>{
  const fixture=JSON.parse(readFileSync('tests/fixtures/spiriva-300x250-logo.json','utf8'));
  const data={document:fixture.document,rawLayers:fixture.rawLayers};
+ const bridge=readFileSync('features/preview-bridge/preview-document.ts','utf8');
  const names=new Set(fixture.archiveEntries);
  assert.equal(names.has('background-31086.png'),false);
  assert.equal(names.has('background-31086-2x.png'),true);
@@ -152,10 +153,10 @@ test('SPIRIVA 300x250 client logo mounts from its Retina-only package asset',()=
  assert.match(readFileSync('app/page.tsx','utf8'),/import \{ currentPreview \} from "\.\.\/preview\/current-preview"/);
  assert.doesNotMatch(readFileSync('app/page.tsx','utf8'),/import\.meta\.glob/);
  assert.match(readFileSync('app/page.tsx','utf8'),/onClick=\{\(\) => setActiveTab\("preview"\)\}><ImageIcon \/> Main Unit/);
- assert.match(readFileSync('app/page.tsx','utf8'),/const selectedSize = Array\.from\(document\.querySelectorAll\("#sizePicker \.chip"\)\)/);
- assert.match(readFileSync('app/page.tsx','utf8'),/Teaser generation temporarily selects mobile-instream/);
- assert.match(readFileSync('app/page.tsx','utf8'),/const previousTransform = stage\.style\.transform;[\s\S]*?stage\.style\.transform = "none";[\s\S]*?stage\.style\.transform = previousTransform;/);
- assert.match(readFileSync('app/page.tsx','utf8'),/const videoLayer = Array\.from\(stage\.querySelectorAll\("\.cp-video"\)\)[\s\S]*?videoTarget/);
+ assert.match(bridge,/const selectedSize = Array\.from\(document\.querySelectorAll\("#sizePicker \.chip"\)\)/);
+ assert.match(bridge,/Teaser generation temporarily selects mobile-instream/);
+ assert.match(bridge,/const previousTransform = stage\.style\.transform;[\s\S]*?stage\.style\.transform = "none";[\s\S]*?stage\.style\.transform = previousTransform;/);
+ assert.match(bridge,/const videoLayer = Array\.from\(stage\.querySelectorAll\("\.cp-video"\)\)[\s\S]*?videoTarget/);
  assert.match(readFileSync('components/teaser-preview.tsx','utf8'),/matrix\(\$\{scaleX\}, 0, 0, \$\{scaleY\}, \$\{translateX\}, \$\{translateY\}\)/);
  assert.match(readFileSync('app/page.tsx','utf8'),/tqa:focus-finding/);
  assert.match(readFileSync('preview/archive/turbo-preview-7.8.19.html','utf8'),/function openQaFinding\(finding\)/);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
+import ts from 'typescript';
 
 const require = createRequire(import.meta.url);
 const { parse } = require('@babel/parser');
@@ -168,9 +169,12 @@ test('PNG memory budget stops the run without dropping completed frames', async 
 });
 
 test('iframe bridge answers late readiness pings and creates package events in its own realm', () => {
-  const page = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8');
-  const pageAst = parse(page, { sourceType: 'module', plugins: ['typescript', 'jsx'] });
-  const declaration = pageAst.program.body.find(node => node.type === 'VariableDeclaration' && node.declarations.some(item => item.id.name === 'bridgeScript'));
+  const bridgeModule = readFileSync(new URL('../../features/preview-bridge/preview-document.ts', import.meta.url), 'utf8');
+  const mapBridgeModule = readFileSync(new URL('../../features/preview-bridge/map-preview-bridge.ts', import.meta.url), 'utf8');
+  const pageAst = parse(bridgeModule, { sourceType: 'module', plugins: ['typescript'] });
+  const mapBridgeAst = parse(mapBridgeModule, { sourceType: 'module', plugins: ['typescript'] });
+  const declaration = pageAst.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'buildPreviewBridgeScript');
+  const mapDeclaration = mapBridgeAst.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'buildMapPreviewBridgeSource');
   const listeners = new Map(), messages = [], dispatched = [], themeClicks = [];
   const input = { files: null, dispatchEvent(event) { dispatched.push(event.type); } };
   const elements = {
@@ -185,7 +189,15 @@ test('iframe bridge answers late readiness pings and creates package events in i
     Event: class { constructor(type) { this.type = type; } },
     DataTransfer: class { constructor() { this.files = []; this.items = { add: file => this.files.push(file) }; } },
   });
-  vm.runInContext(page.slice(declaration.start, declaration.end) + '\nwindow.testBridge = bridgeScript;', frame);
+  const bridgeBuilder = ts.transpileModule(
+    bridgeModule.slice(declaration.start, declaration.end).replace(/^export\s+/, ''),
+    { compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 } },
+  ).outputText;
+  const mapBridgeBuilder = ts.transpileModule(
+    mapBridgeModule.slice(mapDeclaration.start, mapDeclaration.end).replace(/^export\s+/, ''),
+    { compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2020 } },
+  ).outputText;
+  vm.runInContext(mapBridgeBuilder + '\n' + bridgeBuilder + '\nwindow.testBridge = buildPreviewBridgeScript(BRIDGE_TOKEN);', frame);
   const bridgeJs = frame.window.testBridge.replace(/^\s*<script>/, '').replace(/<\/script>\s*$/, '');
   vm.runInContext(bridgeJs, frame);
   const notify = listeners.get('message');
@@ -207,12 +219,12 @@ test('iframe bridge answers late readiness pings and creates package events in i
 test('parent transfers a package without assigning foreign-realm input events', async () => {
   const page = readFileSync(new URL('../../app/page.tsx', import.meta.url), 'utf8');
   const start = page.indexOf('async function loadPreviewFile(');
-  const end = page.indexOf('\nfunction SeverityIcon', start);
-  const source = page.slice(start, end).replace('frame: HTMLIFrameElement | null, file: File', 'frame, file');
+  const end = page.indexOf('\nfunction ctvOttViewLabel', start);
+  const source = page.slice(start, end).replace('frame: HTMLIFrameElement | null, file: File, buffer: ArrayBuffer', 'frame, file, buffer');
   const transfer = vm.createContext({ BRIDGE_TOKEN: previewToken });
   vm.runInContext(source, transfer);
   const messages = [], buffer = new ArrayBuffer(4);
-  await transfer.loadPreviewFile({ contentWindow: { postMessage(...args) { messages.push(args); } } }, { name: 'fixture.zip', type: 'application/zip', async arrayBuffer() { return buffer; } });
+  await transfer.loadPreviewFile({ contentWindow: { postMessage(...args) { messages.push(args); } } }, { name: 'fixture.zip', type: 'application/zip' }, buffer);
   assert.equal(messages[0][0].buffer, buffer);
   assert.equal(messages[0][0].token, previewToken);
   assert.equal(messages[0][2][0], buffer);

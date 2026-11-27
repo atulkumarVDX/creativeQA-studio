@@ -1,14 +1,13 @@
 # Preview Build Inventory
 
-**Current QA Studio release:** `preview/turbo-preview-7.15.10.html` (based on 7.15.9; uses Mapbox.js Streets styleLayer and resolves location feeds per map)
 **Runtime pointer:** `preview/current-preview.ts`
-**Inventory date:** 2026-11-20
+**Inventory date:** 2026-11-27
 
 The current CTV/OTT design and technical contract is [CTV/OTT Consolidated Spec](CTV-OTT-Consolidated-Spec.md). Version numbers below identify both the embedded HTML and companion renderer; an HTML-only comparison cannot establish motion parity.
 
 ## Runtime and archive policy
 
-QA Studio imports only the source named by `preview/current-preview.ts`. The active folder retains the current release (`7.15.5`) plus the two immediately preceding releases (`7.15.4` and `7.15.3`) for quick comparison. All older HTML builds are stored under `preview/archive/`. Regression tests may read historical files directly from that archive; app code must not import the archive.
+QA Studio imports only the source named by `preview/current-preview.ts`. The active folder retains the current release (`7.16.13`) plus the two immediately preceding releases (`7.16.12` and `7.16.11`) for quick comparison. All older HTML builds are stored under `preview/archive/`. Regression tests may read historical files directly from that archive; app code must not import the archive.
 
 “Unique” below means the complete HTML has a content hash not shared by another inventoried build after normalizing only the `const PREVIEW_BUILD = "…"` declaration. It is a byte-level implementation distinction, not a claim that every difference is behaviorally meaningful.
 
@@ -16,7 +15,21 @@ QA Studio imports only the source named by `preview/current-preview.ts`. The act
 
 | Filename | Bytes | Declared build | Location | Role |
 |---|---:|---:|---|---|
-| `turbo-preview-7.15.10.html` | 686,959 | 7.15.10 | `preview/` | Current patch. Carries the 7.15.9 renderer forward with updated build identity; host map setup uses `L.mapbox.styleLayer` for Streets v11 and resolves each location map's data feed (D106). |
+| `turbo-preview-7.16.13.html` | 686,959 | 7.16.13 | `preview/` | Current patch. Carries 7.16.12 forward with only the build identity updated; host CTV/OTT workflow state is isolated in `features/ctv-ott/use-ctv-ott-workflow.ts` (D129). |
+| `turbo-preview-7.16.12.html` | 686,959 | 7.16.12 | `preview/` | Retained patch. Carries 7.16.11 forward with only the build identity updated; host teaser lifecycle is isolated in `features/teasers/use-teaser-workflow.ts` (D128). |
+| `turbo-preview-7.16.11.html` | 686,959 | 7.16.11 | `preview/` | Retained patch. Carries 7.16.10 forward with only the build identity updated; host Overview, Findings, and Assets presentation is extracted into typed feature components (D127). |
+| `turbo-preview-7.16.10.html` | 686,959 | 7.16.10 | `preview/archive/` | Historical patch. Carries 7.16.9 forward with only the build identity updated; renderer startup now loads project `.env.local` settings even when launched directly. |
+| `turbo-preview-7.16.9.html` | 686,958 | 7.16.9 | `preview/archive/` | Historical patch. Carries 7.16.8 forward with only the build identity updated; feedback endpoints are separated into `scripts/feedback-service.mjs`, with behavior unchanged. |
+| `turbo-preview-7.16.8.html` | 686,958 | 7.16.8 | `preview/archive/` | Historical patch. Carries 7.16.7 forward with only the build identity updated; the companion renderer now bounds captured subprocess stderr. |
+| `turbo-preview-7.16.7.html` | 686,958 | 7.16.7 | `preview/archive/` | Historical patch. Carries the 7.16.6 renderer forward with only the build identity updated; host map bridge generation is separated from general document assembly. |
+| `turbo-preview-7.16.6.html` | 686,958 | 7.16.6 | `preview/archive/` | Historical patch. Carries the 7.16.5 renderer forward with only the build identity updated; host findings and asset review calculations are in a pure view-model module. |
+| `turbo-preview-7.16.5.html` | 686,958 | 7.16.5 | `preview/archive/` | Historical patch. Carries the 7.16.4 renderer forward with only the build identity updated; host analyzer logic is split into text, consistency, asset, and finding modules. |
+| `turbo-preview-7.16.4.html` | 686,958 | 7.16.4 | `preview/archive/` | Historical patch. Carries 7.16.3 renderer forward with only the build identity updated; host package types and the 600 MB limit are shared. |
+| `turbo-preview-7.16.3.html` | 686,958 | 7.16.3 | `preview/archive/` | Historical patch. Carries the 7.16.2 embedded renderer forward; host map popup placement accounts for popup width and rendered pin height. |
+| `turbo-preview-7.16.2.html` | 686,958 | 7.16.2 | `preview/archive/` | Historical patch. Teaser assets are extracted only after Teasers is opened (D117). |
+| `turbo-preview-7.16.1.html` | 686,958 | 7.16.1 | `preview/archive/` | Historical patch. QA Studio retains ZIP metadata and `export.json`; Preview owns expanded package assets (D116). |
+| `turbo-preview-7.16.0.html` | 686,958 | 7.16.0 | `preview/archive/` | Historical Set 2 minor baseline; see D107–D115. |
+| `turbo-preview-7.15.10.html` | 686,959 | 7.15.10 | `preview/` | Retained patch. Carries the 7.15.9 renderer forward with updated build identity; host map setup uses `L.mapbox.styleLayer` for Streets v11 and resolves each location map's data feed (D106). |
 | `turbo-preview-7.15.9.html` | 686,958 | 7.15.9 | `preview/` | Retained predecessor. Carries the 7.15.8 renderer forward with updated build identity; Mapbox tile failure handling is implemented in the QA Studio host. |
 | `turbo-preview-7.15.8.html` | 686,958 | 7.15.8 | `preview/` | Retained patch. Carries 7.15.7 renderer forward with updated build identity; duration tolerance is implemented in the QA Studio host (D105). |
 | `turbo-preview-7.15.7.html` | 686,958 | 7.15.7 | `preview/` | Retained patch. Centers all teaser cards in one parent and places lower sizes in D104 order. |
@@ -100,8 +113,8 @@ The groups above were compared across the full file after normalizing only the b
 
 ## Cleanup disposition
 
-- **Current/runtime-retained:** `preview/turbo-preview-7.15.5.html`, `preview/turbo-preview-7.15.4.html`, `preview/turbo-preview-7.15.3.html`, and `preview/current-preview.ts`.
-- **Older patch files:** all builds through 7.15.2 are stored under `preview/archive/` and are not runtime imports.
+- **Current/runtime-retained:** `preview/turbo-preview-7.16.13.html`, `preview/turbo-preview-7.16.12.html`, `preview/turbo-preview-7.16.11.html`, and `preview/current-preview.ts`. The pointer selects 7.16.13.
+- **Older patch files:** all builds through 7.16.10 are stored under `preview/archive/` and are not runtime imports.
 - **Archived:** historical releases, including the preserved 7.11.1 baseline.
 - **Removed:** none.
 - **Retained duplicate baselines:** 7.8.1/7.8.2, 7.8.15/7.8.16, and 7.9.7/7.9.8 remain because documentation or regression tests distinguish their release identities.
@@ -185,3 +198,27 @@ Patch based on user-confirmed 7.15.8. Preserves the original Streets v11 tile UR
 ## 7.15.10
 
 Patch based on 7.15.9. The host map adapter loads Streets v11 through Mapbox.js `L.mapbox.styleLayer` using the production style URL, with 512px tiles and the existing `zoomOffset: -1`. Each map receives the feed referenced by its data marker when multiple `data.json` files are present. A single-feed package remains supported; an ambiguous multi-feed package renders its no-data state rather than using an unrelated first feed. The embedded renderer is carried forward with only `PREVIEW_BUILD` updated. See D106 for evidence and validation status.
+
+## 7.16.0
+
+Minor release approved by the user as an explicit exception to capability-based semver criteria. QA Studio's ZIP reader lives in `features/package-loading/read-package.ts`; package review preparation lives in `features/package-workflow/`; teaser disclaimer, layout, and media preparation live in `features/teasers/`; iframe document assembly and host message handling live in `features/preview-bridge/`; CTV/OTT format detection and renderer requests live in `features/ctv-ott/`; feedback catalog, form state, dialog UI, bundle assembly, and submission logic live in `features/feedback/`. Package UI state and workflow handoffs remain in `app/page.tsx`. Package and preview behavior are intended to remain unchanged. The embedded renderer is carried forward from 7.15.10 with only `PREVIEW_BUILD` updated. See D107–D115.
+
+## 7.16.9
+
+Patch based on confirmed 7.16.8. The companion service moves feedback request parsing, validation, Notion operations, and Box uploads into `scripts/feedback-service.mjs`; the renderer retains its health and FFmpeg render routes. Endpoint contracts and preview behavior are preserved. The HTML is copied forward with only `PREVIEW_BUILD` changed. See D125.
+
+## 7.16.10
+
+Patch based on confirmed 7.16.9. A shared environment loader is called by both `scripts/preview-stack.mjs` and `scripts/ctv-ott-renderer.mjs`, so the renderer gets `.env.local` values when launched directly as well as through the app stack. Existing process environment values keep precedence. Preview behavior is unchanged. See D126.
+
+## 7.16.11
+
+Patch based on confirmed 7.16.10. Overview, Findings, and Assets presentation is extracted from `app/page.tsx` into typed feature components. Shared host state and navigation remain in the page; existing interactions are preserved. The embedded renderer differs from 7.16.10 only by its build identity. See D127.
+
+## 7.16.13
+
+Patch based on confirmed 7.16.12. The CTV/OTT feature hook owns preview render state, retry behavior, stale-request rejection, and generated video URL cleanup. The page retains UI composition and package workflow handoffs. The embedded renderer differs from 7.16.12 only by its build identity. See D129.
+
+## 7.16.12
+
+Patch based on confirmed 7.16.11. The Teasers hook owns lazy extraction of teaser assets, object-URL lifecycle, and generated mobile-instream preview coordination. The page retains package loading and workspace navigation. The embedded renderer differs from 7.16.11 only by its build identity. See D128.

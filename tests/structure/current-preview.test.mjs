@@ -4,19 +4,22 @@ import test from "node:test";
 
 const pointer = readFileSync("preview/current-preview.ts", "utf8");
 const page = readFileSync("app/page.tsx", "utf8");
-const current = readFileSync("preview/turbo-preview-7.15.10.html", "utf8");
+const currentFile = pointer.match(/path: "preview\/(turbo-preview-[^"]+\.html)"/)?.[1];
+const currentVersion = pointer.match(/version: "([^"]+)"/)?.[1];
+assert.ok(currentFile && currentVersion, "current preview pointer must declare its file and version");
+const current = readFileSync(`preview/${currentFile}`, "utf8");
 
 test("QA Studio uses one explicit current-preview pointer", () => {
-  assert.match(pointer, /import previewSource from "\.\/turbo-preview-7\.15\.10\.html\?raw"/);
-  assert.match(pointer, /version: "7\.15\.10"/);
-  assert.match(pointer, /path: "preview\/turbo-preview-7\.15\.10\.html"/);
+  assert.match(pointer, new RegExp(`import previewSource from "\\.\\/${currentFile.replaceAll(".", "\\.")}\\?raw"`));
+  assert.match(pointer, new RegExp(`version: "${currentVersion}"`));
+  assert.match(pointer, new RegExp(`path: "preview/${currentFile.replaceAll(".", "\\.")}"`));
   assert.match(page, /import \{ currentPreview \} from "\.\.\/preview\/current-preview"/);
   assert.doesNotMatch(page, /import\.meta\.glob/);
   assert.doesNotMatch(page, /preview\/archive/);
 });
 
 test("the pointer metadata and current build badge agree", () => {
-  assert.match(current, /const PREVIEW_BUILD = "7\.15\.10"/);
+  assert.match(current, new RegExp(`const PREVIEW_BUILD = "${currentVersion}"`));
   assert.match(current, /id="buildVersionTag"/);
   assert.match(current, /window\.CSM_PREVIEW_BUILD = PREVIEW_BUILD/);
   assert.match(page, /const PREVIEW_VERSION = currentPreview\.version/);
